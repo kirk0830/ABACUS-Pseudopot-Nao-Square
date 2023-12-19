@@ -1,3 +1,5 @@
+"""From input script to generate initial work_status dictionary"""
+
 import module_io.work_status_expand as wse
 import module_structure.materials_project as mp
 import json

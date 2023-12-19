@@ -37,7 +37,7 @@ def import_info_to_test_status(
         }
     return test_status
 
-def generate_test_status(work_status: dict) -> dict:
+def to_test_status(work_status: dict) -> dict:
 
     test_status = {
         "tests": {},
