@@ -2,7 +2,7 @@
 or API will be blocked permenantly someday.
 """
 
-from module_workflow.from_work_status import to_work_status as tws
+from sources.module_workflow.to_work_status import to_work_status as tws
 import json
 import unittest
 import os
