@@ -202,7 +202,7 @@ def INPUT_generation(minimal: bool = True,
 
     if template:
         values["dft_functional"] = "functional_to_test"
-        values["ecutwfc"] = "ecut_to_test"
+        values["ecutwfc"] = "ecutwfc_to_test"
         
     return_str = "INPUT_PARAMETERS\n"
     for key in kwargs:
