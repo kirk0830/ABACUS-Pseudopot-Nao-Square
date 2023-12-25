@@ -31,7 +31,7 @@ basic_parameters = {
         "ibrav": 0,
         "nat": 0,
         "ntyp": 0,
-        "ecutwfc": "ecut_to_test",
+        "ecutwfc": "ecutwfc_to_test",
         "occupations": "smearing",
         "smearing": "gaussian",
         "degauss": 0.02,
