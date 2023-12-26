@@ -32,7 +32,7 @@ def to_work_status(fname: str, api_key: str, num_cif: int = 1) -> dict:
         dict: work_status
 
     Details:
-        1. Details about structures automatically download from Materials Project
+        1. About structures automatically download from Materials Project
            use `theoretical=False` tag, to filter out all not experimentally-observed structures. Not use `is_stable` tag because
            it filters out too many commonly seen structures. The `is_stable` does not mean filtering out unstable structures,
            but is filter out all not "destination structures". e.g., Anatase TiO2 will transform to Rutile TiO2 at high 
@@ -45,4 +45,5 @@ def to_work_status(fname: str, api_key: str, num_cif: int = 1) -> dict:
     _structures = mp.composites(api_key=api_key,
                                 formula=systems,
                                 num_cif=num_cif)
-    return wse.render(fname=fname, system_mpids=_structures)
+    # _structures is a dict whose keys are system formula and values are lists of corresponding system_mpids.
+    return wse.render(fname=fname, system_with_mpids=_structures)

@@ -90,13 +90,13 @@ def render(fname: str, **kwargs) -> dict:
         for element in _elements:
             if element not in elements:
                 elements.append(element)
-    # expand systems
-    if "system_mpids" in kwargs:
-        for system in kwargs["system_mpids"]:
+    # expand systems, sed the system name with system_mpids in read input
+    if "system_with_mpids" in kwargs:
+        for system in kwargs["system_with_mpids"]: # example: system = Er2O3
             if system in inp["systems"]:
                 # remove this system from inp["systems"] list
                 inp["systems"].remove(system)
-            for structure in kwargs["system_mpids"][system]:
+            for structure in kwargs["system_with_mpids"][system]: # example: structure = Er2O3_2460
                 inp["systems"].append(structure)
     # expand pseudopotentials and numerical_orbitals from list to dict
     inp = expand(inp, elements)
@@ -109,7 +109,7 @@ def render(fname: str, **kwargs) -> dict:
     # check rationality of input
     check(inp)
 
-    return inp
+    return inp # then we call the output dict as work_status, instead of input
 
 DEFAULT_INPUT = {
     "global": {
