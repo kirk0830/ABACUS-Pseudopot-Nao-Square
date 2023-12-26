@@ -4,7 +4,7 @@ A test is defined as:
 
 test_status
 """
-from module_pseudo.local_validity_scan import scan_valid_pseudopotentials as svp
+from module_pseudo.local_validity_scan import svp as svp
 from module_nao.local_validity_scan import scan_valid_numerical_orbitals as svno
 from module_structure.basic import scan_elements as se
 import itertools as it
@@ -151,7 +151,7 @@ def _test_initialization_(work_status: dict, system: str, valid_pseudopotentials
 
 def _test_status_backup_(test_status: dict):
         
-    os.chdir(test_status["paths"]["work_folder"])
+    os.chdir(test_status["paths"]["work_dir"])
     test_status_json = "test_status_" + time.strftime("%Y%m%d_%H%M%S", time.localtime()) + ".json"
     with open(test_status_json, "w") as f:
         json.dump(test_status, f, indent=4)
@@ -168,7 +168,7 @@ def to_test_status(work_status: dict) -> dict:
         "tests": {}
     } # test_status["tests"][system]: {"test1": {}, ...}
     valid_pseudopotentials, valid_numerical_orbitals = _valid_files_scan_(work_status)
-    for system in work_status["systems"].keys():
+    for system in work_status["systems"]:
         # goal is to store all possible tests to test_status system by system
         test_status["tests"][system] = {} # create to store all tests for this system
         # allocate memory for storing valid pseudopotentials list element by element

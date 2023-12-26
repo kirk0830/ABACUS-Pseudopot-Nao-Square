@@ -1,5 +1,6 @@
 import os
 import module_database.database as ai
+import module_pseudo.archive as arch
 
 def scan_elements(system: str) -> list:
 
@@ -107,5 +108,25 @@ def scan_valid_pseudopotentials(work_status: dict):
                             "appendix": appendix,
                         }
                         
+    
+    return valid_pseudopotentials
+
+def svp(work_status: dict):
+
+    elements = []
+    valid_pseudopotentials = {}
+    for system in work_status["systems"]:
+        for element in scan_elements(system):
+            if element not in elements:
+                elements.append(element)
+                valid_pseudopotentials[element] = {}
+
+    all_available_pseudopotentials = arch.archive()
+    for element in elements:
+        for pseudopotential in all_available_pseudopotentials[element]:
+            description = arch.description(pseudopotential)
+            identifier = "_".join([description[key] for key in description.keys() if description[key] != ""])
+            valid_pseudopotentials[element][identifier] = description
+            valid_pseudopotentials[element][identifier]["file"] = pseudopotential.split("/")[-1] if pseudopotential.count("/") > 0 else pseudopotential.split("\\")[-1]
     
     return valid_pseudopotentials

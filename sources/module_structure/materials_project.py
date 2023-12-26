@@ -79,7 +79,8 @@ def composites(api_key: str, formula: list, num_cif = 1, theoretical = 0):
 
     Returns:
 
-    :return: cif_filenames: list of cif filenames
+    :return: a dict whose keys are system formula and values are list of system_mpid, 
+             uniquely identify a structure
     """
 
     result = {}
@@ -96,13 +97,14 @@ def composites(api_key: str, formula: list, num_cif = 1, theoretical = 0):
             for mpi_id in mpi_ids:
                 with MPRester(api_key) as mpr:
                     structure = mpr.get_structure_by_material_id(mpi_id)
-                fname = formuli + "_" + mpi_id.replace("mp-", "") + ".cif"
+                fname = formuli + "_" + mpi_id.replace("mp-", "") + ".cif" # For Er2O3, it can be Er2O3_2460.cif
                 structure.to(filename=fname, fmt="cif") # better to add symprec = None
                 num_cif_downloaded += 1
                 result[formuli].append(fname.replace(".cif", ""))
                 if num_cif_downloaded == num_cif:
                     break
-
+    # then result returns like
+    # ["Er2O3": ["Er2O3_2460", "Er2O3_1225560", ...], "TiO2": ["TiO2_XXX", "TiO2_YYY", ...]
     return result
 
 def binary_composites(api_key: str, element1: str, element2: str, num_cif = 1, theoretical = 0):
