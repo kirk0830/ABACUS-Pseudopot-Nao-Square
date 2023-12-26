@@ -20,15 +20,9 @@ def pseudopotential(kind: str, version: str, appendix: str) -> str:
     Returns:
         str: identifier of pseudopotential
     """
-    result = ""
     if kind == "":
         raise ValueError("kind cannot be empty")
-    result += kind
-    if version != "":
-        result += "_" + version
-    if appendix != "":
-        result += "_" + appendix
-    return result
+    return "_".join(i for i in [kind, version, appendix] if i != "")
 
 def numerical_orbital(type: str, rcut: int, appendix: str) -> str:
     """Generate identifier of numerical orbital
@@ -44,15 +38,12 @@ def numerical_orbital(type: str, rcut: int, appendix: str) -> str:
     Returns:
         str: identifier of numerical orbital
     """
-    result = ""
     if type == "":
         raise ValueError("type cannot be empty")
-    result += type
     if rcut != 0:
-        result += "_" + str(rcut)
-    if appendix != "":
-        result += "_" + appendix
-    return result
+        rcut = str(rcut)
+
+    return "_".join(i for i in [type, rcut, appendix] if i != "")
 
 def folder(functional: str, system: str, specific_test: str) -> str:
 
@@ -74,7 +65,7 @@ def qespresso(system: str, template: bool = False):
     result = "qespresso"
     if template:
         result += "_" + system
-    result += system + ".in"
+    result += ".in"
     return result
 
 def abacus(system: str, template: bool = False):
@@ -89,7 +80,7 @@ def abacus(system: str, template: bool = False):
         tuple: identifier of ABACUS input scripts INPUT, STRU and KPT
     """
     if template:
-        return "INPUT", "STRU_"+system, "KPT_"+system
+        return "INPUT_"+system, "STRU_"+system, "KPT_"+system
     else:
         return "INPUT", "STRU", "KPT"
 

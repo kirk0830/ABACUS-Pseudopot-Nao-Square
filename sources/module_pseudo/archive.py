@@ -1,8 +1,10 @@
 import os
 import re
 import json
-
+import module_workflow.identifier as id
 """This is for archiving pseudopotentials element-wise.
+This module should be called before test generation, as a pre-configure step.
+
 _scan_ returns a dictionary of pseudopotentials, element-wise, recursively including subdirectories.
 """
 
@@ -16,6 +18,11 @@ only_scan = True
 
 """Functions"""
 def _folder_match_(folder: str):
+
+    if folder.count("/") > 0:
+        folder = folder.split("/")[-1]
+    if folder.count("\\") > 0:
+        folder = folder.split("\\")[-1]
 
     if folder.startswith("nc-"):
         return "dojo"
@@ -32,7 +39,7 @@ def _folder_match_(folder: str):
         raise ValueError("Folder name not recognized, add a logic branch in this function"
                       +"\nand create a function to create description.json to describe the folder.")
 
-def _scan_(pseudo_dir: str) -> dict:
+def _scan_(pseudo_dir: str):
     """Returns a dictionary of pseudopotentials, element-wise.
 
     Args:
@@ -57,12 +64,16 @@ def _scan_(pseudo_dir: str) -> dict:
                 if element not in result:
                     result[element] = []
                 _dir = os.path.abspath(dir[0])
+                
                 result[element].append(
-                    _dir+('\\' if _dir.count('\\') > 0 else _dir+'/')+pseudopotential
+                    _dir+('\\' if _dir.count('\\') > 0 else '/')+pseudopotential
                 )
+                
                 if dir[0] not in folders:
-                    folder = dir[0].split("/")[-1] if dir[0].count("/") > 0 else dir[0].split("\\")[-1]
-                    folders.append(folder)
+                    folder = dir[0]
+                    #folder = dir[0].split("/")[-1] if dir[0].count("/") > 0 else dir[0].split("\\")[-1]
+                    if folder not in folders:
+                        folders.append(folder)
     return result, folders
 
 def _PD04_(path: str):
@@ -86,6 +97,7 @@ def _PD04_(path: str):
                 if kind not in pseudopotential_kinds.keys():
                     pseudopotential_kinds[kind] = []
                 pseudopotential_kinds[kind].append(file)
+
     for kind in pseudopotential_kinds.keys():
         os.mkdir(kind)
         for file in pseudopotential_kinds[kind]:
@@ -119,32 +131,32 @@ def _SG15_(path: str):
     Args:
         path (str): path of SG15 pseudopotentials
     """
-    pseudopotential_kinds = {"1.0": []} # at least one version
+    folder_and_files = {"1.0": []} # at least one version 1.0
     path_backup = os.path.abspath(os.getcwd())
     os.chdir(path)
     files = os.listdir()
     for file in files:
         _match = re.match(r"^(.*)(-)([0-9]\.[0-9])(.upf)$", file, re.IGNORECASE)
         if _match:
-            version = _match.group(3)
-            version += "" if "FR" not in _match.group(1) else "_fr"
-            if version not in pseudopotential_kinds.keys():
-                pseudopotential_kinds[version] = []
-            pseudopotential_kinds[version].append(file)
-    for kind in pseudopotential_kinds.keys():
-        os.mkdir(kind)
-        for file in pseudopotential_kinds[kind]:
-            os.rename(file, kind+'/'+file)
+            folder = _match.group(3)
+            folder += "" if "FR" not in _match.group(1) else "_fr"
+            if folder not in folder_and_files.keys():
+                folder_and_files[folder] = []
+            folder_and_files[folder].append(file)
+    for folder in folder_and_files.keys():
+        os.mkdir(folder)
+        for file in folder_and_files[folder]:
+            os.rename(file, folder+'/'+file)
         description = {"kind": "sg15"}
-        _match = re.match(r"^([0-9]\.[0-9])(_)?(FR)?", kind)
-        description["version"] = _match.group(1)
-        description["appendix"] = "fr" if _match.group(3) else ""
-        with open(kind+'/'+"description.json", "w") as json_f:
+        _match = re.match(r"^([0-9]\.[0-9])(_)?(fr)?", folder)
+        description["version"] = _match.group(1).replace(".", "")
+        description["appendix"] = "" if not _match.group(3) else _match.group(3)
+        with open(folder+'/'+"description.json", "w") as json_f:
             json.dump(description, json_f, indent=4)
 
     os.chdir(path_backup)
 
-    return pseudopotential_kinds
+    return folder_and_files
 
 def _DOJO_(path: str):
     """add description.json in DOJO pseudopotential folder  
@@ -187,22 +199,42 @@ def archive(pseudo_dir: str = "./download/pseudopotentials/", only_scan: bool = 
         dict: available pseudopotentials for each element is stored in list and act as value, whose corresponding
         key is the element symbol.
     """
+    if not pseudo_dir.endswith("/") and not pseudo_dir.endswith("\\"):
+        pseudo_dir += "/"
+
     if not only_scan:
         _, folders = _scan_(pseudo_dir=pseudo_dir)
-        pseudo_dir = pseudo_dir[:-1] if (pseudo_dir.endswith("/") or pseudo_dir.endswith("\\")) else pseudo_dir
         
         for folder in folders:
-            folder_path = pseudo_dir + "/" + folder
-            if _folder_match_(folder) == "pd04":
+            folder_path = folder
+            #folder_path = pseudo_dir + folder
+            kind = _folder_match_(folder)
+            if kind == "pd04":
                 _PD04_(folder_path)
-            elif _folder_match_(folder) == "pd03":
+            elif kind == "pd03":
                 _PD03_(folder_path)
-            elif _folder_match_(folder) == "dojo":
+            elif kind == "dojo":
                 _DOJO_(folder_path)
-            elif _folder_match_(folder) == "sg15":
+            elif kind == "sg15":
                 _SG15_(folder_path)
-    
-    results, _ = _scan_(pseudo_dir=pseudo_dir)
+            else:
+                raise NotImplementedError("Folder name not recognized, add a logic branch in this function"
+                      +"\nand create a function to create description.json to describe the folder.")
+
+    results, folders = _scan_(pseudo_dir=pseudo_dir)
+
+    _description_ = {}
+    for folder in folders:
+        _identifier = ""
+        with open(folder+"/description.json", "r") as json_f:
+            _description_i = json.load(json_f)
+            _identifier = id.pseudopotential(kind = _description_i["kind"], 
+                                             version = _description_i["version"], 
+                                             appendix = _description_i["appendix"])
+        _description_[_identifier] = folder.replace("/", "\\")
+    with open(pseudo_dir + "description.json", "w") as json_f:
+        json.dump(_description_, json_f, indent=4)
+
     return results
 
 def description(upf_path: str):
@@ -218,13 +250,14 @@ def description(upf_path: str):
         dict: contents, dict saved in description.json
     """
     path_backup = os.path.abspath(os.getcwd())
-    path = ".\\"
+    path = "./"
     if upf_path.count("/") > 0:
-        path = "\\".join(upf_path.split("/")[:-1])
+        path = "/".join(upf_path.split("/")[:-1])
     elif upf_path.count("\\") > 0:
-        path = "\\".join(upf_path.split("\\")[:-1])
+        path = "/".join(upf_path.split("\\")[:-1])
     else:
         path = path_backup
+
     os.chdir(path)
     description = {}
     if os.path.isfile("description.json"):
@@ -239,4 +272,4 @@ def description(upf_path: str):
 
 if __name__ == "__main__":
 
-    print(archive())
+    print(archive(only_scan=False))

@@ -248,10 +248,10 @@ def write_k_points(other_parameters = {}, lattice = {}, system_type = "metal") -
     k_points_str += "\n"
     return k_points_str
 
-def cif_to_quantum_espresso(
+def cif_to_qespresso(
         cif_file: str,
-        other_parameters = {}) -> None:
-    qe_filename = cif_file.split(".")[0] + ".in"
+        other_parameters = {}) -> str:
+    qe_fname = cif_file.split(".")[0] + ".in"
     cif = read(cif_file)
     atoms = m1ap(cif)
     lattice = m1l(cif)
@@ -276,8 +276,9 @@ def cif_to_quantum_espresso(
     return_str += write_cell_parameters(lattice)
     return_str += write_atomic_positions(atoms)
     return_str += write_k_points(other_parameters, lattice)
-    with open(qe_filename, 'w') as f:
+    with open(qe_fname, 'w') as f:
         f.write(return_str)
+    return qe_fname
 
 def write_dimer_structure(symbol = "H", distance = 3.0) -> str:
     """
@@ -359,4 +360,4 @@ def reference_structure_from_quantum_espresso(reference_structure = "dimer", sym
 
 if __name__ == "__main__":
 
-    cif_to_quantum_espresso("Ce.cif", {})
+    cif_to_qespresso("Ce.cif", {})

@@ -43,12 +43,13 @@ def expand(inp: dict, elements: list) -> dict:
             for element in elements:
                 _dict[element] = inp["pseudopotentials"][key]
             inp["pseudopotentials"][key] = _dict
-    for key in inp["numerical_orbitals"]:
-        if isinstance(inp["numerical_orbitals"][key], list):
-            _dict = {}
-            for element in elements:
-                _dict[element] = inp["numerical_orbitals"][key]
-            inp["numerical_orbitals"][key] = _dict
+    if inp["calculation"]["basis_type"] == "lcao":
+        for key in inp["numerical_orbitals"]:
+            if isinstance(inp["numerical_orbitals"][key], list):
+                _dict = {}
+                for element in elements:
+                    _dict[element] = inp["numerical_orbitals"][key]
+                inp["numerical_orbitals"][key] = _dict
 
     return inp
 

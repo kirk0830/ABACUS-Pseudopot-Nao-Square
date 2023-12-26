@@ -14,7 +14,7 @@ def generate(test_status: dict):
 def _abacus_(test_status: dict):
 
     os.chdir(test_status["paths"]["work_folder"])
-    ob._mkdir_(id.TEMPORARY_FOLDER)
+    # ob._mkdir_(id.TEMPORARY_FOLDER)
     for functional in test_status["calculation"]["functionals"]:
         for system in test_status["tests"].keys():
             system_test_information = test_status["tests"][system]

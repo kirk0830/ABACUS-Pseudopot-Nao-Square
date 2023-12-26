@@ -5,8 +5,9 @@ gppt: generate_pw_pseudopotential_test
 import os
 import module_workflow.identifier as id
 import module_io.output_basic as ob
+import json
 
-def _qespresso_(test_status: dict):
+def _qespresso_(test_status: dict, functionals: list = ["pbe"]):
     """
     Generate Quantum ESPRESSO tests according to test_status, based on preset templates.
 
@@ -20,8 +21,8 @@ def _qespresso_(test_status: dict):
         template follows name convention defined in module_workflow.identifier.qespresso
     """
     os.chdir(test_status["paths"]["work_folder"])
-    ob._mkdir_(id.TEMPORARY_FOLDER)
-    for functional in test_status["calculation"]["functionals"]:
+    # ob._mkdir_(id.TEMPORARY_FOLDER)
+    for functional in functionals:
         for system in test_status["tests"].keys():
             # so only focus on information of present system
             system_test_information = test_status["tests"][system]
@@ -34,11 +35,11 @@ def _qespresso_(test_status: dict):
                                    specific_test=test_of_system)
                 ob._mkdir_(folder=folder)
                 # copy input file to test folder, use unified name scf.in
-                os.system("cp %s\\%s %s\\scf.in"%(id.TEMPORARY_FOLDER, 
-                                                  id.qespresso(system=system, 
-                                                               template=True), 
-                                                  folder))
-                ob._sed_(folder=folder,
+                os.system("cp %s/%s %s/scf.in"%(id.TEMPORARY_FOLDER, 
+                                                id.qespresso(system=system, 
+                                                             template=True), 
+                                                folder))
+                ob._sed_(folder=folder.replace("\\", "/"),
                       file_to_sed="scf.in",
                       functional=functional,
                       ecutwfc=test_information["ecutwfc"])
@@ -47,16 +48,16 @@ def _qespresso_(test_status: dict):
                 p_file = test_information["pseudopotentials"]["files"]
                 for element in test_information["elements"]:
                     pinfo_element = p_information[element]
-                    pseudopot_path = test_status["paths"]["pseudo_dir"] + "\\"
+                    pseudopot_path = test_status["paths"]["pseudo_dir"] + "/"
                     pseudopot_path += id.pseudopotential(kind=pinfo_element["kind"], 
                                                          version=pinfo_element["version"], 
                                                          appendix=pinfo_element["appendix"])
-                    pseudopot_path += "\\"
+                    pseudopot_path += "/"
                     pseudopot_file = p_file[element]
                     print("copy " + pseudopot_path + pseudopot_file + " to " + folder)
-                    os.system("cp %s\\%s %s"%(pseudopot_path, pseudopot_file, folder))
+                    os.system("cp %s/%s %s"%(pseudopot_path.replace("\\", "/"), pseudopot_file, folder.replace("\\", "/")))
                     # swap pseudopotential file name in input file
-                    os.system("sed -i 's/%s_pseudopot/%s/g' %s\\scf.in"%(element, pseudopot_file, folder))
+                    os.system("sed -i 's/%s_pseudopot/%s/g' %s/scf.in"%(element, pseudopot_file, folder.replace("\\", "/")))
     
     os.chdir(test_status["paths"]["work_dir"])
     print_str = """------------------------------------------------------------------------------
@@ -70,11 +71,14 @@ Bohrium_platform: ali
 """
     print(print_str)
 
-def _abacus_(test_status: dict):
+def _abacus_(test_status: dict, functionals: list = ["pbe"]):
 
-    os.chdir(test_status["paths"]["work_folder"])
-    ob._mkdir_(id.TEMPORARY_FOLDER)
-    for functional in test_status["calculation"]["functionals"]:
+    pseudopot_folders_arch = {}
+    with open(test_status["paths"]["pseudo_dir"] + "/" + "description.json") as json_f:
+        pseudopot_folders_arch = json.load(json_f)
+    os.chdir(test_status["paths"]["work_dir"])
+    # ob._mkdir_(id.TEMPORARY_FOLDER)
+    for functional in functionals:
         for system in test_status["tests"].keys():
             # so only focus on information of present system
             system_test_information = test_status["tests"][system]
@@ -87,16 +91,17 @@ def _abacus_(test_status: dict):
                 # copy template files
                 fINPUT, fSTRU, fKPT = id.abacus(system=system,
                                                 template=True)
-                os.system("cp %s\\%s %s\\INPUT"%(id.TEMPORARY_FOLDER,
+                os.system("cp %s/%s %s/INPUT"%(id.TEMPORARY_FOLDER,
                                                  fINPUT,
                                                  folder))
-                os.system("cp %s\\%s %s\\STRU"%(id.TEMPORARY_FOLDER,
+                os.system("cp %s/%s %s/STRU"%(id.TEMPORARY_FOLDER,
                                                 fSTRU,
                                                 folder))
-                os.system("cp %s\\%s %s\\KPT"%(id.TEMPORARY_FOLDER,
+                os.system("cp %s/%s %s/KPT"%(id.TEMPORARY_FOLDER,
                                                fKPT,
                                                folder))
-                ob._sed_(folder=folder,
+                # whether should be support multiple ecutwfc inside APNS? ABACUSTest has implemented that.
+                ob._sed_(folder=folder.replace("\\", "/"),
                       file_to_sed="INPUT",
                       functional=functional,
                       ecutwfc=test_information["ecutwfc"])
@@ -105,15 +110,15 @@ def _abacus_(test_status: dict):
                 p_file = test_information["pseudopotentials"]["files"]
                 for element in test_information["elements"]:
                     pinfo_element = p_information[element]
-                    pseudopot_path = test_status["paths"]["pseudo_dir"] + "\\"
-                    pseudopot_path += id.pseudopotential(kind=pinfo_element["kind"], 
-                                                         version=pinfo_element["version"], 
-                                                         appendix=pinfo_element["appendix"])
+                    _identifier =  id.pseudopotential(kind=pinfo_element["kind"], 
+                                                      version=pinfo_element["version"], 
+                                                      appendix=pinfo_element["appendix"])
+                    pseudopot_path = pseudopot_folders_arch[_identifier]
                     pseudopot_file = p_file[element]
                     print("copy " + pseudopot_path + pseudopot_file + " to " + folder)
-                    os.system("cp %s\\%s %s"%(pseudopot_path, pseudopot_file, folder))
+                    os.system("cp %s/%s %s"%(pseudopot_path.replace("\\", "/"), pseudopot_file, folder.replace("\\", "/")))
                     # swap pseudopotential file name in input file
-                    os.system("sed -i 's/%s_pseudopot/%s/g' %s\\STRU"%(element, pseudopot_file, folder))
+                    os.system("sed -i 's/%s_pseudopot/%s/g' %s/STRU"%(element, pseudopot_file, folder.replace("\\", "/")))
 
     os.chdir(test_status["paths"]["work_dir"])
     print_str = """------------------------------------------------------------------------------
