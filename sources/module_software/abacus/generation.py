@@ -1,7 +1,7 @@
 from module_structure.crystal_information_file import cell_parameters_to_lattice_vectors as cptlv
 from module_structure.crystal_information_file import read_1 as read
 def STRU_cif(fname: str, 
-             pseudopotentials: dict, 
+             pseudopotentials: dict = {}, 
              template: bool = False, 
              **kwargs):
     """convert cif file to STRU file.
@@ -71,7 +71,7 @@ def STRU_cif(fname: str,
                 return_str += " m 1 1 1"
             return_str += "\n"
 
-    return return_str
+    return return_str, cell_parameters
 
 def STRU_dimer(element: str, bond_length: float, pseudopotentials: dict, **kwargs):
     """_summary_
@@ -216,7 +216,6 @@ def INPUT_generation(minimal: bool = True,
         for key in values:
             return_str += "%s %s # %s\n"%(key, values[key], comments[key])
     return return_str
-
 
 INPUT_TEMPLATE = """
 INPUT_PARAMETERS
