@@ -127,7 +127,7 @@ def _SG15_(path: str):
         _match = re.match(r"^(.*)(-)([0-9]\.[0-9])(.upf)$", file, re.IGNORECASE)
         if _match:
             version = _match.group(3)
-            version += "" if "FR" not in _match.group(1) else "_FR"
+            version += "" if "FR" not in _match.group(1) else "_fr"
             if version not in pseudopotential_kinds.keys():
                 pseudopotential_kinds[version] = []
             pseudopotential_kinds[version].append(file)
@@ -138,7 +138,7 @@ def _SG15_(path: str):
         description = {"kind": "sg15"}
         _match = re.match(r"^([0-9]\.[0-9])(_)?(FR)?", kind)
         description["version"] = _match.group(1)
-        description["appendix"] = "FR" if _match.group(3) else ""
+        description["appendix"] = "fr" if _match.group(3) else ""
         with open(kind+'/'+"description.json", "w") as json_f:
             json.dump(description, json_f, indent=4)
 
