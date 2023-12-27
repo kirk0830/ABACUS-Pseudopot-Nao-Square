@@ -44,7 +44,7 @@ def to(fname: str) -> dict:
     systems = inp["systems"]
     _structures = mp.composites(api_key=inp["materials_project"]["api_key"],
                                 formula=systems,
-                                num_cif=inp["materials_project"]["n_structure"],
+                                num_cif=inp["materials_project"]["n_structures"],
                                 theoretical=inp["materials_project"]["theoretical"],
                                 is_stable=inp["materials_project"]["most_stable"])
     del inp["materials_project"] # delete "materials_project" section from input file
