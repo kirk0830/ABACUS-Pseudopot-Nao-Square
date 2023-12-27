@@ -146,6 +146,8 @@ def composites(api_key: str, formula: list, num_cif: int|list, theoretical = 0):
         raise TypeError("num_cif must be a list or an integer")
     
     result = {}
+    
+    print("Establishing connection to Materials Project database...")
     with MPRester(api_key) as mpr:
         
         for ifo, formuli in enumerate(formula):
@@ -155,6 +157,8 @@ def composites(api_key: str, formula: list, num_cif: int|list, theoretical = 0):
             mpids = recall_search_memory(formuli, num_cif[ifo])
             if len(mpids) == num_cif[ifo]:
                 mpi_ids = mpids
+                print("Found {} system's Materials Project IDs (mpids) in memory file, skip searching. ".format(num_cif[ifo])
+                     +"If not satisfied with result, delete file materials_project_memory.json and restart.")
             else:
                 docs = mpr.materials.summary.search(formula=formuli, theoretical=theoretical)
                 mpi_ids = [doc.material_id for doc in docs]
@@ -182,6 +186,7 @@ def composites(api_key: str, formula: list, num_cif: int|list, theoretical = 0):
                     break
     # then result returns like
     # ["Er2O3": ["Er2O3_2460", "Er2O3_1225560", ...], "TiO2": ["TiO2_XXX", "TiO2_YYY", ...]
+    print("Connection closed.")
     return result
 
 def binary_composites(api_key: str, element1: str, element2: str, num_cif = 1, theoretical = 0):

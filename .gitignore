@@ -1,9 +1,15 @@
 *.upf
 *.UPF
 *.cif
-*.json
+work_status_*.json
+test_status_*.json
+input.json
+description.json
+materials_project_memory.json
 *.orb
 *.pyc
 __pycache__
 *egg-info
 apns_cache
+t_*_*_*_*
+*.zip

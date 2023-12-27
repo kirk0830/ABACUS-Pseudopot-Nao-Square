@@ -20,7 +20,7 @@ def merge_dictionaries(dictionaries: list):
         merged.update(dictionary)
     return merged
 
-def to(fname: str, num_cif: int = 1) -> dict:
+def to(fname: str) -> dict:
     """ `input.json` -> `work_status` conversion
 
     Args:
@@ -39,7 +39,7 @@ def to(fname: str, num_cif: int = 1) -> dict:
            temperature, but if `is_stable` is `True`, then Anatase will be filtered out.
     """
     with open(fname, "r") as f:
-        inp = json.load(f)    
+        inp = json.load(f)
 
     systems = inp["systems"]
     _structures = mp.composites(api_key=inp["global"]["api_key"],
