@@ -10,4 +10,5 @@ def initialize_cache() -> None:
     """create cache directory if not exist"""
     if not os.path.exists(id.TEMPORARY_FOLDER):
         os.mkdir(id.TEMPORARY_FOLDER)
-    
+    else:
+        print("Cache directory already exists.")

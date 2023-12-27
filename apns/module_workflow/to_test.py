@@ -65,28 +65,33 @@ def _qespresso_(test_status):
         os.rename(fname, id.TEMPORARY_FOLDER + "/" + "qespresso_"+system+".in")
         # this name is required by module_workflow.identifier.qespresso when template = True
 
-def to(test_status: dict, 
-             software: str, 
-             basis_type: str,
-             functionals: list):
-
-    #ob._mkdir_(id.TEMPORARY_FOLDER)
-    
+def prepare(test_status: dict,
+            software: str,
+            basis_type: str):
     if software == "ABACUS":
-        if basis_type == "pw":
-            _abacus_(test_status=test_status,
-                     basis_type="pw")
-            op._abacus_(test_status=test_status,
-                        functionals=functionals)
-        elif basis_type == "lcao":
-            # not well refactored yet...
-            _abacus_(test_status=test_status,
-                     basis_type="lcao")
-            ol._abacus_(test_status=test_status)
-        else:
-            print("Current basis_type: ", basis_type)
-            raise ValueError("Not supported basis_type.")
+        _abacus_(test_status=test_status,
+                 basis_type=basis_type)
     elif software == "qespresso":
         _qespresso_(test_status=test_status)
-        op._qespresso_(test_status=test_status)
-        
+
+def to(test_status: dict, 
+       software: str = "ABACUS", 
+       basis_type: str = "pw",
+       functionals: list = ["pbe"]):
+
+    #ob._mkdir_(id.TEMPORARY_FOLDER)
+    # Generate template input scripts
+    prepare(test_status=test_status,
+            software=software,
+            basis_type=basis_type)
+    # Generate input files
+    if basis_type == "pw":
+        op.generate(test_status=test_status,
+                    software=software,
+                    functionals=functionals)
+    elif basis_type == "lcao":
+        ol.generate(test_status=test_status,
+                    functionals=functionals)
+    else:
+        print("Current basis_type: ", basis_type)
+        raise ValueError("Not supported basis_type.")

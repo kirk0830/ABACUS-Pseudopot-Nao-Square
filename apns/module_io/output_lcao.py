@@ -3,19 +3,20 @@ import apns.module_database.database as ai
 import apns.module_workflow.identifier as id
 import apns.module_io.output_basic as ob
 
-def generate(test_status: dict):
+def generate(test_status: dict, functionals: list = ["pbe"]):
 
     if test_status["global"]["software"] == "ABACUS":
-        _abacus_(test_status)
+        _abacus_(test_status=test_status,
+                 functionals=functionals)
     else:
         print("Error: software not recognized.")
         exit(1)
 
-def _abacus_(test_status: dict):
+def _abacus_(test_status: dict, functionals: list = ["pbe"]):
 
     os.chdir(test_status["paths"]["work_folder"])
     # ob._mkdir_(id.TEMPORARY_FOLDER)
-    for functional in test_status["calculation"]["functionals"]:
+    for functional in functionals:
         for system in test_status["tests"].keys():
             system_test_information = test_status["tests"][system]
             for test in test_status["tests"][system].keys():

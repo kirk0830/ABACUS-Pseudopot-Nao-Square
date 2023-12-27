@@ -27,10 +27,10 @@ def _sed_(folder: str,
         kwargs: to adjust more
     """
     # adjust functional in input file
-    os.system("sed -i 's/functional_to_test/%s/g' %s/s"%(functional, folder, file_to_sed))
+    os.system("sed -i 's/functional_to_test/%s/g' %s/%s"%(functional, folder, file_to_sed))
     # adjust ecutwfc in input file
-    os.system("sed -i 's/ecutwfc_to_test/%s/g' %s/s"%(str(ecutwfc), folder, file_to_sed))
+    os.system("sed -i 's/ecutwfc_to_test/%s/g' %s/%s"%(str(ecutwfc), folder, file_to_sed))
 
     for key in kwargs:
         variable_to_sed = key + "_to_test"
-        os.system("sed -i 's/%s/%s/g %s/s' "%(variable_to_sed, kwargs[key], folder, file_to_sed))
+        os.system("sed -i 's/%s/%s/g %s/%s' "%(variable_to_sed, kwargs[key], folder, file_to_sed))

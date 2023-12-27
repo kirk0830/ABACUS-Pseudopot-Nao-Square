@@ -117,8 +117,8 @@ DEFAULT_INPUT = {
         "test_mode": "pseudopotential",
         "software": "ABACUS",
         "work_dir": "./",
-        "pseudo_dir": "../download/pseudopotentials/",
-        "orbital_dir": "../download/numerical_orbitals/",
+        "pseudo_dir": "./download/pseudopotentials/",
+        "orbital_dir": "./download/numerical_orbitals/",
         "save_log": True
     },
     "calculation": {
