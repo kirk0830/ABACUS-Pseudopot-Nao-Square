@@ -122,7 +122,11 @@ def elemental_substances(api_key: str, element: str, num_cif = 1, theoretical = 
 
     return {element: cif_filenames}
 
-def composites(api_key: str, formula: list, num_cif: int|list, theoretical = 0):
+def composites(api_key: str, 
+               formula: list, 
+               num_cif: int|list, 
+               theoretical = False, 
+               is_stable = False):
     """
     down load composites structures from materials project
 
@@ -160,7 +164,7 @@ def composites(api_key: str, formula: list, num_cif: int|list, theoretical = 0):
                 print("Found {} system's Materials Project IDs (mpids) in memory file, skip searching. ".format(num_cif[ifo])
                      +"If not satisfied with result, delete file materials_project_memory.json and restart.")
             else:
-                docs = mpr.materials.summary.search(formula=formuli, theoretical=theoretical)
+                docs = mpr.materials.summary.search(formula=formuli, theoretical=theoretical, is_stable=is_stable)
                 mpi_ids = [doc.material_id for doc in docs]
                 memorize(formuli, mpi_ids)
 

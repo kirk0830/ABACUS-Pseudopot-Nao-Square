@@ -42,9 +42,11 @@ def to(fname: str) -> dict:
         inp = json.load(f)
 
     systems = inp["systems"]
-    _structures = mp.composites(api_key=inp["global"]["api_key"],
+    _structures = mp.composites(api_key=inp["materials_project"]["api_key"],
                                 formula=systems,
-                                num_cif=inp["n_structure"])
-    del inp["global"]["api_key"] # delete api_key from input file
+                                num_cif=inp["materials_project"]["n_structure"],
+                                theoretical=inp["materials_project"]["theoretical"],
+                                is_stable=inp["materials_project"]["most_stable"])
+    del inp["materials_project"] # delete "materials_project" section from input file
     # _structures is a dict whose keys are system formula and values are lists of corresponding system_mpids.
     return wse.render(fname=fname, system_with_mpids=_structures)
