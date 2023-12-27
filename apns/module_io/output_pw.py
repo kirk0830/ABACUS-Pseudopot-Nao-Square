@@ -6,7 +6,7 @@ import os
 import apns.module_workflow.identifier as id
 import apns.module_io.output_basic as ob
 import json
-import zlib
+import apns.module_io.compress as cprs
 import time
 # NOT REFACTORED YET
 def _qespresso_(test_status: dict, functionals: list = ["pbe"]) -> list:
@@ -161,5 +161,8 @@ def generate(test_status: dict, software: str, functionals: list = ["pbe"]):
     timestamp = time.strftime("%Y%m%d%H%M%S", time.localtime())
     zip_fname = "tests_" + timestamp + ".zip"
     
+    cprs.pack(test_folders, zip_fname)
 
-
+    print("Have compressed test suites into file ", zip_fname, ", cleaning...")
+    for folder in test_folders:
+        os.system("rm -rf {}".format(folder))

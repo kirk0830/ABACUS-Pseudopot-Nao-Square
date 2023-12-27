@@ -1,4 +1,51 @@
+<p align="center">
+    <img src="apns.svg">
+</p>  
+
+This file introduces basic usage of APNS implemented presently. 
 # ABACUS Pseudopot-Nao Square
+## Example `input.json`
+```json5
+{
+    // some global settings placed here
+    "global": {
+        "test_mode": "pseudopotential",           // "pseudopotential" or "numerical_orbital"
+        "software": "ABACUS",                     // "ABACUS" or "qespresso"
+        "work_dir": "./",                         // the working directory
+        "pseudo_dir": "./module_pseudo/download", // always fixed, pseudopotential now is 
+                                                  // designed to distribute along with the code
+        "orbital_dir": "./module_nao/download",   // will be the directory to store numerical orbital files
+        "api_key": "your_api_key",                // your Materials Project API key
+        "save_log": true                          // will dump json
+    },
+    "calculation": {
+        "basis_type": "pw",     // "pw" or "lcao". "pw" is supported by both ABACUS and qespresso, 
+                                // "lcao" is only supported by ABACUS
+        "functionals": ["PBE"], // enumerate! xc functional
+        "ecutwfc": [100],       // enumerate! ecutwfc that will impose for all systems
+        "cell_scaling": [0.00]  // enumerate! cell scaling factor, NOT IMPLEMENTED YET
+    },
+    "systems": ["Er2O3"],       // enumerate! system name, will be used to find CIF via Materials Project API.
+                                // or specify not symmetrized CIF file path in structures list
+    "n_structure": 2,           // number of structures or numbers of structures for each system. For the latter case, specify as list.
+    
+    // psedupotential section supports two ways input, the first is list, the second is dict.
+    // For a list, the specified kinds, versions and appendices will be used for all elements in
+    // all systems. For a dict, must specify kinds, versions and appendices for each element.
+    "pseudopotentials": {
+        "kinds": ["sg15", "pd"],
+        "versions": ["10", "04"],
+        "appendices": [""]
+    },
+    // similarly for numerical orbitals.
+    "numerical_orbitals": {
+        "types": ["DZP"],
+        "rcuts": [7, 8, 9, 10],
+        "appendices": [""]
+    }
+}
+```
+
 ## Full input keywords list
 This document provides a full list of keywords for ABACUS Pseudopot-Nao Square. The keywords are divided into several sections, each section is for a specific purpose. The keywords are listed in alphabetical order within each section.
 
