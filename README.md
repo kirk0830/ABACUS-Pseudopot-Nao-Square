@@ -1,5 +1,5 @@
 <p align="center">
-    <img src="docs/abacus-logo.svg">
+    <img src="docs/apns.svg">
 </p>  
 
 # ABACUS Pseudopot-Nao Square  
