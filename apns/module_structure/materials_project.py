@@ -33,10 +33,11 @@ Notes:
 from mp_api.client import MPRester
 import apns.module_workflow.identifier as id
 import os
+import json
 
 def check_already_exist(mpid: str) -> bool:
     """
-    check whether a structure with given mpid already exist in the local database
+    check whether a structure with given mpid already exist in the local database CACHE directory
 
     Args:
 
@@ -50,6 +51,36 @@ def check_already_exist(mpid: str) -> bool:
         mpid = "mp-" + mpid
     fname = mpid + ".cif"
     return fname in os.listdir(id.TEMPORARY_FOLDER)
+
+def recall_search_memory(formuli: str, n_structure: int) -> list:
+    """If there is a file named materials_project_memory.json, 
+    and the entry with key `formuli` has more than `n_structure` mpids,
+    return the first `n_structure` mpids. Otherwise return a empty list."""
+    if not os.path.exists(id.TEMPORARY_FOLDER + "/" + "materials_project_memory.json"):
+        return []
+    else:
+        with open(id.TEMPORARY_FOLDER + "/" + "materials_project_memory.json", "r") as f:
+            memory = json.load(f)
+        if formuli not in memory.keys():
+            return []
+        elif len(memory[formuli]) >= n_structure:
+            return memory[formuli][:n_structure]
+        else:
+            return []
+
+def memorize(formuli: str, mpids: list) -> None:
+    """If there is not a file named materials_project_memory.json, 
+    create one and write the first entry. If there is already a file,
+    overwrite the file with new entry."""    
+    if not os.path.exists(id.TEMPORARY_FOLDER + "/" + "materials_project_memory.json"):
+        with open(id.TEMPORARY_FOLDER + "/" + "materials_project_memory.json", "w") as f:
+            json.dump({formuli: mpids}, f, indent=4)
+    else:
+        with open(id.TEMPORARY_FOLDER + "/" + "materials_project_memory.json", "r") as f:
+            memory = json.load(f)
+        memory[formuli] = mpids
+        with open(id.TEMPORARY_FOLDER + "/" + "materials_project_memory.json", "w") as f:
+            json.dump(memory, f, indent=4)
 
 def elemental_substances(api_key: str, element: str, num_cif = 1, theoretical = 0):
     """
@@ -91,7 +122,7 @@ def elemental_substances(api_key: str, element: str, num_cif = 1, theoretical = 
 
     return {element: cif_filenames}
 
-def composites(api_key: str, formula: list, num_cif = 1, theoretical = 0):
+def composites(api_key: str, formula: list, num_cif: int|list, theoretical = 0):
     """
     down load composites structures from materials project
 
@@ -106,20 +137,36 @@ def composites(api_key: str, formula: list, num_cif = 1, theoretical = 0):
     :return: a dict whose keys are system formula and values are list of system_mpid, 
              uniquely identify a structure
     """
-
+    if isinstance(num_cif, list):
+        if len(num_cif) != len(formula):
+            raise ValueError("num_cif must have the same length as formula")
+    elif isinstance(num_cif, int):
+        num_cif = [num_cif] * len(formula)
+    else:
+        raise TypeError("num_cif must be a list or an integer")
+    
     result = {}
     with MPRester(api_key) as mpr:
         
-        for formuli in formula:
-            docs = mpr.materials.summary.search(formula=formuli, theoretical=theoretical)
-            mpi_ids = [doc.material_id for doc in docs]
+        for ifo, formuli in enumerate(formula):
+            # first check whether there is a memory file
+            mpi_ids = []
+
+            mpids = recall_search_memory(formuli, num_cif[ifo])
+            if len(mpids) == num_cif[ifo]:
+                mpi_ids = mpids
+            else:
+                docs = mpr.materials.summary.search(formula=formuli, theoretical=theoretical)
+                mpi_ids = [doc.material_id for doc in docs]
+                memorize(formuli, mpi_ids)
 
             num_cif_downloaded = 0
             
             result[formuli] = []
 
             for mpi_id in mpi_ids:
-                fname = element + "_" + mpi_id.replace("mp-", "") + ".cif"
+                fname = "mp-" + mpi_id.replace("mp-", "") + ".cif"
+                
                 if check_already_exist(mpi_id):
                     print("Structure with mpid {} already exist in cache directory, skip downloading".format(mpi_id))
                 else:
@@ -127,10 +174,11 @@ def composites(api_key: str, formula: list, num_cif = 1, theoretical = 0):
                         structure = mpr.get_structure_by_material_id(mpi_id)
                     structure.to(filename=fname, fmt="cif") # better to add symprec = None
                     os.system("mv {} {}".format(fname, id.TEMPORARY_FOLDER))
-
+                # save the cif file as mp-id.cif
                 num_cif_downloaded += 1
-                result[formuli].append(fname.replace(".cif", ""))
-                if num_cif_downloaded == num_cif:
+
+                result[formuli].append(formuli + "_" + mpi_id.replace("mp-", "")) # record "system_mpid" under system formula
+                if num_cif_downloaded == num_cif[ifo]:
                     break
     # then result returns like
     # ["Er2O3": ["Er2O3_2460", "Er2O3_1225560", ...], "TiO2": ["TiO2_XXX", "TiO2_YYY", ...]
@@ -161,7 +209,7 @@ def binary_composites(api_key: str, element1: str, element2: str, num_cif = 1, t
     cif_filenames = []
 
     for mpi_id in mpi_ids:
-        fname = element + "_" + mpi_id.replace("mp-", "") + ".cif"
+        fname = element1 + element2 + "_" + mpi_id.replace("mp-", "") + ".cif"
         if check_already_exist(mpi_id):
             print("Structure with mpid {} already exist in cache directory, skip downloading".format(mpi_id))
         else:
@@ -227,7 +275,7 @@ def _hydrides_(api_key: str, element: str, num_cif = 1, theoretical = 0):
 
 if __name__ == "__main__":
 
-    api_key = "wV1HUdmgESPVgSmQj5cc8WvttCO8NTHp"
+    api_key = ""
     elements = ['Ce', 'Dy', 'Er', 'Eu', 'Gd', 'Ho', 'La', 'Lu', 'Nd', 'Pm', 'Pr', 'Sm', 'Tb', 'Tm', 'Yb']
     for element in elements:
         elemental_substances(api_key, element, num_cif = 1)

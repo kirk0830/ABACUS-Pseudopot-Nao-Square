@@ -20,7 +20,7 @@ def merge_dictionaries(dictionaries: list):
         merged.update(dictionary)
     return merged
 
-def to(fname: str, api_key: str, num_cif: int = 1) -> dict:
+def to(fname: str, num_cif: int = 1) -> dict:
     """ `input.json` -> `work_status` conversion
 
     Args:
@@ -42,8 +42,9 @@ def to(fname: str, api_key: str, num_cif: int = 1) -> dict:
         inp = json.load(f)    
 
     systems = inp["systems"]
-    _structures = mp.composites(api_key=api_key,
+    _structures = mp.composites(api_key=inp["global"]["api_key"],
                                 formula=systems,
-                                num_cif=num_cif)
+                                num_cif=inp["n_structure"])
+    del inp["global"]["api_key"] # delete api_key from input file
     # _structures is a dict whose keys are system formula and values are lists of corresponding system_mpids.
     return wse.render(fname=fname, system_with_mpids=_structures)

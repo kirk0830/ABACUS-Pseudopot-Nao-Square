@@ -6,9 +6,9 @@ import os
 import apns.module_workflow.identifier as id
 import apns.module_io.output_basic as ob
 import json
-import zipfile
+import zlib
 import time
-
+# NOT REFACTORED YET
 def _qespresso_(test_status: dict, functionals: list = ["pbe"]) -> list:
     """
     Generate Quantum ESPRESSO tests according to test_status, based on preset templates.
@@ -56,9 +56,8 @@ def _qespresso_(test_status: dict, functionals: list = ["pbe"]) -> list:
                     pseudopot_path += id.pseudopotential(kind=pinfo_element["kind"], 
                                                          version=pinfo_element["version"], 
                                                          appendix=pinfo_element["appendix"])
-                    pseudopot_path += "/"
                     pseudopot_file = p_file[element]
-                    print("copy " + pseudopot_path + pseudopot_file + " to " + folder)
+                    print("copy " + pseudopot_path + "/" + pseudopot_file + " to " + folder)
                     os.system("cp %s/%s %s"%(pseudopot_path.replace("\\", "/"), pseudopot_file, folder.replace("\\", "/")))
                     # swap pseudopotential file name in input file
                     os.system("sed -i 's/%s_pseudopot/%s/g' %s/scf.in"%(element, pseudopot_file, folder.replace("\\", "/")))
@@ -122,7 +121,7 @@ def _abacus_(test_status: dict, functionals: list = ["pbe"]) -> list:
                                                       appendix=pinfo_element["appendix"])
                     pseudopot_path = pseudopot_folders_arch[_identifier]
                     pseudopot_file = p_file[element]
-                    print("copy " + pseudopot_path + pseudopot_file + " to " + folder)
+                    print("copy " + pseudopot_path + "/" + pseudopot_file + " to " + folder)
                     os.system("cp %s/%s %s"%(pseudopot_path.replace("\\", "/"), pseudopot_file, folder.replace("\\", "/")))
                     # swap pseudopotential file name in input file
                     os.system("sed -i 's/%s_pseudopot/%s/g' %s/STRU"%(element, pseudopot_file, folder.replace("\\", "/")))
@@ -141,26 +140,26 @@ Bohrium_platform: ali
     print(print_str)
     return test_folders
 
-def generate(test_status: dict):
+def generate(test_status: dict, software: str, functionals: list = ["pbe"]):
     """Generate all input scripts for specific software in folders
 
     Args:
         test_status (dict): test_status
     """
-    software = test_status["global"]["software"]
+    #software = test_status["global"]["software"]
     test_folders = []
     if software.lower().startswith("q") and software.lower().endswith("espresso"):
-        test_folders = _qespresso_(test_status)
+        test_folders = _qespresso_(test_status,
+                                   functionals=functionals)
     elif software == "ABACUS":
-        test_folders = _abacus_(test_status)
+        test_folders = _abacus_(test_status,
+                                functionals=functionals)
     else:
         print("Error: software not recognized.")
         exit(1)
+    # compress test folders
     timestamp = time.strftime("%Y%m%d%H%M%S", time.localtime())
-    zip_name = "test_" + timestamp + ".zip"
-    with zipfile.ZipFile(zip_name, "w") as zip_f:
-        for folder in test_folders:
-            zip_f.write(folder)
-    print("Zip file %s generated."%zip_name)
-    for folder in test_folders:
-        os.system("rm -rf %s"%folder)
+    zip_fname = "tests_" + timestamp + ".zip"
+    
+
+

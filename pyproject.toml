@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+
+[project]
+name = "apns"
+version = "0.0.2"
+description = "ABACUS-Pseudopot-Nao-Square: for ABACUS calculation with higher efficiency and precision"
+readme = "README.md"
+authors = [
+    {name = "Yike HUANG", email = "huangyk@aici.ac.cn"},
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Programming Language :: Python :: 3.7",
+]
+dependencies = []
+python_requires = ">=3.7"
