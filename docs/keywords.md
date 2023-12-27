@@ -15,7 +15,6 @@ This file introduces basic usage of APNS implemented presently.
         "pseudo_dir": "./module_pseudo/download", // always fixed, pseudopotential now is 
                                                   // designed to distribute along with the code
         "orbital_dir": "./module_nao/download",   // will be the directory to store numerical orbital files
-        "api_key": "your_api_key",                // your Materials Project API key
         "save_log": true                          // will dump json
     },
     "calculation": {
@@ -27,8 +26,12 @@ This file introduces basic usage of APNS implemented presently.
     },
     "systems": ["Er2O3"],       // enumerate! system name, will be used to find CIF via Materials Project API.
                                 // or specify not symmetrized CIF file path in structures list
-    "n_structure": 2,           // number of structures or numbers of structures for each system. For the latter case, specify as list.
-    
+    "materials_project": {
+        "api_key": "xxx",       // your Materials Project API
+        "n_structures": 1,      // number of structures want to download, for each system or specify a list for systems
+        "theoretical": false,   // always keep false to get only experimentally observed structures
+        "most_stable": true     // get the most stable structure
+    },
     // psedupotential section supports two ways input, the first is list, the second is dict.
     // For a list, the specified kinds, versions and appendices will be used for all elements in
     // all systems. For a dict, must specify kinds, versions and appendices for each element.
@@ -126,6 +129,29 @@ Elements will be recognized from this section, then `pseudopotentials` and `nume
     }
 }
 ```
+
+---
+### `materials_project` section
+
+#### `api_key`
+* **Description:** Materials Project Application Program Interface (API) Key. Get your API key following tutorial in https://docs.materialsproject.org/downloading-data/using-the-api
+* **Type:** str
+*This keyword is compulsory for running APNS test suite generation, no default value is given. If not specified, will raise error*
+
+#### `n_structures`
+* **Description:** For each system specified, how many structures are needed. If a list is given, then the length of the list should be the same as the length of `systems` section. If an integar is given, then will use the same number for all systems.
+* **Type:** int or list
+* **Default:** `1`
+
+#### `theoretical`
+* **Description:** Whether to get theoretical structures. If `True`, then will get theoretical structures, if `False`, then will only get experimental structures.
+* **Type:** boolean
+* **Default:** `False`
+
+#### `most_stable`
+* **Description:** If only get structures which are marked as `is_stable` in Materials Project. If `True`, then will only get the most stable structure, if `False`, then will get all structures. The `is_stable` here sometimes means *the most stable*, some sub-stable structures will be filtered out, like TiO2 anatase.
+* **Type:** boolean
+* **Default:** `False`
 
 ---
 ### `pseudopotentials` section
