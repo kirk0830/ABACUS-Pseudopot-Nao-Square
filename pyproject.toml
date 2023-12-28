@@ -13,5 +13,5 @@ classifiers = [
     "Development Status :: 3 - Alpha",
     "Programming Language :: Python :: 3.7",
 ]
-dependencies = []
+dependencies = ["mp_api", "numpy", "pymatgen"]
 python_requires = ">=3.7"
