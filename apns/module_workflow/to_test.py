@@ -77,7 +77,8 @@ def prepare(test_status: dict,
 def to(test_status: dict, 
        software: str = "ABACUS", 
        basis_type: str = "pw",
-       functionals: list = ["pbe"]):
+       functionals: list = ["pbe"],
+       cell_scalings: list = [0.0]):
 
     #ob._mkdir_(id.TEMPORARY_FOLDER)
     # Generate template input scripts
@@ -88,10 +89,12 @@ def to(test_status: dict,
     if basis_type == "pw":
         op.generate(test_status=test_status,
                     software=software,
-                    functionals=functionals)
+                    functionals=functionals,
+                    cell_scalings=cell_scalings)
     elif basis_type == "lcao":
         ol.generate(test_status=test_status,
-                    functionals=functionals)
+                    functionals=functionals,
+                    cell_scalings=cell_scalings)
     else:
         print("Current basis_type: ", basis_type)
         raise ValueError("Not supported basis_type.")
