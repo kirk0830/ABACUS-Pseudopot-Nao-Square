@@ -9,7 +9,7 @@ import json
 import apns.module_io.compress as cprs
 import time
 # NOT REFACTORED YET
-def _qespresso_(test_status: dict, functionals: list = ["pbe"]) -> list:
+def qespresso(test_status: dict, functionals: list = ["pbe"], cell_scaling: list = [0.0]) -> list:
     """
     Generate Quantum ESPRESSO tests according to test_status, based on preset templates.
 
@@ -75,56 +75,67 @@ Bohrium_platform: ali
     print(print_str)
     return test_folders
 
-def _abacus_(test_status: dict, functionals: list = ["pbe"]) -> list:
+def abacus(test_status: dict, functionals: list = ["pbe"], cell_scalings: list = [0.0]) -> list:
 
     pseudopot_folders_arch = {}
     with open(test_status["paths"]["pseudo_dir"] + "/" + "description.json") as json_f:
         pseudopot_folders_arch = json.load(json_f)
     os.chdir(test_status["paths"]["work_dir"])
+
+    with_cell_appendix = True
+    if len(cell_scalings) == 1 and cell_scalings[0] == 0.0:
+        with_cell_appendix = False
     # ob._mkdir_(id.TEMPORARY_FOLDER)
     test_folders = []
     for functional in functionals:
-        for system in test_status["tests"].keys():
-            # so only focus on information of present system
-            system_test_information = test_status["tests"][system]
-            for test in test_status["tests"][system].keys():
-                test_information = system_test_information[test]
-                folder = id.folder(functional=functional,
-                                   system=system,
-                                   specific_test=test)
-                test_folders.append(folder)
-                ob._mkdir_(folder=folder) # mkdir for present test
-                # copy template files
-                fINPUT, fSTRU, fKPT = id.abacus(system=system,
-                                                template=True)
-                os.system("cp %s/%s %s/INPUT"%(id.TEMPORARY_FOLDER,
-                                                 fINPUT,
-                                                 folder))
-                os.system("cp %s/%s %s/STRU"%(id.TEMPORARY_FOLDER,
-                                                fSTRU,
+        for cell_scaling in cell_scalings:
+            for system in test_status["tests"].keys():
+                # so only focus on information of present system
+                system_test_information = test_status["tests"][system]
+                for test in test_status["tests"][system].keys():
+                    test_information = system_test_information[test]
+                    folder = id.folder(functional=functional,
+                                    system=system,
+                                    specific_test=test)
+                    if with_cell_appendix:
+                        folder += "_cell_" + str(cell_scaling)
+                    test_folders.append(folder)
+                    ob._mkdir_(folder=folder) # mkdir for present test
+                    # copy template files
+                    fINPUT, fSTRU, fKPT = id.abacus(system=system,
+                                                    template=True)
+                    os.system("cp %s/%s %s/INPUT"%(id.TEMPORARY_FOLDER,
+                                                    fINPUT,
+                                                    folder))
+                    os.system("cp %s/%s %s/STRU"%(id.TEMPORARY_FOLDER,
+                                                    fSTRU,
+                                                    folder))
+                    os.system("cp %s/%s %s/KPT"%(id.TEMPORARY_FOLDER,
+                                                fKPT,
                                                 folder))
-                os.system("cp %s/%s %s/KPT"%(id.TEMPORARY_FOLDER,
-                                               fKPT,
-                                               folder))
-                # whether should be support multiple ecutwfc inside APNS? ABACUSTest has implemented that.
-                ob._sed_(folder=folder.replace("\\", "/"),
-                      file_to_sed="INPUT",
-                      functional=functional,
-                      ecutwfc=test_information["ecutwfc"])
-                # copy pseudopotential to test folder
-                p_information = test_information["pseudopotentials"]["info"]
-                p_file = test_information["pseudopotentials"]["files"]
-                for element in test_information["elements"]:
-                    pinfo_element = p_information[element]
-                    _identifier =  id.pseudopotential(kind=pinfo_element["kind"], 
-                                                      version=pinfo_element["version"], 
-                                                      appendix=pinfo_element["appendix"])
-                    pseudopot_path = pseudopot_folders_arch[_identifier]
-                    pseudopot_file = p_file[element]
-                    print("copy " + pseudopot_path + "/" + pseudopot_file + " to " + folder)
-                    os.system("cp %s/%s %s"%(pseudopot_path.replace("\\", "/"), pseudopot_file, folder.replace("\\", "/")))
-                    # swap pseudopotential file name in input file
-                    os.system("sed -i 's/%s_pseudopot/%s/g' %s/STRU"%(element, pseudopot_file, folder.replace("\\", "/")))
+                    # whether should be support multiple ecutwfc inside APNS? ABACUSTest has implemented that.
+                    ob._sed_(folder=folder.replace("\\", "/"),
+                        file_to_sed="INPUT",
+                        functional=functional,
+                        ecutwfc=test_information["ecutwfc"])
+                    lattice_constant = 1.889725989 * (1 + cell_scaling)
+                    ob._sed_(folder=folder.replace("\\", "/"),
+                            file_to_sed="STRU",
+                            lattice_constant=lattice_constant)
+                    # copy pseudopotential to test folder
+                    p_information = test_information["pseudopotentials"]["info"]
+                    p_file = test_information["pseudopotentials"]["files"]
+                    for element in test_information["elements"]:
+                        pinfo_element = p_information[element]
+                        _identifier =  id.pseudopotential(kind=pinfo_element["kind"], 
+                                                        version=pinfo_element["version"], 
+                                                        appendix=pinfo_element["appendix"])
+                        pseudopot_path = pseudopot_folders_arch[_identifier]
+                        pseudopot_file = p_file[element]
+                        print("copy " + pseudopot_path + "/" + pseudopot_file + " to " + folder)
+                        os.system("cp %s/%s %s"%(pseudopot_path.replace("\\", "/"), pseudopot_file, folder.replace("\\", "/")))
+                        # swap pseudopotential file name in input file
+                        os.system("sed -i 's/%s_pseudopot/%s/g' %s/STRU"%(element, pseudopot_file, folder.replace("\\", "/")))
 
     os.chdir(test_status["paths"]["work_dir"])
     print_str = """------------------------------------------------------------------------------
@@ -140,7 +151,7 @@ Bohrium_platform: ali
     print(print_str)
     return test_folders
 
-def generate(test_status: dict, software: str, functionals: list = ["pbe"]):
+def generate(test_status: dict, software: str, functionals: list = ["pbe"], cell_scalings: list = [0.0]):
     """Generate all input scripts for specific software in folders
 
     Args:
@@ -149,11 +160,12 @@ def generate(test_status: dict, software: str, functionals: list = ["pbe"]):
     #software = test_status["global"]["software"]
     test_folders = []
     if software.lower().startswith("q") and software.lower().endswith("espresso"):
-        test_folders = _qespresso_(test_status,
-                                   functionals=functionals)
+        test_folders = qespresso(test_status,
+                                 functionals=functionals)
     elif software == "ABACUS":
-        test_folders = _abacus_(test_status,
-                                functionals=functionals)
+        test_folders = abacus(test_status,
+                              functionals=functionals,
+                              cell_scalings=cell_scalings)
     else:
         print("Error: software not recognized.")
         exit(1)

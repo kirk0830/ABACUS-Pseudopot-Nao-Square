@@ -40,7 +40,10 @@ def STRU_cif(fname: str,
                 numerical_orbital = kwargs["numerical_orbitals"][_element]
             return_str += "%s\n" % (numerical_orbital)
         return_str += "\n"
-    return_str += "LATTICE_CONSTANT\n1.889726877\n\n"
+    if template:
+        return_str += "LATTICE_CONSTANT\nlattice_constant_to_test\n\n"
+    else:
+        return_str += "LATTICE_CONSTANT\n1.889726877\n\n"
     return_str += "LATTICE_VECTORS\n"
     cell_parameters = cif["cell_parameters"]
     lattice_vectors = cptlv(cell_parameters)

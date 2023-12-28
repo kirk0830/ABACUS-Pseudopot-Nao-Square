@@ -15,4 +15,5 @@ if __name__ == "__main__":
     tt.to(test_status=test_status,
           software=work_status["global"]["software"],
           basis_type=work_status["calculation"]["basis_type"],
-          functionals=work_status["calculation"]["functionals"])
+          functionals=work_status["calculation"]["functionals"],
+          cell_scalings=work_status["calculation"]["cell_scaling"])
