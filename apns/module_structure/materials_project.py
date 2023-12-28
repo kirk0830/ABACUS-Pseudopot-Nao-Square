@@ -101,7 +101,9 @@ def elemental_substances(api_key: str, element: str, num_cif = 1, theoretical = 
         docs = mpr.materials.summary.search(elements=[element], num_elements=1, theoretical=theoretical)
         
     mpi_ids = [doc.material_id for doc in docs]
-
+    if len(mpi_ids) == 0:
+        raise ValueError("No structure found for element {}".format(element))
+    
     num_cif_downloaded = 0
     cif_filenames = []
 
@@ -110,6 +112,7 @@ def elemental_substances(api_key: str, element: str, num_cif = 1, theoretical = 
         if check_already_exist(mpi_id):
             print("Structure with mpid {} already exist in cache directory, skip downloading".format(mpi_id))
         else:
+            print("Downloading structure with mpid {} from Materials Project...".format(mpi_id))
             with MPRester(api_key) as mpr:
                 structure = mpr.get_structure_by_material_id(mpi_id)
             structure.to(filename=fname, fmt="cif") # better to add symprec = None
@@ -166,6 +169,19 @@ def composites(api_key: str,
             else:
                 docs = mpr.materials.summary.search(formula=formuli, theoretical=theoretical, is_stable=is_stable)
                 mpi_ids = [doc.material_id for doc in docs]
+                while len(mpi_ids) == 0 and (is_stable or not theoretical):
+                    print("Warning: No structure found for formula %s for filter theoretical = %s and is_stable = %s"%(formuli, theoretical, is_stable))
+                    if is_stable:
+                        print("Automatically switch to is_stable = False, this operation will include more substable structures.")
+                        docs = mpr.materials.summary.search(formula=formuli, theoretical=theoretical, is_stable=False)
+                        mpi_ids = [doc.material_id for doc in docs]
+                    elif not theoretical:
+                        print("Automatically switch to theoretical = True, this operation will include also not experimentally observed structures.")
+                        docs = mpr.materials.summary.search(formula=formuli, theoretical=True, is_stable=is_stable)
+                        mpi_ids = [doc.material_id for doc in docs]
+                    else:
+                        raise ValueError("No structure found for formula {}".format(formuli))
+                    
                 memorize(formuli, mpi_ids)
 
             num_cif_downloaded = 0

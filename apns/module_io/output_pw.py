@@ -8,6 +8,7 @@ import apns.module_io.output_basic as ob
 import json
 import apns.module_io.compress as cprs
 import time
+import itertools as it
 # NOT REFACTORED YET
 def qespresso(test_status: dict, functionals: list = ["pbe"], cell_scaling: list = [0.0]) -> list:
     """
@@ -137,6 +138,84 @@ def abacus(test_status: dict, functionals: list = ["pbe"], cell_scalings: list =
                         # swap pseudopotential file name in input file
                         os.system("sed -i 's/%s_pseudopot/%s/g' %s/STRU"%(element, pseudopot_file, folder.replace("\\", "/")))
 
+    os.chdir(test_status["paths"]["work_dir"])
+    print_str = """------------------------------------------------------------------------------
+Generation Done.
+To run ABACUS tests on ABACUS Test, use the following parameters:
+rundft: OMP_NUM_THREADS=16 mpirun -np 1 abacus | tee out.log 
+(especially when dft_functional = HSE, arbitrary if PBE)
+Bohrium image: registry.dp.tech/deepmodeling/abacus-intel:latest (this one is default)
+Bohrium_machine_type: c32_m128_cpu (c32_m64_cpu has bad performance)
+Bohrium_platform: ali
+------------------------------------------------------------------------------
+"""
+    print(print_str)
+    return test_folders
+
+def _abacus_(work_status: dict, test_status: dict):
+    """new version of function abacus, only take additional and enumerative keywords from work_status.
+    New code has following differences with the old one:
+    
+    1. Folder nomenclature
+    old: t_pbe_test_system_mpid_cell_0.0
+    new: t_test_system_mpid_fpbec0.0
+
+    2. Requiring changes in the way writing template files
+    now the logic changes to, except functionals and cell_scalings, ecutwfc, all other additionaly keywords
+    if are enumerative, then template will write as xxx_to_test, then it is sed to exact value here.
+    """
+    pseudopot_folders_arch = {}
+    with open(test_status["paths"]["pseudo_dir"] + "/" + "description.json") as json_f:
+        pseudopot_folders_arch = json.load(json_f)
+    os.chdir(test_status["paths"]["work_dir"])
+
+    lists_to_iterate = [
+        work_status["calculations"]["functionals"]
+        ]
+    keys_to_literate = ["functionals", "cell_scalings"]
+    for other in work_status["additional_keywords"].keys():
+        if isinstance(work_status["additional_keywords"][other], list):
+            lists_to_iterate.append(work_status["additional_keywords"][other])
+            keys_to_literate.append(other)
+    shortkeys_to_literate = [key[0] for key in keys_to_literate]
+    # generate all combinations of keywords
+    combinations = list(it.product(*lists_to_iterate))
+
+    test_folders = []
+    for system in test_status["tests"].keys():
+        system_test_information = test_status["tests"][system]
+        for test in test_status["tests"][system].keys():
+            test_information = system_test_information[test]
+            # then generate all combinations of keywords for one test
+            for c in combinations:
+                appendix = "".join([str(item[0])+str(item[1]) for item in zip(shortkeys_to_literate, c)])
+                folder = "_".join(["t", system, test, appendix])
+                test_folders.append(folder)
+                ob._mkdir_(folder=folder)
+                # copy template files
+                fINPUT, fSTRU, fKPT = id.abacus(system=system, template=True) # the names of template files
+                for fn, ft in zip([fINPUT, fSTRU, fKPT], ["INPUT", "STRU", "KPT"]):
+                    os.system("cp %s/%s %s/%s"%(id.TEMPORARY_FOLDER, fn, folder, ft))
+                for i, item in enumerate(c):
+                    key = keys_to_literate[i]
+                    value = c[i]
+                    for fn in ["INPUT", "STRU", "KPT"]:
+                        os.system("sed -i 's/%s_to_test/%s/g' %s/%s"%(key, value, folder, fn))
+                # copy pseudopotential to test folder
+                p_information = test_information["pseudopotentials"]["info"]
+                p_file = test_information["pseudopotentials"]["files"]
+                for element in test_information["elements"]:
+                    pinfo_element = p_information[element]
+                    _identifier =  id.pseudopotential(kind=pinfo_element["kind"], 
+                                                        version=pinfo_element["version"], 
+                                                        appendix=pinfo_element["appendix"])
+                    pseudopot_path = pseudopot_folders_arch[_identifier]
+                    pseudopot_file = p_file[element]
+                    print("copy " + pseudopot_path + "/" + pseudopot_file + " to " + folder)
+                    os.system("cp %s/%s %s"%(pseudopot_path.replace("\\", "/"), pseudopot_file, folder.replace("\\", "/")))
+                    # swap pseudopotential file name in input file
+                    os.system("sed -i 's/%s_pseudopot/%s/g' %s/STRU"%(element, pseudopot_file, folder.replace("\\", "/")))
+                    
     os.chdir(test_status["paths"]["work_dir"])
     print_str = """------------------------------------------------------------------------------
 Generation Done.
