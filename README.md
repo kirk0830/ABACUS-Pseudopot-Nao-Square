@@ -84,7 +84,7 @@ prepare `input.json` like this:
     }
 }
 ```
-Check `main.py` if there is anything you should modify, especially the `input.json` path.  
+For detailed description of all keywords, see [keywords.md](https://github.com/kirk0830/ABACUS-Pseudopot-Nao-Square/blob/main/docs/keywords.md). After preparing `input.json`, remember to check `main.py` if there is anything you should modify, especially the `input.json` path.  
 Then run:
 ```bash
 python main.py
