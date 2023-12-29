@@ -9,14 +9,14 @@ layout: home
 </p>  
 
 <br>
-<button class="top_header_button" onclick="location.href='./index.html'">
-Home page</button>|
-<button class="top_header_button" onclick="location.href='./apns_pages/pseudopotential_tests/pseudopotential.html'">
+|<button class="top_header_button" onclick="location.href='../../index.html'">
+Home</button>|
+<button class="top_header_button" onclick="location.href='pseudopotential.html'">
 Pseudopotential tests</button>|
-<button class="top_header_button" onclick="location.href='./apns_pages/pseudopot-nao_tests/pseudopot-nao.html'">
+<button class="top_header_button" onclick="location.href='../pseudopot-nao_tests/pseudopot-nao.html'">
 Pseudopot-Nao tests</button>|
 <button class="top_header_button">
-About</button>
+About</button>|
 <br>
 
 
