@@ -1,5 +1,8 @@
 ---
 published: true
+layout: page
+title: "pseudopotential"
+permalink: /pseudopotential/summary/
 ---
 
 <button onclick="location.href='../../../README.md'">Home page</button>
