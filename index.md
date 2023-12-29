@@ -2,9 +2,9 @@
 layout: home
 ---
 
-<button onclick="location.href='./homepage.md'">Home page</button>
-<button onclick="location.href='./.github/apns_pages/pseudopotential_tests/pseudopotential.md'">Pseudopotential tests</button>
-<button onclick="location.href='./.github/apns_pages/pseudopot-nao_tests/pseudopot-nao.md'">Pseudopot-Nao tests</button>
+<button onclick="location.href='./'">Home page</button>
+<button onclick="location.href='./.github/apns_pages/pseudopotential_tests/'">Pseudopotential tests</button>
+<button onclick="location.href='./.github/apns_pages/pseudopot-nao_tests/'">Pseudopot-Nao tests</button>
 
 <p align="center">
     <img src="./docs/apns.svg">
