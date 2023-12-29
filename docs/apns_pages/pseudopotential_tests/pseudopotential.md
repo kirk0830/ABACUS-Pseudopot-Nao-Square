@@ -32,14 +32,13 @@ About</button>
 H</button></td>
 <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
 <td></td><td></td><td></td><td></td><td></td><td></td><td></td>
-<td><button class="element_button_valid" onclick="location.href='He.html'">
+<td><button class="element_button_invalid" onclick="location.href='He.html'">
 He</button></td>
-<td></td>
 <tr>
 <td>2</td>
 <td><button class="element_button_valid" onclick="location.href='Li.html'">
 Li</button></td>
-<td><button class="element_button_valid" onclick="location.href='Be.html'">
+<td><button class="element_button_invalid" onclick="location.href='Be.html'">
 Be</button></td>
 <td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
 <td></td>
@@ -53,9 +52,8 @@ N</button></td>
 O</button></td>
 <td><button class="element_button_valid" onclick="location.href='F.html'">
 F</button></td>
-<td><button class="element_button_valid" onclick="location.href='Ne.html'">
+<td><button class="element_button_invalid" onclick="location.href='Ne.html'">
 Ne</button></td>
-<td></td>
 </tr>
 <tr>
 <td>3</td>
@@ -68,15 +66,14 @@ Mg</button></td>
 Al</button></td>
 <td><button class="element_button_valid" onclick="location.href='Si.html'">
 Si</button></td>
-<td><button class="element_button_valid" onclick="location.href='P.html'">
+<td><button class="element_button_invalid" onclick="location.href='P.html'">
 P</button></td>
 <td><button class="element_button_valid" onclick="location.href='S.html'">
 S</button></td>
 <td><button class="element_button_valid" onclick="location.href='Cl.html'">
 Cl</button></td>
-<td><button class="element_button_valid" onclick="location.href='Ar.html'">
+<td><button class="element_button_invalid" onclick="location.href='Ar.html'">
 Ar</button></td>
-<td></td>
 </tr>
 <tr>
 <td>4</td>
