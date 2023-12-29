@@ -1,5 +1,7 @@
 from apns.module_structure.crystal_information_file import cell_parameters_to_lattice_vectors as cptlv
 from apns.module_structure.crystal_information_file import read_1 as read
+import re
+
 def STRU_cif(fname: str, 
              pseudopotentials: dict = {}, 
              template: bool = False, 
@@ -40,7 +42,10 @@ def STRU_cif(fname: str,
                 numerical_orbital = kwargs["numerical_orbitals"][_element]
             return_str += "%s\n" % (numerical_orbital)
         return_str += "\n"
-    return_str += "LATTICE_CONSTANT\n1.889726877\n\n"
+    if template:
+        return_str += "LATTICE_CONSTANT\nlattice_constant_to_test\n\n"
+    else:
+        return_str += "LATTICE_CONSTANT\n1.889726877\n\n"
     return_str += "LATTICE_VECTORS\n"
     cell_parameters = cif["cell_parameters"]
     lattice_vectors = cptlv(cell_parameters)
@@ -161,6 +166,54 @@ def KPT_generation(mode: str, gamma_centered: bool = True, **kwargs):
     else:
         raise ValueError
     
+    return return_str
+
+def INPUT(work_status: dict,
+          minimal: bool = True,
+          template: bool = False):
+    """new version of function INPUT for generating INPUT file of ABACUS, if in work_status
+    find in additional_keywords there are parameter set as xxx_to_test """
+    minimal_keys = {
+        "calculation": "scf",
+        "ecutwfc": 100,
+        "basis_type": "pw",
+        "symmetry": 0,
+        "pseudo_dir": "./",
+        "scf_nmax": 100,
+        "scf_thr": 1e-6
+    }
+    values = {}
+    comments = {}
+    # parse input to key, value and comments
+    pattern = r"^([\w_]*)([\s\w\.+-]*)([#]?)(.*)$"
+    for line in INPUT_TEMPLATE.split("\n"):
+        if line == "INPUT_PARAMETERS" or line.startswith("#"):
+            continue
+        _match = re.match(pattern, line)
+        if _match and _match.group(1) != "":
+            values[_match.group(1)] = _match.group(2)
+            comments[_match.group(1)] = _match.group(4)
+    # for template, change its value to xxx_to_test placeholder, then sed in other functions
+    if template:
+        values["dft_functional"] = "functional_to_test"
+        values["ecutwfc"] = "ecutwfc_to_test"
+        for key in work_status["additional_keywords"].keys():
+            if isinstance(work_status["additional_keywords"][key], list):
+                values[key] = key + "_to_test"
+            else:
+                values[key] = work_status["additional_keywords"][key]
+    # for minimal, only keep the minimal keys, but add manually set keys
+    for key in work_status["additional_keywords"].keys():
+        if key not in minimal_keys:
+            minimal_keys[key] = values[key]
+    # write.
+    return_str = "INPUT_PARAMETERS\n"
+    if minimal:
+        for key in minimal_keys:
+            return_str += "%s %s # %s\n"%(key, values[key], comments[key])
+    else:
+        for key in values:
+            return_str += "%s %s # %s\n"%(key, values[key], comments[key])
     return return_str
 
 def INPUT_generation(minimal: bool = True,
