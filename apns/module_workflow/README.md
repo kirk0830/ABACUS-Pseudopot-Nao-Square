@@ -1,3 +1,7 @@
+<p align="center">
+    <img src="../../docs/apns.svg">
+</p>
+
 # Workflow design of ABACUS Pseudopot-Nao square
 ## Data carrier
 There are mainly two data carrier (Python dictionary) in this package: `work_status` and `test_status`.
