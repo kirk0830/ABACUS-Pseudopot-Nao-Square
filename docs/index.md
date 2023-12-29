@@ -3,11 +3,11 @@ layout: home
 ---
 
 <button onclick="location.href='./'">Home page</button>
-<button onclick="location.href='./.github/apns_pages/pseudopotential_tests/pseudopotential.html'">Pseudopotential tests</button>
-<button onclick="location.href='./.github/apns_pages/pseudopot-nao_tests/pseudopot-nao.html'">Pseudopot-Nao tests</button>
+<button onclick="location.href='./apns_pages/pseudopotential_tests/pseudopotential.html'">Pseudopotential tests</button>
+<button onclick="location.href='./apns_pages/pseudopot-nao_tests/pseudopot-nao.html'">Pseudopot-Nao tests</button>
 
 <p align="center">
-    <img src="./docs/apns.svg">
+    <img src="./apns.svg">
 </p>  
 
 # ABACUS Pseudopot-Nao Square  
