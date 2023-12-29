@@ -1,3 +1,7 @@
+---
+published: true
+---
+
 <button onclick="location.href='../../../README.md'">Home page</button>
 <button onclick="location.href='pseudopotential'">Pseudopotential tests</button>
 <button onclick="location.href='../pseudopot-nao_tests/pseudopot-nao.md'">Pseudopot-Nao tests</button>
