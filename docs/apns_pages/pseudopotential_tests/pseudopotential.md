@@ -11,21 +11,19 @@ layout: default
 </p>  
 
 <br>
-<button class="top_header_button" onclick="location.href='../../index.md'">
-Home page</button>
+<button class="top_header_button" onclick="location.href='../../index.html'">
+Home page</button>|
 <button class="top_header_button" onclick="location.href='pseudopotential.html'">
-Pseudopotential tests</button>
+Pseudopotential tests</button>|
 <button class="top_header_button" onclick="location.href='../pseudopot-nao_tests/pseudopot-nao.html'">
-Pseudopot-Nao tests</button>
+Pseudopot-Nao tests</button>|
 <button class="top_header_button">
 About</button>
 <br>
 
 <h3>Main part of periodic table</h3>
 
-<table>
-
-<tr>
+<table><tr>
 <th></th><th>IA</th><th>IIA</th><th>IIIB</th><th>IVB</th><th>VB</th><th>VIB</th><th>VIIB</th><th></th><th>VIIIB</th><th></th><th>IB</th><th>IIB</th><th>IIIA</th><th>IVA</th><th>VA</th><th>VIA</th><th>VIIA</th><th>VIIIA</th>
 </tr>
 <tr>

@@ -9,12 +9,12 @@ layout: home
 </p>  
 
 <br>
-<button class="top_header_button" onclick="location.href='./index.md'">
-Home page</button>
+<button class="top_header_button" onclick="location.href='./index.html'">
+Home page</button>|
 <button class="top_header_button" onclick="location.href='./apns_pages/pseudopotential_tests/pseudopotential.html'">
-Pseudopotential tests</button>
+Pseudopotential tests</button>|
 <button class="top_header_button" onclick="location.href='./apns_pages/pseudopot-nao_tests/pseudopot-nao.html'">
-Pseudopot-Nao tests</button>
+Pseudopot-Nao tests</button>|
 <button class="top_header_button">
 About</button>
 <br>
