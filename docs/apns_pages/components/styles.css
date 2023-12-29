@@ -1,5 +1,9 @@
 .top_header_button {
     border-radius: 5px;
+    width: 24%;
+    height: 60px;
+    background-color: transparent;
+    border: 0px solid #969696;
 }
 .element_button_valid {
     background-color: #4CAF50; /* Green */

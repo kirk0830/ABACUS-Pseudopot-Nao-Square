@@ -1,12 +1,26 @@
-<button onclick="location.href='../../../README.md'">Home page</button>
-<button onclick="location.href='pseudopotential.md'">Pseudopotential tests</button>
-<button onclick="location.href='../pseudopot-nao_tests/pseudopot-nao.md'">Pseudopot-Nao tests</button>
+---
+layout: default
+---
+
+<link rel="stylesheet" type="text/css" href="../components/styles.css">
+
+
 
 <p align="center">
-    <img src="../../../docs/apns.svg">
+    <img src="../../apns.svg">
 </p>  
 
-# ABACUS Pseudopot-Nao Square  
+<br>
+<button class="top_header_button" onclick="location.href='../../index.md'">
+Home page</button>
+<button class="top_header_button" onclick="location.href='pseudopotential.html'">
+Pseudopotential tests</button>
+<button class="top_header_button" onclick="location.href='../pseudopot-nao_tests/pseudopot-nao.html'">
+Pseudopot-Nao tests</button>
+<button class="top_header_button">
+About</button>
+<br>
+
 ## Pseudopotential tests
 ### Test information
     - element: Li
