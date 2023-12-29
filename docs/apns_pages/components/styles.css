@@ -1,9 +1,14 @@
 .top_header_button {
     border-radius: 5px;
-    width: 23%;
+    width: 20%;
     height: 60px;
     background-color: transparent;
     border: 0px solid #969696;
+}
+.top_header_button_container {
+    display: flex;
+    justify-content: center;
+    gap: 1px;
 }
 .element_button_valid {
     background-color: #4CAF50; /* Green */
@@ -31,4 +36,7 @@
 }
 th {
     text-align: center;
+}
+.delimiter {
+    margin: 0 10px; /* 设置分隔符的左右边距 */
 }
