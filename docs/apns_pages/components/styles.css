@@ -8,7 +8,7 @@
 .top_header_button_container {
     display: flex;
     justify-content: center;
-    gap: 1px;
+    gap: 1%;
 }
 .element_button_valid {
     background-color: #4CAF50; /* Green */
