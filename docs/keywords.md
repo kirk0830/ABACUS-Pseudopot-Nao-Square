@@ -36,11 +36,11 @@ This file introduces basic usage of APNS implemented presently.
     // For a list, the specified kinds, versions and appendices will be used for all elements in
     // all systems. For a dict, must specify kinds, versions and appendices for each element.
     "pseudopotentials": {
-        "kinds": ["sg15", "pd"],
-        "versions": ["10", "04"],
-        "appendices": [""]
+        "kinds": ["sg15", "pd"],   // supports "sg15", "pd" or "dojo" presently, also "all" for all available norm-conserving pseudopotentials stored locally
+        "versions": ["10", "04"],  // support version selection of pseudopotentials, also "all" for all available versions
+        "appendices": [""]         // support appendix selection of pseudopotentials, also "all" for all available appendices
     },
-    // similarly for numerical orbitals.
+    // similarly for numerical orbitals, BUT NOT IMPLEMENTED YET
     "numerical_orbitals": {
         "types": ["DZP"],
         "rcuts": [7, 8, 9, 10],
