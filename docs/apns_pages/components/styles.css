@@ -1,0 +1,30 @@
+.top_header_button {
+    border-radius: 5px;
+}
+.element_button_valid {
+    background-color: #4CAF50; /* Green */
+    border: none;
+    color: white;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    border-radius: 5px;
+    width: 60px;
+    height: 60px;
+}
+.element_button_invalid {
+    background-color: #969696;
+    border: none;
+    color: white;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    border-radius: 5px;
+    width: 60px;
+    height: 60px;
+}
+th {
+    text-align: center;
+}

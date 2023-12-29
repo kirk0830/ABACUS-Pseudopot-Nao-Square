@@ -1,4 +1,4 @@
-<button onclick="location.href='../../../README.md'">Home page</button>
+<button onclick="location.href='../../../index.md'">Home page</button>
 <button onclick="location.href='pseudopotential.md'">Pseudopotential tests</button>
 <button onclick="location.href='../pseudopot-nao_tests/pseudopot-nao.md'">Pseudopot-Nao tests</button>
 
