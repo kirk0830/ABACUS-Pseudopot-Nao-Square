@@ -1,0 +1,21 @@
+<!-- Path: docs/_layouts/default.html -->
+<!DOCTYPE html>
+<!-- first insert logo as class=top_logo --->
+<html lang="{{ page.lang | default: site.lang | default: "en" }}" title="default-layout">
+  <head>
+  </head>
+  <body>
+    <div class="root-container">
+    <div class="main-container">
+    {% include header.html %}
+    {% include navigation.html %}
+    <main>
+      {{ content }}
+    </main>
+    </div>
+    <div class="footer-container">
+    {% include footer.html %}
+    </div>
+  </div>
+  </body>
+</html>

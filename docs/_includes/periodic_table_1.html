@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+
+<html>
+    <head>
+        <link rel="stylesheet" type="text/css" href="/assets/css/basic-styles.css">
+        <link rel="stylesheet" type="text/css" href="/assets/css/periodic_table.css">
+    </head>
+    <table class="perodic-table">
+        {% assign i = 1 %}
+        <tr>
+        {% for name in site.data.periodic_table_1 %}
+            {% if name.icol == 1 %}
+                {% assign i = 1 %}
+                </tr>
+                <tr>
+                    {% assign link = "" %}
+                    <td>
+                    {% if page.title == "pseudopotential" %}
+                        {% assign link = name.pseudopotential_link %}
+                    {% elsif page.title == "pseudopot-nao" %}
+                        {% assign link = "https://github.com/deepmodeling/abacus-develop" %} <!--it is because numerical atomic orbital test not available presently-->
+                    {% else %}
+                        {% assign link = "https://github.com/deepmodeling/abacus-develop" %}
+                    {% endif %}
+                    <button class="perodic-table_btn" onclick="location.href='{{ link }}'">
+                        <p class="atomic-symbol">
+                            {{ name.name }}</p>
+                        <p class="atomic-mass">
+                            {{ name.mass }}</p>
+                    </button>
+                    <!--add button here--></td>
+            {% else %}
+                {% assign i = i | plus:1 %}
+                {% for j in (0..18) %}
+                    {% if i == name.icol %}
+                        {% break %}
+                    {% else %}
+                        <td><!--keep emp-ty here--></td>
+                        {% assign i = i | plus:1 %}
+                    {% endif %}
+                {% endfor %}
+                {% assign link = "" %}
+                <td>
+                {% if page.title == "pseudopotential" %}
+                    {% assign link = name.pseudopotential_link %}
+                {% elsif page.title == "pseudopot-nao" %}
+                    {% assign link = "https://github.com/deepmodeling/abacus-develop" %} <!--it is because numerical atomic orbital test not available presently-->
+                {% else %}
+                    {% assign link = "https://github.com/deepmodeling/abacus-develop" %}
+                {% endif %}
+                <button class="perodic-table_btn" onclick="location.href='{{ link }}'">
+                    <p class="atomic-symbol">
+                        {{ name.name }}</p>
+                    <p class="atomic-mass">
+                        {{ name.mass }}</p>
+                </button>
+                <!--add button here--></td>
+            {% endif %}
+        {% endfor %}
+        </tr>
+    </table>
+</html>
