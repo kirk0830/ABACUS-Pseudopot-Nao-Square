@@ -6,7 +6,14 @@ import os
 from apns.module_structure.basic import scan_elements
 
 def check(inp: dict) -> None:
+    """check reasonality of input parameters
 
+    Args:
+        inp (dict): parsed input
+
+    Raises:
+        ValueError: unreasonable parameter will raise this error
+    """
     if inp["global"]["software"] == "qespresso":
         if inp["calculation"]["basis_type"] == "lcao":
             raise ValueError("Quantum ESPRESSO only supports pw calculation.")
