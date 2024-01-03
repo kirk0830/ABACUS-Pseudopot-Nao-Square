@@ -17,7 +17,7 @@
                     {% if irow == name.irow and icol == name.icol %} <!--it is a terrible search but due to total time is omitable, therefore I keep it here-->
                     <td>
                         {% assign link = "" %}
-                        {% if page.title == "pseudopotential" %}
+                        {% if page.title == "Pseudopotential" %}
                             {% assign link = name.pseudopotential_link %}
                         {% endif %}
                         <button class="perodic-table_btn" onclick="location.href='{{ site.baseurl }}/{{ link }}'">
