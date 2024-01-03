@@ -10,7 +10,7 @@
     {% for item in site.data.navigation %}
       <a class="nav-btn-delimiter">·</a>
       <a href="{{ site.baseurl }}/{{ item.link }}"
-      {% if page.url == item.link or page.test == item.name or page.title == item.name% }
+      {% if page.url == item.link or page.test == item.name or page.title == item.name %}
         class="nav-btn-active"
       {% else %}
         class="nav-btn" 
