@@ -16,14 +16,11 @@
                 {% for name in site.data.periodic_table_2 %}
                     {% if irow == name.irow and icol == name.icol %} <!--it is a terrible search but due to total time is omitable, therefore I keep it here-->
                     <td>
+                        {% assign link = "" %}
                         {% if page.title == "pseudopotential" %}
                             {% assign link = name.pseudopotential_link %}
-                        {% elsif page.title == "pseudopot-nao" %}
-                            {% assign link = "https://github.com/deepmodeling/abacus-develop" %} <!--it is because numerical atomic orbital test not available presently-->
-                        {% else %}
-                            {% assign link = "https://github.com/deepmodeling/abacus-develop" %}
                         {% endif %}
-                        <button class="perodic-table_btn" onclick="location.href='{{ link }}'">
+                        <button class="perodic-table_btn" onclick="location.href='{{ site.baseurl }}/{{ link }}'">
                             <p class="atomic-symbol">
                                 {{ name.name }}</p>
                             <p class="atomic-mass">
