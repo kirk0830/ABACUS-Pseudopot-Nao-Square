@@ -68,8 +68,6 @@ prepare `input.json` like this:
         "ecutwfc": [100],
         "cell_scaling": [0.0]
     },
-    "additional_keywords": {
-    },
     "systems": ["H", "He"],
     "materials_project": {
         "api_key": "your Materials Project API key",
