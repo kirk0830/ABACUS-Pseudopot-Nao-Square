@@ -8,7 +8,7 @@
 <body>
   <nav class="nav-body">
     {% for item in site.data.navigation %}
-      {% assign link = {{ site.baseurl }}/{{ item.link }} %}
+      {% assign link = site.baseurl | append: "/" | append: item.link %}
       <a class="nav-btn-delimiter">·</a>
       <a href="{{ link }}"
       {% if page.url == link or page.test == item.name %}
