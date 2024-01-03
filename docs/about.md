@@ -5,7 +5,7 @@ layout: default
 
 ## About APNS
 **ABACUS** (Atomic-orbital Based Ab-initio Computation at UStc) **Pseudopot** (pseudopotential)-**Nao** (numerical atomic orbital) **Square** (**APNS**) is a project for continuously generating pseudopotential and numerical atomic orbital test data for ABACUS user. The project is based on the [ABACUS](https://github.com/deepmodeling/abacus-develop) project, which is a high-performance ab initio simulation software for electronic structure calculation.  
-**Github repo:** [ABACUS-Pseudopot-Nao-Square](https://github.com/kirk0830{{ site.baseurl }})  
+**Github repo:** [ABACUS-Pseudopot-Nao-Square](https://github.com/kirk0830/ABACUS-Pseudopot-Nao-Square)  
 
 ----
 
