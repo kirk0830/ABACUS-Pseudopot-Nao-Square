@@ -87,9 +87,9 @@ def _qespresso_(work_status: dict, test_status: dict):
         work_status["calculations"]["functionals"]
         ]
     keys_to_literate = ["input_dft", "cell_scalings"] # what is the counterpart here???
-    for other in work_status["additional_keywords"].keys():
-        if isinstance(work_status["additional_keywords"][other], list):
-            lists_to_iterate.append(work_status["additional_keywords"][other])
+    for other in work_status["calculation"].keys():
+        if isinstance(work_status["calculation"][other], list):
+            lists_to_iterate.append(work_status["calculation"][other])
             keys_to_literate.append(other)
     shortkeys_to_literate = [key[0] for key in keys_to_literate]
     # generate all combinations of keywords
@@ -238,9 +238,9 @@ def _abacus_(work_status: dict, test_status: dict):
         work_status["calculations"]["functionals"]
         ]
     keys_to_literate = ["dft_functional", "cell_scalings"]
-    for other in work_status["additional_keywords"].keys():
-        if isinstance(work_status["additional_keywords"][other], list):
-            lists_to_iterate.append(work_status["additional_keywords"][other])
+    for other in work_status["calculation"].keys():
+        if isinstance(work_status["calculation"][other], list):
+            lists_to_iterate.append(work_status["calculation"][other])
             keys_to_literate.append(other)
     shortkeys_to_literate = [key[0] for key in keys_to_literate]
     # generate all combinations of keywords

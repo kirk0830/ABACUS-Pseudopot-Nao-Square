@@ -171,8 +171,8 @@ def KPT_generation(mode: str, gamma_centered: bool = True, **kwargs):
 def INPUT(work_status: dict,
           minimal: bool = True,
           template: bool = False):
-    """new version of function INPUT for generating INPUT file of ABACUS, if in work_status
-    find in additional_keywords there are parameter set as xxx_to_test """
+    """new version of function INPUT for generating INPUT file of ABACUS,
+     support enumeration on any number of keywords specified as list """
     minimal_inp = {
         "calculation": "scf",
         "ecutwfc": 100,
