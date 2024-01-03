@@ -10,7 +10,9 @@ materials_project_memory.json
 *.pyc
 __pycache__
 *egg-info
+*.egg
 apns_cache
 t_*_*_*_*
 *.zip
 *.log
+build/lib/apns/*
