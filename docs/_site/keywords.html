@@ -1,8 +1,81 @@
----
-layout: default
-title: local configuration
----
-<div>
+<!-- Path: docs/_layouts/default.html -->
+<!DOCTYPE html>
+<!-- first insert logo as class=top_logo --->
+<html lang="en" title="default-layout">
+  <head>
+  </head>
+  <body>
+    <div class="root-container">
+    <div class="main-container">
+    <!-- Path: docs/_includes/footer.html -->
+<!DOCTYPE html>
+<!-- first insert logo as class=bottom_logo -->
+<html lang="en">
+  <head>
+    <link rel="stylesheet" type="text/css" href="/assets/css/basic-styles.css">
+  </head>
+  <body>
+    <p align="center">
+        <img src="/assets/images/apns.svg" class="top_logo" alt="delimiter_header">
+    </p>
+  </body>
+</html>
+    <!DOCTYPE html>
+<html>
+<head>
+  <link rel="stylesheet" type="text/css" href="/assets/css/navigation.css">
+</head>
+<body>
+  <nav class="nav-body">
+    
+      <a class="nav-btn-delimiter">·</a>
+      <a href="/"
+      
+        class="nav-btn" 
+      >
+        Home
+      </a>
+    
+      <a class="nav-btn-delimiter">·</a>
+      <a href="/pseudopotential/pseudopotential.html"
+      
+        class="nav-btn" 
+      >
+        Pseudopotential
+      </a>
+    
+      <a class="nav-btn-delimiter">·</a>
+      <a href="/pseudopot-nao/pseudopot-nao.html"
+      
+        class="nav-btn" 
+      >
+        Pseudopot-Nao
+      </a>
+    
+      <a class="nav-btn-delimiter">·</a>
+      <a href="/about.html"
+      
+        class="nav-btn" 
+      >
+        About
+      </a>
+    
+      <a class="nav-btn-delimiter">·</a>
+      <a href="/keywords.html"
+      
+        class="nav-btn-active"
+      >
+        Local configuration
+      </a>
+    
+    <a class="nav-btn-delimiter">·</a>
+</nav>
+<br>
+</body>
+</html>
+
+    <main>
+      <div>
 This page introduces basic usage of APNS implemented presently. 
 <p class="inform">This page is not well-formatted yet</p>
 
@@ -11,46 +84,46 @@ This page introduces basic usage of APNS implemented presently.
 <h2> Example <code>input.json</code></h2>
 <div class="inform">
 <code>
-{<br>
-    // some global settings placed here<br>
-    "global": {<br>
-        "test_mode": "pseudopotential",           // "pseudopotential" or "numerical_orbital"<br>
-        "software": "ABACUS",                     // "ABACUS" or "qespresso"<br>
-        "work_dir": "./",                         // the working directory<br>
-        "pseudo_dir": "./module_pseudo/download", // always fixed, pseudopotential now is <br>
-                                                  // designed to distribute along with the code<br>
-        "orbital_dir": "./module_nao/download",   // will be the directory to store numerical orbital files<br>
-        "save_log": true                          // will dump json<br>
-    },<br>
-    "calculation": {<br>
-        "basis_type": "pw",     // "pw" or "lcao". "pw" is supported by both ABACUS and qespresso, <br>
-                                // "lcao" is only supported by ABACUS<br>
-        "functionals": ["PBE"], // enumerate! xc functional<br>
-        "ecutwfc": [100],       // enumerate! ecutwfc that will impose for all systems<br>
-        "cell_scaling": [0.00]  // enumerate! cell scaling factor, NOT IMPLEMENTED YET<br>
-    },<br>
-    "systems": ["Er2O3"],       // enumerate! system name, will be used to find CIF via Materials Project API.<br>
-                                // or specify not symmetrized CIF file path in structures list<br>
-    "materials_project": {<br>
-        "api_key": "xxx",       // your Materials Project API<br>
-        "n_structures": 1,      // number of structures want to download, for each system or specify a list for systems<br>
-        "theoretical": false,   // always keep false to get only experimentally observed structures<br>
-        "most_stable": true     // get the most stable structure<br>
-    },<br>
-    // psedupotential section supports two ways input, the first is list, the second is dict.<br>
-    // For a list, the specified kinds, versions and appendices will be used for all elements in<br>
-    // all systems. For a dict, must specify kinds, versions and appendices for each element.<br>
-    "pseudopotentials": {<br>
-        "kinds": ["sg15", "pd"],   // supports "sg15", "pd" or "dojo" presently, also "all" for all available norm-conserving pseudopotentials stored locally<br>
-        "versions": ["10", "04"],  // support version selection of pseudopotentials, also "all" for all available versions<br>
-        "appendices": [""]         // support appendix selection of pseudopotentials, also "all" for all available appendices<br>
-    },<br>
-    // similarly for numerical orbitals, BUT NOT IMPLEMENTED YET<br>
-    "numerical_orbitals": {<br>
-        "types": ["DZP"],<br>
-        "rcuts": [7, 8, 9, 10],<br>
-        "appendices": [""]<br>
-    }<br>
+{<br />
+    // some global settings placed here<br />
+    "global": {<br />
+        "test_mode": "pseudopotential",           // "pseudopotential" or "numerical_orbital"<br />
+        "software": "ABACUS",                     // "ABACUS" or "qespresso"<br />
+        "work_dir": "./",                         // the working directory<br />
+        "pseudo_dir": "./module_pseudo/download", // always fixed, pseudopotential now is <br />
+                                                  // designed to distribute along with the code<br />
+        "orbital_dir": "./module_nao/download",   // will be the directory to store numerical orbital files<br />
+        "save_log": true                          // will dump json<br />
+    },<br />
+    "calculation": {<br />
+        "basis_type": "pw",     // "pw" or "lcao". "pw" is supported by both ABACUS and qespresso, <br />
+                                // "lcao" is only supported by ABACUS<br />
+        "functionals": ["PBE"], // enumerate! xc functional<br />
+        "ecutwfc": [100],       // enumerate! ecutwfc that will impose for all systems<br />
+        "cell_scaling": [0.00]  // enumerate! cell scaling factor, NOT IMPLEMENTED YET<br />
+    },<br />
+    "systems": ["Er2O3"],       // enumerate! system name, will be used to find CIF via Materials Project API.<br />
+                                // or specify not symmetrized CIF file path in structures list<br />
+    "materials_project": {<br />
+        "api_key": "xxx",       // your Materials Project API<br />
+        "n_structures": 1,      // number of structures want to download, for each system or specify a list for systems<br />
+        "theoretical": false,   // always keep false to get only experimentally observed structures<br />
+        "most_stable": true     // get the most stable structure<br />
+    },<br />
+    // psedupotential section supports two ways input, the first is list, the second is dict.<br />
+    // For a list, the specified kinds, versions and appendices will be used for all elements in<br />
+    // all systems. For a dict, must specify kinds, versions and appendices for each element.<br />
+    "pseudopotentials": {<br />
+        "kinds": ["sg15", "pd"],   // supports "sg15", "pd" or "dojo" presently, also "all" for all available norm-conserving pseudopotentials stored locally<br />
+        "versions": ["10", "04"],  // support version selection of pseudopotentials, also "all" for all available versions<br />
+        "appendices": [""]         // support appendix selection of pseudopotentials, also "all" for all available appendices<br />
+    },<br />
+    // similarly for numerical orbitals, BUT NOT IMPLEMENTED YET<br />
+    "numerical_orbitals": {<br />
+        "types": ["DZP"],<br />
+        "rcuts": [7, 8, 9, 10],<br />
+        "appendices": [""]<br />
+    }<br />
 }
 </code>
 </div>
@@ -102,7 +175,7 @@ This document provides a full list of keywords for ABACUS Pseudopot-Nao Square. 
 <li> <b>Default:</b> <code>True</code> </li>
 </ul>
 
-<div><imag src="/assets/images/delimiter_thin.svg"></div>
+<div><imag src="/assets/images/delimiter_thin.svg">&lt;/div&gt;
 
 <h2> <code>calculation</code> section </h2>
 
@@ -234,4 +307,39 @@ This document provides a full list of keywords for ABACUS Pseudopot-Nao Square. 
 * **Type:** list or dict
 * **Default:** `[""]`
 
-</div>
+&lt;/div&gt;
+</imag></div></div>
+
+    </main>
+    </div>
+    <div class="footer-container">
+    <!-- Path: docs/_includes/footer.html -->
+<!DOCTYPE html>
+<html>
+    <head>
+        <link rel="stylesheet" type="text/css" href="/assets/css/basic-styles.css">
+    </head>
+    <body>
+        <table class="footer-frame">
+        <tr>
+            <td colspan="2">
+                <p align="center">
+                    <img src="/assets/images/delimiter_bottom.svg" class="delimiter" alt="delimiter_footer_1">
+                </p>
+            </td>
+        </tr>
+        <tr>
+            <td width="40%">
+                <img src="/assets/images/footer_corner.svg" class="delimiter" alt="delimiter_footer_2">
+            </td>
+            <td width="60%">
+                <p align="right" class="footer-text"><strong>ABACUS</strong> (Atomic-orbital Based Ab-initio Computation at UStc) <strong>Pseudopot</strong> (pseudopotential)-<strong>Nao</strong> (numerical atomic orbital) <strong>Square</strong> (<strong>APNS</strong>) is a project for continuously generating pseudopotential and numerical atomic orbital test data for ABACUS user. The project is based on the <a href="https://github.com/deepmodeling/abacus-develop">ABACUS</a> project, which is a high-performance ab initio simulation software for electronic structure calculation.</p>
+            </td>
+        </tr>
+        </table>
+    </body>
+</html>
+    </div>
+  </div>
+  </body>
+</html>

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<!--this is for drawing Lanthanide and Actinide elements region in periodic table-->
+<html>
+    <head>
+        <link rel="stylesheet" type="text/css" href="/assets/css/basic-styles.css">
+        <link rel="stylesheet" type="text/css" href="/assets/css/periodic_table.css">
+    </head>
+    <table class="perodic-table">
+        <!--because there are only 14 elements in each row, rather than 18, we need to fill some empty element-->
+        {% for irow in (1..2) %} <!--because in yaml data file the irow starts from 1 rather than 0-->
+            <tr>
+            {% for icol in (1..18) %} <!--because in yaml data file the icol starts from 1 rather than 0-->
+                {% assign button = false %}
+                {% for name in site.data.periodic_table_2 %}
+                    {% if irow == name.irow and icol == name.icol %} <!--it is a terrible search but due to total time is omitable, therefore I keep it here-->
+                    <td>
+                        {% if page.title == "pseudopotential" %}
+                            {% assign link = name.pseudopotential_link %}
+                        {% elsif page.title == "pseudopot-nao" %}
+                            {% assign link = "https://github.com/deepmodeling/abacus-develop" %} <!--it is because numerical atomic orbital test not available presently-->
+                        {% else %}
+                            {% assign link = "https://github.com/deepmodeling/abacus-develop" %}
+                        {% endif %}
+                        <button class="perodic-table_btn" onclick="location.href='{{ link }}'">
+                            <p class="atomic-symbol">
+                                {{ name.name }}</p>
+                            <p class="atomic-mass">
+                                {{ name.mass }}</p>
+                        </button>
+                        <!--add button here--></td>
+                        {% assign button = true %}
+                    {% endif %}
+                {% endfor %}
+                {% if button == false %}
+                    <td width="5.56%"><!--keep emp-ty here--></td>
+                {% endif %}
+            {% endfor %}
+            </tr>
+        {% endfor %}
+    </table>

@@ -1,0 +1,157 @@
+/* header */
+.top_logo {
+    width: 100%;
+    height: 100%;
+    max-width: 1200px;
+}
+/* footer */
+.footer-text {
+    background-color: transparent;
+    font-size: 12.5px;
+    color: #aaaaaa;
+    text-align: left;
+    text-decoration: none;
+    width: 100%;
+    height: 100%;
+}
+.footer_logo {
+    width: 30%;
+    height: 30%;
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    padding: 0 20px;
+}
+/* delimiters */
+.delimiter {
+    width: 50%;
+    height: 20%;
+    display: flex;
+}
+/* titles */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    font-size: 25px;
+    font-weight: bold;
+    color: #2B316B;
+    text-align: left;
+    padding: auto;
+}
+
+/* basic format */
+.plain_text {
+    font-size: 15px;
+    color: #000000;
+    max-width: 1200px;
+}
+.plain-figure {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    max-width: 1200px;
+}
+
+
+
+
+/* codes */
+.language-plaintext {
+    font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
+    font-size: 15px;
+    color: #000000;
+    background-color: rgb(236, 236, 236);
+}
+
+.language-json5 {
+    font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
+    font-size: 15px;
+    color: #000000;
+    background-color: rgb(236, 236, 236);
+}
+
+.language-json {
+    font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
+    font-size: 15px;
+    color: #000000;
+    background-color: rgb(236, 236, 236);
+}
+
+.highlighter-rouge {
+    font-family: Consolas, 'Times New Roman', 'Arial', monospace;
+    font-size: 15px;
+    color: red;
+    background-color: rgb(236, 236, 236);
+}
+/* tag selector */
+code {
+    font-family: Consolas, 'Times New Roman', 'Arial', monospace;
+    font-size: 15px;
+    color: #2B316B;
+    background-color: rgb(236, 236, 236);
+}
+/* class selector */
+.inform {
+    font-family: Consolas, 'Times New Roman', 'Arial', monospace;
+    font-size: 15px;
+    color: #2B316B;
+    background-color: rgb(236, 236, 236);
+    border: 1px solid #2B316B;
+    padding: 10px 10px 10px 10px;
+    max-width: 1000px;
+}
+
+.main-container {
+    width: 100%;
+    height: 100%;
+    max-width: 1200px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    place-items: center;
+    padding: 0 0 0 0;
+    margin: 0 0 0 0;
+}
+
+.footer-container {
+    width: 100%;
+    height: 100%;
+    max-width: 1200px;
+    display: flow-root;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    place-items: center;
+    padding: 0 0px;
+    border: 0px solid #000000;
+}
+
+.footer-frame {
+    width: 100%;
+    height: 100%;
+    max-width: 1200px;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    place-items: center;
+    padding: 0 0px;
+}
+
+.root-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    place-items: center;
+    align-items: center;
+    padding: 0 0 0 0;
+    margin: 0 0 0 0;
+}
