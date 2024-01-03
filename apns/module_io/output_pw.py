@@ -76,6 +76,71 @@ Bohrium_platform: ali
     print(print_str)
     return test_folders
 
+def _qespresso_(work_status: dict, test_status: dict):
+
+    pseudopot_folders_arch = {}
+    with open(test_status["paths"]["pseudo_dir"] + "/" + "description.json") as json_f:
+        pseudopot_folders_arch = json.load(json_f)
+    os.chdir(test_status["paths"]["work_dir"])
+
+    lists_to_iterate = [
+        work_status["calculations"]["functionals"]
+        ]
+    keys_to_literate = ["input_dft", "cell_scalings"] # what is the counterpart here???
+    for other in work_status["additional_keywords"].keys():
+        if isinstance(work_status["additional_keywords"][other], list):
+            lists_to_iterate.append(work_status["additional_keywords"][other])
+            keys_to_literate.append(other)
+    shortkeys_to_literate = [key[0] for key in keys_to_literate]
+    # generate all combinations of keywords
+    combinations = list(it.product(*lists_to_iterate))
+
+    test_folders = []
+    for system in test_status["tests"].keys():
+        system_test_information = test_status["tests"][system]
+        for test in test_status["tests"][system].keys():
+            test_information = system_test_information[test]
+            # then generate all combinations of keywords for one test
+            for c in combinations:
+                appendix = "".join([str(item[0])+str(item[1]) for item in zip(shortkeys_to_literate, c)])
+                folder = "_".join(["t", system, test, appendix])
+                test_folders.append(folder)
+                ob._mkdir_(folder=folder)
+                # copy template files
+                fin = id.qespresso(system=system, template=True)
+                os.system("cp %s/%s %s/scf.in"%(id.TEMPORARY_FOLDER, fin, folder))
+                for i, item in enumerate(c):
+                    key = keys_to_literate[i]
+                    value = c[i]
+                    os.system("sed -i 's/%s_to_test/%s/g' %s/scf.in"%(key, value, folder))
+                # copy pseudopotential to test folder
+                p_information = test_information["pseudopotentials"]["info"]
+                p_file = test_information["pseudopotentials"]["files"]
+                for element in test_information["elements"]:
+                    pinfo_element = p_information[element]
+                    _identifier =  id.pseudopotential(kind=pinfo_element["kind"], 
+                                                        version=pinfo_element["version"], 
+                                                        appendix=pinfo_element["appendix"])
+                    pseudopot_path = pseudopot_folders_arch[_identifier]
+                    pseudopot_file = p_file[element]
+                    print("copy " + pseudopot_path + "/" + pseudopot_file + " to " + folder)
+                    os.system("cp %s/%s %s"%(pseudopot_path.replace("\\", "/"), pseudopot_file, folder.replace("\\", "/")))
+                    # swap pseudopotential file name in input file
+                    os.system("sed -i 's/%s_pseudopot/%s/g' %s/scf.in"%(element, pseudopot_file, folder.replace("\\", "/")))
+
+    os.chdir(test_status["paths"]["work_dir"])
+    print_str = """------------------------------------------------------------------------------
+Generation Done.
+To run Quantum ESPRESSO tests on ABACUS Test, use the following parameters:
+rundft: mpirun -np 16 pw.x -i scf.in | tee scf.log; rm -rf pwscf.save
+Bohrium image: registry.dp.tech/dptech/prod-471/abacus-vasp-qe:20230116
+Bohrium_machine_type: c32_m128_cpu
+Bohrium_platform: ali
+------------------------------------------------------------------------------
+"""
+    print(print_str)
+    return test_folders
+
 def abacus(test_status: dict, functionals: list = ["pbe"], cell_scalings: list = [0.0]) -> list:
 
     pseudopot_folders_arch = {}
@@ -172,7 +237,7 @@ def _abacus_(work_status: dict, test_status: dict):
     lists_to_iterate = [
         work_status["calculations"]["functionals"]
         ]
-    keys_to_literate = ["functionals", "cell_scalings"]
+    keys_to_literate = ["dft_functional", "cell_scalings"]
     for other in work_status["additional_keywords"].keys():
         if isinstance(work_status["additional_keywords"][other], list):
             lists_to_iterate.append(work_status["additional_keywords"][other])

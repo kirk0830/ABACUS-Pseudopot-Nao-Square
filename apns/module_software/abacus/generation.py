@@ -173,14 +173,15 @@ def INPUT(work_status: dict,
           template: bool = False):
     """new version of function INPUT for generating INPUT file of ABACUS, if in work_status
     find in additional_keywords there are parameter set as xxx_to_test """
-    minimal_keys = {
+    minimal_inp = {
         "calculation": "scf",
         "ecutwfc": 100,
         "basis_type": "pw",
         "symmetry": 0,
         "pseudo_dir": "./",
         "scf_nmax": 100,
-        "scf_thr": 1e-6
+        "scf_thr": 1e-6,
+        "dft_functional": "pbe"
     }
     values = {}
     comments = {}
@@ -194,25 +195,33 @@ def INPUT(work_status: dict,
             values[_match.group(1)] = _match.group(2)
             comments[_match.group(1)] = _match.group(4)
     # for template, change its value to xxx_to_test placeholder, then sed in other functions
-    if template:
-        values["dft_functional"] = "functional_to_test"
-        values["ecutwfc"] = "ecutwfc_to_test"
-        for key in work_status["additional_keywords"].keys():
-            if isinstance(work_status["additional_keywords"][key], list):
-                values[key] = key + "_to_test"
+    work_status_specified_valid_keys = []
+    for key in work_status["calculation"].keys():
+        valid_key = key
+        if key == "functionals":
+            valid_key = "dft_functional"
+        elif key == "cell_scaling":
+            continue
+        if isinstance(work_status["calculation"][key], list):
+            if template:
+                values[valid_key] = valid_key + "_to_test"
             else:
-                values[key] = work_status["additional_keywords"][key]
+                raise TypeError("For non-template mode input script generation, list-organized input is not supported")
+        else:
+            values[valid_key] = work_status["calculation"][key]
+        work_status_specified_valid_keys.append(valid_key)
+
     # for minimal, only keep the minimal keys, but add manually set keys
-    for key in work_status["additional_keywords"].keys():
-        if key not in minimal_keys:
-            minimal_keys[key] = values[key]
+    for key in work_status_specified_valid_keys:
+        minimal_inp[key] = values[key]
+
     # write.
     return_str = "INPUT_PARAMETERS\n"
     if minimal:
-        for key in minimal_keys:
+        for key in minimal_inp.keys():
             return_str += "%s %s # %s\n"%(key, values[key], comments[key])
     else:
-        for key in values:
+        for key in values.keys():
             return_str += "%s %s # %s\n"%(key, values[key], comments[key])
     return return_str
 
@@ -270,17 +279,17 @@ def INPUT_generation(minimal: bool = True,
             return_str += "%s %s # %s\n"%(key, values[key], comments[key])
     return return_str
 
-INPUT_TEMPLATE = """
-INPUT_PARAMETERS
+INPUT_TEMPLATE = """INPUT_PARAMETERS
 #Parameters (1.General)
 suffix                         ABACUS #the name of main output directory
 latname                        none #the name of lattice name
 stru_file                      STRU #the filename of file containing atom positions
 kpoint_file                    KPT #the name of file containing k points
-pseudo_dir                     ./ #the directory containing pseudo files
-orbital_dir                    ./ #the directory containing orbital files
+pseudo_dir                     ../../../tests/PP_ORB/ #the directory containing pseudo files
+orbital_dir                    ../../../tests/PP_ORB/ #the directory containing orbital files
 pseudo_rcut                    15 #cut-off radius for radial integration
 pseudo_mesh                    0 #0: use our own mesh to do radial renormalization; 1: use mesh as in QE
+lmaxmax                        2 #maximum of l channels used
 dft_functional                 default #exchange correlation functional
 xc_temperature                 0 #temperature for finite temperature functionals
 calculation                    scf #test; scf; relax; nscf; get_wf; get_pchg
@@ -289,9 +298,10 @@ ntype                          1 #atom species number
 nspin                          1 #1: single spin; 2: up and down spin; 4: noncollinear spin
 kspacing                       0 0 0  #unit in 1/bohr, should be > 0, default is 0 which means read KPT file
 min_dist_coef                  0.2 #factor related to the allowed minimum distance between two atoms
+nbands                         10 #number of bands
 nbands_sto                     256 #number of stochastic bands
 nbands_istate                  5 #number of bands around Fermi level for get_pchg calulation
-symmetry                       0 #the control of symmetry
+symmetry                       1 #the control of symmetry
 init_vel                       0 #read velocity from STRU or not
 symmetry_prec                  1e-06 #accuracy for symmetry
 symmetry_autoclose             1 #whether to close symmetry automatically when error occurs in symmetry analysis
@@ -306,7 +316,7 @@ dft_plus_dmft                  0 #true:DFT+DMFT; false: standard DFT calcullatio
 rpa                            0 #true:generate output files used in rpa calculation; false:(default)
 printe                         100 #Print out energy for each band for every printe steps
 mem_saver                      0 #Only for nscf calculations. if set to 1, then a memory saving technique will be used for many k point calculations.
-diago_proc                     16 #the number of procs used to do diagonalization
+diago_proc                     1 #the number of procs used to do diagonalization
 nbspline                       -1 #the order of B-spline basis
 wannier_card                   none #input card for wannier functions
 soc_lambda                     1 #The fraction of averaged SOC pseudopotential is given by (1-soc_lambda)
@@ -316,18 +326,17 @@ device                         cpu #the computing device for ABACUS
 
 #Parameters (2.PW)
 ecutwfc                        100 ##energy cutoff for wave functions
-ecutrho                        800 ##energy cutoff for charge density and potential
+ecutrho                        400 ##energy cutoff for charge density and potential
 erf_ecut                       0 ##the value of the constant energy cutoff
 erf_height                     0 ##the height of the energy step for reciprocal vectors
 erf_sigma                      0.1 ##the width of the energy step for reciprocal vectors
 fft_mode                       0 ##mode of FFTW
-pw_diag_ndim                   4 #max dimension for davidson
 pw_diag_thr                    0.01 #threshold for eigenvalues is cg electron iterations
-scf_thr                        1e-09 #charge density error
-scf_thr_type                   1 #type of the criterion of scf_thr, 1: reci drho for pw, 2: real drho for lcao
+scf_thr                        1e-08 #charge density error
+scf_thr_type                   2 #type of the criterion of scf_thr, 1: reci drho for pw, 2: real drho for lcao
 init_wfc                       atomic #start wave functions are from 'atomic', 'atomic+random', 'random' or 'file'
 init_chg                       atomic #start charge is from 'atomic' or file
-chg_extrap                     first-order #atomic; first-order; second-order; dm:coefficients of SIA
+chg_extrap                     atomic #atomic; first-order; second-order; dm:coefficients of SIA
 out_chg                        0 #>0 output charge density for selected electron steps
 out_pot                        0 #output realspace potential
 out_wfc_pw                     0 #output wave functions
@@ -368,8 +377,9 @@ cond_fwhm                      0.4 #FWHM for conductivities
 cond_nonlocal                  1 #Nonlocal effects for conductivities
 
 #Parameters (4.Relaxation)
-scf_nmax                       200 ##number of electron iterations
-relax_nmax                     50 #number of ion iteration steps
+ks_solver                      genelpa #cg; dav; lapack; genelpa; scalapack_gvx; cusolver
+scf_nmax                       100 ##number of electron iterations
+relax_nmax                     1 #number of ion iteration steps
 out_stru                       0 #output the structure files after each ion step
 force_thr                      0.001 #force threshold, unit: Ry/Bohr
 force_thr_ev                   0.0257112 #force threshold, unit: eV/Angstrom
@@ -384,7 +394,7 @@ relax_bfgs_w2                  0.5 #wolfe condition 2 for bfgs
 relax_bfgs_rmax                0.8 #maximal trust radius, unit: Bohr
 relax_bfgs_rmin                1e-05 #minimal trust radius, unit: Bohr
 relax_bfgs_init                0.5 #initial trust radius, unit: Bohr
-cal_stress                     0 #calculate the stress or not
+cal_stress                     1 #calculate the stress or not
 fixed_axes                     None #which axes are fixed
 fixed_ibrav                    0 #whether to preseve lattice type during relaxation
 fixed_atoms                    0 #whether to preseve direct coordinates of atoms during relaxation
@@ -402,11 +412,12 @@ deepks_out_unittest            0 #if set 1, prints intermediate quantities that 
 deepks_model                    #file dir of traced pytorch model: 'model.ptg
 
 #Parameters (5.LCAO)
-basis_type                     pw #PW; LCAO in pw; LCAO
+basis_type                     lcao #PW; LCAO in pw; LCAO
+nb2d                           0 #2d distribution of atoms
 gamma_only                     0 #Only for localized orbitals set and gamma point. If set to 1, a fast algorithm is used
 search_radius                  -1 #input search radius (Bohr)
 search_pbc                     1 #input periodic boundary condition
-lcao_ecut                      0 #energy cutoff for LCAO
+lcao_ecut                      100 #energy cutoff for LCAO
 lcao_dk                        0.01 #delta k for 1D integration in LCAO
 lcao_dr                        0.01 #delta r for 1D integration in LCAO
 lcao_rmax                      30 #max R for 1D two-center integration table
@@ -419,22 +430,23 @@ out_mat_t                      0 #output T(R) matrix
 out_element_info               0 #output (projected) wavefunction of each element
 out_mat_r                      0 #output r(R) matrix
 out_wfc_lcao                   0 #ouput LCAO wave functions, 0, no output 1: text, 2: binary
-bx                             1 #division of an element grid in FFT grid along x
-by                             1 #division of an element grid in FFT grid along y
-bz                             1 #division of an element grid in FFT grid along z
+bx                             0 #division of an element grid in FFT grid along x
+by                             0 #division of an element grid in FFT grid along y
+bz                             0 #division of an element grid in FFT grid along z
 
 #Parameters (6.Smearing)
-smearing_method                gauss #type of smearing_method: gauss; fd; fixed; mp; mp2; mv
-smearing_sigma                 0.05 #energy range for smearing
+smearing_method                gaussian #type of smearing_method: gauss; fd; fixed; mp; mp2; mv
+smearing_sigma                 0.02 #energy range for smearing
 
 #Parameters (7.Charge Mixing)
 mixing_type                    broyden #plain; pulay; broyden
-mixing_beta                    0.8 #mixing parameter: 0 means no new charge
+mixing_beta                    0.4 #mixing parameter: 0 means no new charge
 mixing_ndim                    8 #mixing dimension in pulay or broyden
 mixing_gg0                     1 #mixing parameter in kerker
 mixing_beta_mag                -10 #mixing parameter for magnetic density
 mixing_gg0_mag                 0 #mixing parameter in kerker
 mixing_gg0_min                 0.1 #the minimum kerker coefficient
+mixing_angle                   -10 #angle mixing parameter for non-colinear calculations
 mixing_tau                     0 #whether to mix tau in mGGA calculation
 mixing_dftu                    0 #whether to mix locale in DFT+U calculation
 
@@ -571,6 +583,7 @@ gdir                           3 #calculate the polarization in the direction of
 towannier90                    0 #use wannier90 code interface or not
 nnkpfile                       seedname.nnkp #the wannier90 code nnkp file name
 wannier_spin                   up #calculate spin in wannier90 code interface
+wannier_method                 1 #different implementation methods under Lcao basis set
 out_wannier_mmn                1 #output .mmn file or not
 out_wannier_amn                1 #output .amn file or not
 out_wannier_unk                1 #output UNK. file or not
@@ -611,13 +624,13 @@ hubbard_u           0 #Hubbard Coulomb interaction parameter U(ev)
 orbital_corr        -1 #which correlated orbitals need corrected ; d:2 ,f:3, do not need correction:-1
 
 #Parameters (21.spherical bessel)
-bessel_nao_ecut                200.000000 #energy cutoff for spherical bessel functions(Ry)
+bessel_nao_ecut                100.000000 #energy cutoff for spherical bessel functions(Ry)
 bessel_nao_tolerence           1e-12 #tolerence for spherical bessel root
 bessel_nao_rcut                6 #radial cutoff for spherical bessel functions(a.u.)
 bessel_nao_smooth              1 #spherical bessel smooth or not
 bessel_nao_sigma               0.1 #spherical bessel smearing_sigma
 bessel_descriptor_lmax         2 #lmax used in generating spherical bessel functions
-bessel_descriptor_ecut         200.000000 #energy cutoff for spherical bessel functions(Ry)
+bessel_descriptor_ecut         100.000000 #energy cutoff for spherical bessel functions(Ry)
 bessel_descriptor_tolerence    1e-12 #tolerence for spherical bessel root
 bessel_descriptor_rcut         6 #radial cutoff for spherical bessel functions(a.u.)
 bessel_descriptor_smooth       1 #spherical bessel smooth or not

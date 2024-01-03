@@ -17,8 +17,13 @@
     - mp_api (Materials Project API, Python-end)
     - pymatgen
 ### Installation
+To run program with frozen codes, run
 ```bash
 python setup.py install
+```
+Codes will run from other replica rather than the original one. To run program supporting timely development, run
+```bash
+python setup.py develop
 ```
 ### Usage
 #### Very first configuration
