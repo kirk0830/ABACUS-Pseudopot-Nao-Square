@@ -1,6 +1,6 @@
 ---
 layout: default
-title: local configuration
+title: Local configuration
 ---
 <div>
 This page introduces basic usage of APNS implemented presently. 
@@ -57,7 +57,6 @@ This page introduces basic usage of APNS implemented presently.
 <h2> Full input keywords list </h2>
 This document provides a full list of keywords for ABACUS Pseudopot-Nao Square. The keywords are divided into several sections, each section is for a specific purpose. The keywords are listed in alphabetical order within each section.
 
----
 <h2> <code>global</code> section </h2>
 
 <h3> <code>test_mode</code> </h3>
@@ -134,8 +133,6 @@ This document provides a full list of keywords for ABACUS Pseudopot-Nao Square. 
 <li> <b>Default:</b> <code>[0.00]</code> </li>
 </ul>
 
----
-
 <h2> <code>systems</code> section </h2>
 <p>This section should be organized in the following way:</p>
 <code>
@@ -158,8 +155,6 @@ This document provides a full list of keywords for ABACUS Pseudopot-Nao Square. 
     }
 }
 </code>
-
----
 
 <h2> <code>materials_project</code> section </h2>
 
@@ -191,8 +186,6 @@ This document provides a full list of keywords for ABACUS Pseudopot-Nao Square. 
 <li> <b>Default:</b> <code>False</code> </li>
 </ul>
 
----
-
 <h2> <code>pseudopotentials</code> section </h2>
 
 <h3> <code>kinds</code> </h3>
@@ -216,22 +209,27 @@ This document provides a full list of keywords for ABACUS Pseudopot-Nao Square. 
 <li> <b>Default:</b> <code>[""]</code> </li>
 </ul>
 
----
-### `numerical_orbitals` section
+<h2> <code>numerical_orbitals</code> section </h2>
 
-#### `types`
-* **Description:** types of numerical orbitals to test (`DZP` or `TZDP`, conventionally), specified as list. If contents are not organized element-by-element, then will use the same type for all elements.
-* **Type:** list or dict
-* **Default:** `[""]`
+<h3> <code>types</code> </h3>
+<ul>
+<li> <b>Description:</b> types of numerical orbitals to test (<code>DZP</code> or <code>TZDP</code>, conventionally), specified as list. If contents are not organized element-by-element, then will use the same type for all elements. </li>
+<li> <b>Type:</b> list or dict </li>
+<li> <b>Default:</b> <code>[""]</code> </li>
+</ul>
 
-#### `rcuts`
-* **Description:** cutoff radii of numerical orbitals to test, specified as list. If contents are not organized element-by-element, then will use the same cutoff radius for all elements.
-* **Type:** list or dict
-* **Default:** `[""]`
+<h3> <code>rcuts</code> </h3>
+<ul>
+<li> <b>Description:</b> cutoff radii of numerical orbitals to test, specified as list. If contents are not organized element-by-element, then will use the same cutoff radius for all elements. </li>
+<li> <b>Type:</b> list or dict </li>
+<li> <b>Default:</b> <code>[""]</code> </li>
+</ul>
 
-#### `appendices`
-* **Description:** appendices of numerical orbitals to test, specified as list. If contents are not organized element-by-element, then will use the same appendix for all elements.
-* **Type:** list or dict
-* **Default:** `[""]`
+<h3> <code>appendices</code> </h3>
+<ul>
+<li> <b>Description:</b> appendices of numerical orbitals to test, specified as list. If contents are not organized element-by-element, then will use the same appendix for all elements. </li>
+<li> <b>Type:</b> list or dict </li>
+<li> <b>Default:</b> <code>[""]</code> </li>
+</ul>
 
 </div>
