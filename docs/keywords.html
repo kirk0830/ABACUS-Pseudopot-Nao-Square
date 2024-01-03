@@ -1,0 +1,235 @@
+---
+layout: default
+title: Local configuration
+---
+<div>
+This page introduces basic usage of APNS implemented presently. 
+<p class="inform">This page is not well-formatted yet</p>
+
+<h1> ABACUS Pseudopot-Nao Square </h1>
+
+<h2> Example <code>input.json</code></h2>
+<div class="inform">
+<code>
+{<br>
+    // some global settings placed here<br>
+    "global": {<br>
+        "test_mode": "pseudopotential",           // "pseudopotential" or "numerical_orbital"<br>
+        "software": "ABACUS",                     // "ABACUS" or "qespresso"<br>
+        "work_dir": "./",                         // the working directory<br>
+        "pseudo_dir": "./module_pseudo/download", // always fixed, pseudopotential now is <br>
+                                                  // designed to distribute along with the code<br>
+        "orbital_dir": "./module_nao/download",   // will be the directory to store numerical orbital files<br>
+        "save_log": true                          // will dump json<br>
+    },<br>
+    "calculation": {<br>
+        "basis_type": "pw",     // "pw" or "lcao". "pw" is supported by both ABACUS and qespresso, <br>
+                                // "lcao" is only supported by ABACUS<br>
+        "functionals": ["PBE"], // enumerate! xc functional<br>
+        "ecutwfc": [100],       // enumerate! ecutwfc that will impose for all systems<br>
+        "cell_scaling": [0.00]  // enumerate! cell scaling factor, NOT IMPLEMENTED YET<br>
+    },<br>
+    "systems": ["Er2O3"],       // enumerate! system name, will be used to find CIF via Materials Project API.<br>
+                                // or specify not symmetrized CIF file path in structures list<br>
+    "materials_project": {<br>
+        "api_key": "xxx",       // your Materials Project API<br>
+        "n_structures": 1,      // number of structures want to download, for each system or specify a list for systems<br>
+        "theoretical": false,   // always keep false to get only experimentally observed structures<br>
+        "most_stable": true     // get the most stable structure<br>
+    },<br>
+    // psedupotential section supports two ways input, the first is list, the second is dict.<br>
+    // For a list, the specified kinds, versions and appendices will be used for all elements in<br>
+    // all systems. For a dict, must specify kinds, versions and appendices for each element.<br>
+    "pseudopotentials": {<br>
+        "kinds": ["sg15", "pd"],   // supports "sg15", "pd" or "dojo" presently, also "all" for all available norm-conserving pseudopotentials stored locally<br>
+        "versions": ["10", "04"],  // support version selection of pseudopotentials, also "all" for all available versions<br>
+        "appendices": [""]         // support appendix selection of pseudopotentials, also "all" for all available appendices<br>
+    },<br>
+    // similarly for numerical orbitals, BUT NOT IMPLEMENTED YET<br>
+    "numerical_orbitals": {<br>
+        "types": ["DZP"],<br>
+        "rcuts": [7, 8, 9, 10],<br>
+        "appendices": [""]<br>
+    }<br>
+}
+</code>
+</div>
+<h2> Full input keywords list </h2>
+This document provides a full list of keywords for ABACUS Pseudopot-Nao Square. The keywords are divided into several sections, each section is for a specific purpose. The keywords are listed in alphabetical order within each section.
+
+<h2> <code>global</code> section </h2>
+
+<h3> <code>test_mode</code> </h3>
+<ul>
+<li> <b>Description:</b> mode to test, can be <code>pseudopotential</code> or <code>numerical_orbital</code>. For <code>pseudopotential</code> mode, if <code>software</code> specified as <code>ABACUS</code>, then <code>basis_type pw</code> will be automatically set, if <code>software</code> specified as <code>qespresso</code>, nothing would happen. <code>pseudopotential</code> test mode will only test the pseudopotential, and <code>numerical_orbital</code> mode need user specify information of pseudopotential and numerical orbitals both. </li>
+<li> <b>Type:</b> string </li>
+<li> <b>Default:</b> <code>pseudopotential</code> </li>
+</ul>
+
+<h3> <code>software</code> </h3>
+<ul>
+<li> <b>Description:</b> software to test, can be <code>ABACUS</code> or <code>qespresso</code>. If <code>software</code> specified as <code>ABACUS</code>, then <code>basis_type pw</code> will be automatically set, if <code>software</code> specified as <code>qespresso</code>, nothing would happen. </li>
+<li> <b>Type:</b> string </li>
+<li> <b>Default:</b> <code>ABACUS</code> </li>
+</ul>
+
+<h3> <code>work_dir</code> </h3>
+<ul>
+<li> <b>Description:</b> working directory, all the files will be generated in this directory. </li>
+<li> <b>Type:</b> string </li>
+<li> <b>Default:</b> <code>./</code> </li>
+</ul>
+
+<h3> <code>pseudo_dir</code> </h3>
+<ul>
+<li> <b>Description:</b> directory to store pseudopotential files. </li>
+<li> <b>Type:</b> string </li>
+<li> <b>Default:</b> <code>./module_pseudo/resources/</code> </li>
+</ul>
+
+<h3> <code>orbital_dir</code> </h3>
+<ul>
+<li> <b>Description:</b> directory to store numerical orbital files. </li>
+<li> <b>Type:</b> string </li>
+<li> <b>Default:</b> <code>./module_nao/resources/</code> </li>
+</ul>
+
+<h3> <code>save_log</code> </h3>
+<ul>
+<li> <b>Description:</b> whether to save log (json) </li>
+<li> <b>Type:</b> bool </li>
+<li> <b>Default:</b> <code>True</code> </li>
+</ul>
+
+<div><imag src="{{ site.baseurl }}/assets/images/delimiter_thin.svg"></div>
+
+<h2> <code>calculation</code> section </h2>
+
+<h3> <code>basis_type</code> </h3>
+<ul>
+<li> <b>Description:</b> basis type, can be <code>pw</code> or <code>lcao</code>. <code>software ABACUS</code> supports both <code>pw</code> and <code>lcao</code>, <code>software qespresso</code> only supports <code>pw</code>. </li>
+<li> <b>Type:</b> string </li>
+<li> <b>Default:</b> <code>pw</code> </li>
+</ul>
+
+<h3> <code>functionals</code> </h3>
+<ul>
+<li> <b>Description:</b> DFT functionals to test, specified as list. </li>
+<li> <b>Type:</b> list </li>
+<li> <b>Default:</b> <code>['PBE']</code> </li>
+</ul>
+
+<h3> <code>ecutwfc</code> </h3>
+<ul>
+<li> <b>Description:</b> kinetic energy cutoffs for wavefunctions, in Rydberg, specified as list, but instead this keyword can be set via ABACUSTEST application, see <a href="https://labs.dp.tech/projects/abacustest/">https://labs.dp.tech/projects/abacustest/</a> </li>
+<li> <b>Type:</b> list </li>
+<li> <b>Default:</b> <code>[100]</code> </li>
+</ul>
+
+<h3> <code>cell_scaling</code> </h3>
+<ul>
+<li> <b>Description:</b> scaling factor for cell, specified as list. </li>
+<li> <b>Type:</b> list </li>
+<li> <b>Default:</b> <code>[0.00]</code> </li>
+</ul>
+
+<h2> <code>systems</code> section </h2>
+<p>This section should be organized in the following way:</p>
+<code>
+{
+    "systems": ["Yb2O3", "Er", "TiO2"]
+}
+</code>
+<p>Elements will be recognized from this section, then `pseudopotentials` and `numerical_orbitals` section will search available files for these elements. For analysis task, this section will have more options, e.g.:</p>
+<code>
+{
+    "systems": {
+        "Yb2O3": {
+            "band_gap": 5.0,
+            "lattice_constant": 10.0,
+        },
+        "Er": {
+            "band_gap": 5.0,
+            "lattice_constant": 10.0,
+        },
+    }
+}
+</code>
+
+<h2> <code>materials_project</code> section </h2>
+
+<h3> <code>api_key</code> </h3>
+<ul>
+<li> <b>Description:</b> Materials Project Application Program Interface (API) Key. Get your API key following tutorial in <a href="https://docs.materialsproject.org/downloading-data/using-the-api">https://docs.materialsproject.org/downloading-data/using-the-api</a> </li>
+<li> <b>Type:</b> string </li>
+</ul>
+<em> This keyword is compulsory for running APNS test suite generation, no default value is given. If not specified, will raise error </em>
+
+<h3> <code>n_structures</code> </h3>
+<ul>
+<li> <b>Description:</b> For each system specified, how many structures are needed. If a list is given, then the length of the list should be the same as the length of <code>systems</code> section. If an integar is given, then will use the same number for all systems. </li>
+<li> <b>Type:</b> int or list </li>
+<li> <b>Default:</b> <code>1</code> </li>
+</ul>
+
+<h3> <code>theoretical</code> </h3>
+<ul>
+<li> <b>Description:</b> Whether to get theoretical structures. If <code>True</code>, then will get theoretical structures, if <code>False</code>, then will only get experimental structures. </li>
+<li> <b>Type:</b> boolean </li>
+<li> <b>Default:</b> <code>False</code> </li>
+</ul>
+
+<h3> <code>most_stable</code> </h3>
+<ul>
+<li> <b>Description:</b> If only get structures which are marked as <code>is_stable</code> in Materials Project. If <code>True</code>, then will only get the most stable structure, if <code>False</code>, then will get all structures. The <code>is_stable</code> here sometimes means <em>the most stable</em>, some sub-stable structures will be filtered out, like TiO2 anatase. </li>
+<li> <b>Type:</b> boolean </li>
+<li> <b>Default:</b> <code>False</code> </li>
+</ul>
+
+<h2> <code>pseudopotentials</code> section </h2>
+
+<h3> <code>kinds</code> </h3>
+<ul>
+<li> <b>Description:</b> kinds of pseudopotentials to test (<code>sg15</code>, <code>pd</code>, <code>rrkjus</code> or something other), specified as list. If contents are not organized element-by-element, then will use the same pseudopotential for all elements. <code>all</code> can also be given, then all kinds of pseudopotentials will be included in test suite, use with caution. </li>
+<li> <b>Type:</b> list or dict </li>
+<li> <b>Default:</b> <code>[""]</code> </li>
+</ul>
+
+<h3> <code>versions</code> </h3>
+<ul>
+<li> <b>Description:</b> versions of pseudopotentials to test, specified as list. If contents are not organized element-by-element, then will use the same version for all elements. <code>all</code> can also be given, then all versions of pseudopotentials will be included in test suite, use with caution. </li>
+<li> <b>Type:</b> list or dict </li>
+<li> <b>Default:</b> <code>[""]</code> </li>
+</ul>
+
+<h3> <code>appendices</code> </h3>
+<ul>
+<li> <b>Description:</b> appendices of pseudopotentials to test, specified as list. If contents are not organized element-by-element, then will use the same appendix for all elements. <code>all</code> can also be given, then all appendices of pseudopotentials will be included in test suite, use with caution. </li>
+<li> <b>Type:</b> list or dict </li>
+<li> <b>Default:</b> <code>[""]</code> </li>
+</ul>
+
+<h2> <code>numerical_orbitals</code> section </h2>
+
+<h3> <code>types</code> </h3>
+<ul>
+<li> <b>Description:</b> types of numerical orbitals to test (<code>DZP</code> or <code>TZDP</code>, conventionally), specified as list. If contents are not organized element-by-element, then will use the same type for all elements. </li>
+<li> <b>Type:</b> list or dict </li>
+<li> <b>Default:</b> <code>[""]</code> </li>
+</ul>
+
+<h3> <code>rcuts</code> </h3>
+<ul>
+<li> <b>Description:</b> cutoff radii of numerical orbitals to test, specified as list. If contents are not organized element-by-element, then will use the same cutoff radius for all elements. </li>
+<li> <b>Type:</b> list or dict </li>
+<li> <b>Default:</b> <code>[""]</code> </li>
+</ul>
+
+<h3> <code>appendices</code> </h3>
+<ul>
+<li> <b>Description:</b> appendices of numerical orbitals to test, specified as list. If contents are not organized element-by-element, then will use the same appendix for all elements. </li>
+<li> <b>Type:</b> list or dict </li>
+<li> <b>Default:</b> <code>[""]</code> </li>
+</ul>
+
+</div>

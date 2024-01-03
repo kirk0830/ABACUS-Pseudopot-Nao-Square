@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="stylesheet" type="text/css" href="{{ site.baseurl }}/assets/css/navigation.css">
+</head>
+<body>
+  <nav class="nav-body">
+    {% for item in site.data.navigation %}
+      {% assign link = site.baseurl | append: "/" | append: item.link %}
+      <a class="nav-btn-delimiter">·</a>
+      <a href="{{ link }}"
+      {% if page.test == item.name or page.title == item.name %}
+        class="nav-btn-active"
+      {% else %}
+        class="nav-btn" 
+      {% endif %}>
+        {{ item.name }}
+      </a>
+    {% endfor %}
+    <a class="nav-btn-delimiter">·</a>
+</nav>
+<br>
+</body>
+</html>
