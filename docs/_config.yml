@@ -1,7 +1,7 @@
 email: huangyk@aisi.ac.cn
 description: >- 
   For higher efficiency and precision of ABACUS calculation!
-baseurl: "/ABACUS-Pseudopot-Nao-Square"
+baseurl: "{{ site.baseurl }}"
 url: "https://kirk0830.github.io"
 github_username: kirk0830
 #theme: minima

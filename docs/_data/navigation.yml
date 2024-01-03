@@ -1,10 +1,10 @@
 - name: Home
-  link: /ABACUS-Pseudopot-Nao-Square/
+  link: {{ site.baseurl }}/
 - name: Pseudopotential
-  link: /ABACUS-Pseudopot-Nao-Square/pseudopotential/pseudopotential.html
+  link: {{ site.baseurl }}/pseudopotential/pseudopotential.html
 - name: Pseudopot-Nao
-  link: /ABACUS-Pseudopot-Nao-Square/pseudopot-nao/pseudopot-nao.html
+  link: {{ site.baseurl }}/pseudopot-nao/pseudopot-nao.html
 - name: About
-  link: /ABACUS-Pseudopot-Nao-Square/about.html
+  link: {{ site.baseurl }}/about.html
 - name: Local configuration
-  link: /ABACUS-Pseudopot-Nao-Square/keywords.html
+  link: {{ site.baseurl }}/keywords.html

@@ -102,7 +102,7 @@ This document provides a full list of keywords for ABACUS Pseudopot-Nao Square. 
 <li> <b>Default:</b> <code>True</code> </li>
 </ul>
 
-<div><imag src="/docs/assets/images/delimiter_thin.svg"></div>
+<div><imag src="{{ site.baseurl }}/assets/images/delimiter_thin.svg"></div>
 
 <h2> <code>calculation</code> section </h2>
 
