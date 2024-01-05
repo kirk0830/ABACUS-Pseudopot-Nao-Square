@@ -217,7 +217,7 @@ if __name__ == "__main__":
             },
             "O": {
                 "TZDP_10@sg15_10": {
-                    "file": "O_gga_6au_100Ry_3s3p3d2f.orb",
+                    "file": "O_gga_10au_100Ry_3s3p3d2f.orb",
                     "type": "TZDP",
                     "rcut": "10",
                     "appendix": ""
