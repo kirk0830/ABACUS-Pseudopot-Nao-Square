@@ -1,21 +1,38 @@
 import apns.module_structure.basic as amsb
 import apns.module_pseudo.local_validity_scan as amplvs
-import apns.module_io.work_status_expand as amiwse
+import apns.module_io.input_translate as amiwse
 import apns.module_software.abacus.generation as amsag
 import apns.module_workflow.identifier as amwi
 import apns.module_workflow.apns_itertools as amwai
 import apns.module_pseudo.upf_archive as ampua
 import os
 
-def driver(input_file: str):
+import apns.module_workflow.initialize as amwinit
 
-    input = amiwse.render(fname=input_file, system_with_mpids={"Cr": ["Cr_90"]})
+def driver(input_file: str):
+    """driver of the whole apns workflow
+    
+    Args:
+        input_file (str): input file
+        
+    Raises:
+    
+    Returns:
+        None
+    """
+    input, valid_pspot, valid_nao, pspot_arch, _ = amwinit.initialize(finp=input_file)
+
+
+
+
+    input = amiwse.inp_translate(fname=input_file, system_with_mpids={"Cr": ["Cr_90"]})
 
     elements = amsb.scan_elements(input["systems"])
     valid_pseudopotentials = amplvs._svp_(elements, input["pseudopotentials"])
     for element in elements:
         if element not in valid_pseudopotentials.keys():
             raise ValueError("No valid pseudopotential for element {}.".format(element))
+        
     pseudopot_nao_settings = []
     if input["calculation"]["basis_type"] == "lcao":
         raise NotImplementedError("lcao calculation is not supported yet.") # NOQA

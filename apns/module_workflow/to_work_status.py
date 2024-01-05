@@ -1,6 +1,6 @@
 """From input script to generate initial work_status dictionary"""
 
-import apns.module_io.work_status_expand as wse
+import apns.module_io.input_translate as wse
 import apns.module_structure.materials_project as mp
 import json
 
@@ -49,4 +49,4 @@ def to(fname: str) -> dict:
                                 is_stable=inp["materials_project"]["most_stable"])
     del inp["materials_project"] # delete "materials_project" section from input file
     # _structures is a dict whose keys are system formula and values are lists of corresponding system_mpids.
-    return wse.render(fname=fname, system_with_mpids=_structures)
+    return wse.inp_translate(fname=fname, system_with_mpids=_structures)

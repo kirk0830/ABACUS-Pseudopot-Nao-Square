@@ -41,7 +41,7 @@ def r_pseudopotential(identifier: str) -> tuple:
     else:
         return words[0], words[1], "_".join(words[2:])
 
-def numerical_orbital(type: str, rcut: int, appendix: str) -> str:
+def numerical_orbital(type: str, rcut: int, appendix: str, version: bool = "old") -> str:
     """Generate identifier of numerical orbital
 
     Args:
@@ -59,8 +59,10 @@ def numerical_orbital(type: str, rcut: int, appendix: str) -> str:
         raise ValueError("type cannot be empty")
     if rcut != 0:
         rcut = str(rcut)
-
-    return "_".join(i for i in [type, str(rcut), appendix] if i != "")
+    if version == "old":
+        return "_".join(i for i in [type, str(rcut), appendix] if i != "")
+    elif version == "new":
+        return "_".join(i for i in [type[0], str(rcut), appendix] if i != "")
 
 def r_numerical_orbital(identifier: str) -> tuple:
     """Parse identifier of numerical orbital
@@ -87,7 +89,10 @@ def pseudopot_nao(pseudopotential: list, numerical_orbital: list = []) -> str:
     if len(numerical_orbital) > 0:
         result += "_"
         for orbital in numerical_orbital:
-            result += orbital.replace("_", "")
+            words = orbital.split("_")
+            result += words[1][0]+words[0]
+            if len(words) > 2:
+                result += words[2]
     return result
 
 def folder(functional: str, system: str, specific_test: str) -> str:
@@ -198,8 +203,9 @@ def cif(system_with_mpid: str) -> str:
     """
     return "mp-" + system_with_mpid.split("_")[-1] + ".cif"
 
-def foldr_reduce(folder: str) -> str:
-
+def folder_reduce(folder: str) -> str:
+    """Remove some redundant words in folder name to make it shorter,
+    but keep it clear enough to identify the calculation."""
     for key in FOLDER_REDUICE.keys():
         folder = folder.replace(key, FOLDER_REDUICE[key])
     return folder

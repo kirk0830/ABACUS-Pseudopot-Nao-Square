@@ -78,7 +78,7 @@ def convert_to_absolute_path(relative_path: str) -> str:
 
     return path
 
-def render(fname: str, **kwargs) -> dict:
+def inp_translate(fname: str, **kwargs) -> dict:
     """render input file to a dict
     1. expand pseudopotentials and numerical_orbitals information to element-by-element
     2. set default values if not explicity specified
