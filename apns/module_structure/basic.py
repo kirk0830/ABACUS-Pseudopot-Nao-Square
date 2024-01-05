@@ -1,5 +1,12 @@
-def scan_elements(system: str) -> list:
+def scan_elements(system: str|list) -> list:
 
+    if isinstance(system, str):
+        pass
+    elif isinstance(system, list):
+        system = "_".join(system)
+    else:
+        raise TypeError("system must be str or list")
+    
     # 1. remove all digits
     system = ''.join([i for i in system if not i.isdigit()])
     # 2. remove all special characters
