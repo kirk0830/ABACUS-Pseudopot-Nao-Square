@@ -75,6 +75,8 @@ def iterate(systems: list = [],
             for calculation_setting in calculation_settings: # iterate over calculation settings
                 for cell_scaling in cell_scalings: # iterate over cell scaling
                     # make folder
+                    if "numerical_orbital" not in system_pseudopot_nao_setting.keys():
+                        system_pseudopot_nao_setting["numerical_orbital"] = []
                     folder = amwi._folder_(_system, 
                                            amwi.pseudopot_nao(system_pseudopot_nao_setting["pseudopotential"],
                                                               system_pseudopot_nao_setting["numerical_orbital"]), 

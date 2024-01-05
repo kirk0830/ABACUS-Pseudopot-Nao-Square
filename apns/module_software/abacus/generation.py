@@ -117,6 +117,7 @@ def STRU_dimer(element: str, bond_length: float, pseudopotentials: dict, **kwarg
 
 def _STRU_(fname: str, 
            pseudopotentials: dict = {},
+           numerical_orbitals: dict = {},
            cell_scaling: float = 0.0, 
            **kwargs):
     """convert cif file to STRU file, refactored version
@@ -142,7 +143,7 @@ def _STRU_(fname: str,
         pseudopotential = pseudopotentials[_element]
         return_str += "%s %8.4f %s\n" % (_element, mass, pseudopotential)
     return_str += "\n"
-    if "numerical_orbitals" in kwargs:
+    if len(numerical_orbitals) > 0:
         return_str += "NUMERICAL_ORBITAL\n"
         for _element in kwargs["numerical_orbitals"]:
             numerical_orbital = _element + "_numerical_orbital"

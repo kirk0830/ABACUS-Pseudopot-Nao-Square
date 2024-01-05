@@ -34,9 +34,9 @@ def _svp_(elements: list, pseudopotentials: dict):
     all_available_pseudopotentials = arch.archive()
 
     for element in elements:
-        _kinds = pseudopotentials["kinds"][element]
-        _versions = pseudopotentials["versions"][element]
-        _appendices = pseudopotentials["appendices"] [element] 
+        _kinds = pseudopotentials["kinds"][element] if len(pseudopotentials["kinds"][element]) > 0 else ["all"]
+        _versions = pseudopotentials["versions"][element] if len(pseudopotentials["versions"][element]) > 0 else ["all"]
+        _appendices = pseudopotentials["appendices"] [element] if len(pseudopotentials["appendices"] [element]) > 0 else ["all"]
         for pseudopotential in all_available_pseudopotentials[element]:
             description = arch.description(pseudopotential)
 
@@ -54,7 +54,7 @@ def _svp_(elements: list, pseudopotentials: dict):
                 valid_pseudopotentials[element][identifier] = description
                 valid_pseudopotentials[element][identifier]["file"] = pseudopotential.split("/")[-1] if pseudopotential.count("/") > 0 else pseudopotential.split("\\")[-1]
         if len(valid_pseudopotentials[element]) == 0:
-            raise ValueError("No valid pseudopotential for element {}.".format(element))
+            raise ValueError("No valid pseudopotential for element %s.\nkinds: %s\nversions: %s\nappendices: %s" % (element, _kinds, _versions, _appendices))
         
     return valid_pseudopotentials
 
