@@ -1,3 +1,26 @@
+import apns.module_workflow.initialize as amwinit
+import apns.module_workflow.iterate as amwi
+import apns.module_workflow.apns_itertools as amwai
+
+def _driver_(input_file: str):
+    """new version of driver"""
+    inp, vpspot, vnao, pspot_arch, nao_arch = amwinit.initialize(input_file)
+    folders = amwi.iterate(systems=inp["systems"],
+                           pseudopot_nao_settings=amwai.system(
+                               elements=[amwai.pseudopot_nao(
+                                   list(vpspot[element].keys())) for element in inp["systems"]]
+                           ),
+                           calculation_settings=amwai.calculation(inp["calculation"]),
+                           cell_scalings=inp["calculation"]["cell_scaling"],
+                           valid_pseudopotentials=vpspot,
+                           valid_numerical_orbitals=vnao,
+                           pspot_archive=pspot_arch,
+                           nao_archive=nao_arch)
+    print(folders)
+
+_driver_("input.json")
+
+"""
 import apns.module_structure.basic as amsb
 import apns.module_pseudo.local_validity_scan as amplvs
 import apns.module_io.input_translate as amiwse
@@ -10,20 +33,6 @@ import os
 import apns.module_workflow.initialize as amwinit
 
 def driver(input_file: str):
-    """driver of the whole apns workflow
-    
-    Args:
-        input_file (str): input file
-        
-    Raises:
-    
-    Returns:
-        None
-    """
-    input, valid_pspot, valid_nao, pspot_arch, _ = amwinit.initialize(finp=input_file)
-
-
-
 
     input = amiwse.inp_translate(fname=input_file, system_with_mpids={"Cr": ["Cr_90"]})
 
@@ -81,5 +90,4 @@ def driver(input_file: str):
                     with open(folder + "/KPT", "w") as f:
                         f.write(_kpt)
 
-                    
-driver("input.json")
+"""
