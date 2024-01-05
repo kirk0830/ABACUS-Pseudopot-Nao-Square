@@ -105,6 +105,7 @@ def iterate(systems: list = [],
                     _naoids = system_pseudopot_nao_setting["numerical_orbital"] # get numerical orbital identifiers of one combination
                     for i in range(len(_naoids)):
                         _naoid = _naoids[i] + "@" + _pspotids[i]
+                        _element = _elements[i]
                         fnao = nao_archive[_naoid] + "/"
                         fnao += valid_numerical_orbitals[_element][_naoid]["file"]
                         os.system("cp {} {}/".format(fnao, folder)) if not test_mode else print("cp {} {}/".format(fnao, folder))
@@ -147,7 +148,7 @@ if __name__ == "__main__":
         ],
         calculation_settings=[
             {
-                "basis_type": "pw",
+                "basis_type": "lcao",
                 "dft_functional": "pbe",
                 "ecutwfc": 100
             },
@@ -194,7 +195,7 @@ if __name__ == "__main__":
             }
         },
         valid_numerical_orbitals={
-            "Cr": {
+            "Er": {
                 "TZDP_6@sg15_10": {
                     "file": "Cr_gga_6au_100Ry_3s3p3d2f.orb",
                     "type": "TZDP",
