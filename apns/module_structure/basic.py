@@ -1,5 +1,12 @@
-def scan_elements(system: str) -> list:
+def scan_elements(system: str|list) -> list:
 
+    if isinstance(system, str):
+        pass
+    elif isinstance(system, list):
+        system = "_".join(system)
+    else:
+        raise TypeError("system must be str or list")
+    
     # 1. remove all digits
     system = ''.join([i for i in system if not i.isdigit()])
     # 2. remove all special characters
@@ -18,8 +25,12 @@ def scan_elements(system: str) -> list:
             element += letter
     elements.append(element)
 
-    # 4. remove duplicates
-    elements = list(set(elements))
+    # 4. remove duplicates but keeps order
+    elements = list(dict.fromkeys(elements))
     # 5. remove empty strings
     elements = [element for element in elements if element != '']
     return elements
+
+if __name__ == "__main__":
+    
+    print(scan_elements("Er2O3"))

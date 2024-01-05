@@ -6,7 +6,14 @@ import os
 from apns.module_structure.basic import scan_elements
 
 def check(inp: dict) -> None:
+    """check reasonality of input parameters
 
+    Args:
+        inp (dict): parsed input
+
+    Raises:
+        ValueError: unreasonable parameter will raise this error
+    """
     if inp["global"]["software"] == "qespresso":
         if inp["calculation"]["basis_type"] == "lcao":
             raise ValueError("Quantum ESPRESSO only supports pw calculation.")
@@ -37,12 +44,14 @@ def expand(inp: dict, elements: list) -> dict:
     Returns:
         dict: pseudopotential and numerical_orbitals expanded input
     """
+    # expand pseudopotentials
     for key in inp["pseudopotentials"]:
         if isinstance(inp["pseudopotentials"][key], list):
             _dict = {}
             for element in elements:
                 _dict[element] = inp["pseudopotentials"][key]
             inp["pseudopotentials"][key] = _dict
+    # expand numerical_orbitals
     if inp["calculation"]["basis_type"] == "lcao":
         for key in inp["numerical_orbitals"]:
             if isinstance(inp["numerical_orbitals"][key], list):
@@ -69,7 +78,7 @@ def convert_to_absolute_path(relative_path: str) -> str:
 
     return path
 
-def render(fname: str, **kwargs) -> dict:
+def inp_translate(fname: str, **kwargs) -> dict:
     """render input file to a dict
     1. expand pseudopotentials and numerical_orbitals information to element-by-element
     2. set default values if not explicity specified
