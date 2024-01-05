@@ -25,10 +25,7 @@ def STRU_cif(fname: str,
     cif = read(fname)
     return_str = "ATOMIC_SPECIES\n"
     for _element in pseudopotentials:
-        mass = 1.0
-        if "mass" in kwargs:
-            if _element in kwargs["mass"]:
-                mass = kwargs["mass"][_element]
+        mass = kwargs.get("mass", {}).get(_element, 1.0)
         pseudopotential = _element + "_pseudopot"
         if not template:
             pseudopotential = pseudopotentials[_element]
@@ -118,6 +115,75 @@ def STRU_dimer(element: str, bond_length: float, pseudopotentials: dict, **kwarg
 
     return return_str
 
+def _STRU_(fname: str, 
+           pseudopotentials: dict = {},
+           cell_scaling: float = 0.0, 
+           **kwargs):
+    """convert cif file to STRU file, refactored version
+
+    Args:
+        fname (str): name of the cif file.
+        pseudopotentials (dict): pseudopotentials information.
+        template (bool, optional): whether to use template pseudopotential file name. Defaults to False.
+        **kwargs: mass: dict, 
+                  numerical_orbitals: dict, 
+                  magnetism: dict,
+                  constraints: dict,
+                  cell_rescaling_factors: list, 
+                  ...
+
+    Returns:
+        return_str (str): readily usable string for STRU file.
+    """
+    cif = read(fname)
+    return_str = "ATOMIC_SPECIES\n"
+    for _element in pseudopotentials:
+        mass = kwargs.get("mass", {}).get(_element, 1.0)
+        pseudopotential = _element + "_pseudopot"
+        pseudopotential = pseudopotentials[_element]
+        return_str += "%s %8.4f %s\n" % (_element, mass, pseudopotential)
+    return_str += "\n"
+    if "numerical_orbitals" in kwargs:
+        return_str += "NUMERICAL_ORBITAL\n"
+        for _element in kwargs["numerical_orbitals"]:
+            numerical_orbital = _element + "_numerical_orbital"
+            numerical_orbital = kwargs["numerical_orbitals"][_element]
+            return_str += "%s\n" % (numerical_orbital)
+        return_str += "\n"
+
+    lattice_constant = 1.889726877 * (1.0 + cell_scaling)
+    return_str += "LATTICE_CONSTANT\n%s\n\n"%(lattice_constant)
+    return_str += "LATTICE_VECTORS\n"
+    cell_parameters = cif["cell_parameters"]
+    lattice_vectors = cptlv(cell_parameters)
+
+    for lattice_vector in lattice_vectors:
+        return_str += "%12.8f %12.8f %12.8f\n" %(lattice_vector[0],
+                                                 lattice_vector[1],
+                                                 lattice_vector[2])
+    return_str += "\n"
+    return_str += "ATOMIC_POSITIONS\nDirect\n"
+    atomic_positions = cif["atomic_positions"]
+    for atom in atomic_positions.keys():
+        return_str += "%s\n" % (atom)
+        magnetism = 0.0
+        if "magnetism" in kwargs:
+            if atom in kwargs["magnetism"]:
+                magnetism = kwargs["magnetism"][atom]
+        return_str += "%4.2f\n"%(magnetism)
+        return_str += "%d\n"%(len(atomic_positions[atom]))
+        for ia, position in enumerate(atomic_positions[atom]):
+            return_str += "%12.8f %12.8f %12.8f"%(position[0], position[1], position[2])
+            if "constraints" in kwargs:
+                return_str += " m %d %d %d"%(kwargs["constraints"][atom][ia][0], 
+                                             kwargs["constraints"][atom][ia][1], 
+                                             kwargs["constraints"][atom][ia][2])
+            else:
+                return_str += " m 1 1 1"
+            return_str += "\n"
+
+    return return_str, cell_parameters
+
 def KPT_generation(mode: str, gamma_centered: bool = True, **kwargs):
     """KPT file generation
 
@@ -168,7 +234,7 @@ def KPT_generation(mode: str, gamma_centered: bool = True, **kwargs):
     
     return return_str
 
-def INPUT(work_status: dict,
+def INPUT(calculation: dict,
           minimal: bool = True,
           template: bool = False):
     """new version of function INPUT for generating INPUT file of ABACUS,
@@ -196,19 +262,19 @@ def INPUT(work_status: dict,
             comments[_match.group(1)] = _match.group(4)
     # for template, change its value to xxx_to_test placeholder, then sed in other functions
     work_status_specified_valid_keys = []
-    for key in work_status["calculation"].keys():
+    for key in calculation.keys():
         valid_key = key
         if key == "functionals":
             valid_key = "dft_functional"
         elif key == "cell_scaling":
             continue
-        if isinstance(work_status["calculation"][key], list):
+        if isinstance(calculation[key], list):
             if template:
                 values[valid_key] = valid_key + "_to_test"
             else:
                 raise TypeError("For non-template mode input script generation, list-organized input is not supported")
         else:
-            values[valid_key] = work_status["calculation"][key]
+            values[valid_key] = calculation[key]
         work_status_specified_valid_keys.append(valid_key)
 
     # for minimal, only keep the minimal keys, but add manually set keys
@@ -285,8 +351,8 @@ suffix                         ABACUS #the name of main output directory
 latname                        none #the name of lattice name
 stru_file                      STRU #the filename of file containing atom positions
 kpoint_file                    KPT #the name of file containing k points
-pseudo_dir                     ../../../tests/PP_ORB/ #the directory containing pseudo files
-orbital_dir                    ../../../tests/PP_ORB/ #the directory containing orbital files
+pseudo_dir                     ./ #the directory containing pseudo files
+orbital_dir                    ./ #the directory containing orbital files
 pseudo_rcut                    15 #cut-off radius for radial integration
 pseudo_mesh                    0 #0: use our own mesh to do radial renormalization; 1: use mesh as in QE
 lmaxmax                        2 #maximum of l channels used

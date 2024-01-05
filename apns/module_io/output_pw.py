@@ -91,7 +91,7 @@ def _qespresso_(work_status: dict, test_status: dict):
         if isinstance(work_status["calculation"][other], list):
             lists_to_iterate.append(work_status["calculation"][other])
             keys_to_literate.append(other)
-    shortkeys_to_literate = [key[0] for key in keys_to_literate]
+    shortkeys_to_literate = [id.shorten_keywords(key) for key in keys_to_literate]
     # generate all combinations of keywords
     combinations = list(it.product(*lists_to_iterate))
 
@@ -242,7 +242,7 @@ def _abacus_(work_status: dict, test_status: dict):
         if isinstance(work_status["calculation"][other], list):
             lists_to_iterate.append(work_status["calculation"][other])
             keys_to_literate.append(other)
-    shortkeys_to_literate = [key[0] for key in keys_to_literate]
+    shortkeys_to_literate = [id.shorten_keywords(key) for key in keys_to_literate]
     # generate all combinations of keywords
     combinations = list(it.product(*lists_to_iterate))
 
@@ -290,6 +290,7 @@ rundft: OMP_NUM_THREADS=16 mpirun -np 1 abacus | tee out.log
 Bohrium image: registry.dp.tech/deepmodeling/abacus-intel:latest (this one is default)
 Bohrium_machine_type: c32_m128_cpu (c32_m64_cpu has bad performance)
 Bohrium_platform: ali
+You can download your job results by: lbg jobgroup download <jobgroup_id>
 ------------------------------------------------------------------------------
 """
     print(print_str)

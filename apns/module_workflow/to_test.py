@@ -40,7 +40,7 @@ def _abacus_(test_status: dict, basis_type: str):
         with open(id.TEMPORARY_FOLDER + "/" + "STRU_"+system, "w") as stru_f:
             stru_f.writelines(_stru)
         # INPUT file
-        _input = abacus.INPUT_generation()
+        _input = abacus.INPUT_generation(basis_type = basis_type)
         with open(id.TEMPORARY_FOLDER + "/" + "INPUT_"+system, "w") as input_f:
             input_f.writelines(_input)
         # KPT file
