@@ -36,7 +36,7 @@ def initialize(finp: str, test_mode: bool = False) -> tuple[dict, dict, dict, di
     initialize_cache()
     system_with_mpids = download_structure(finp)
     _inp = amiit.inp_translate(fname=finp, system_with_mpids=system_with_mpids)
-    valid_pseudopotentials, valid_numerical_orbitals = scan_valid_pseudopot_nao(finp)
+    valid_pseudopotentials, valid_numerical_orbitals = scan_valid_pseudopot_nao(_inp)
 
     pseudopot_arch = ampua.load(_inp["global"]["pseudo_dir"])
     # nao_arch = amna.load(_inp["global"]["nao_dir"])
@@ -76,7 +76,7 @@ def download_structure(finp: str) -> dict:
 import apns.module_structure.basic as amsb
 import apns.module_pseudo.local_validity_scan as amplvs
 import apns.module_nao.local_validity_scan as amnlvs
-def scan_valid_pseudopot_nao(finp: str) -> tuple[dict, dict]:
+def scan_valid_pseudopot_nao(finp: str|dict) -> tuple[dict, dict]:
     """scan valid pseudopotential for all elements in input file
     
     Args:
@@ -91,11 +91,15 @@ def scan_valid_pseudopot_nao(finp: str) -> tuple[dict, dict]:
     valid_pseudopotentials = []
     valid_numerical_orbitals = []
 
-    with open(finp, "r") as f:
-        inp = json.load(f)
-
+    if isinstance(finp, str):
+        with open(finp, "r") as f:
+            inp = json.load(f)
+    elif isinstance(finp, dict):
+        inp = finp
+    else:
+        raise TypeError("finp should be str or dict.")
+    
     elements = amsb.scan_elements(inp["systems"])
-
     valid_pseudopotentials = amplvs._svp_(elements, inp["pseudopotentials"])
     for element in elements:
         if element not in valid_pseudopotentials.keys():
