@@ -139,7 +139,6 @@ def _STRU_(fname: str,
     return_str = "ATOMIC_SPECIES\n"
     for _element in pseudopotentials:
         mass = kwargs.get("mass", {}).get(_element, 1.0)
-        pseudopotential = _element + "_pseudopot"
         pseudopotential = pseudopotentials[_element]
         return_str += "%s %8.4f %s\n" % (_element, mass, pseudopotential)
     return_str += "\n"

@@ -270,7 +270,10 @@ def description(upf_path: str):
     os.chdir(path_backup)
     return description
 
-def load(pseudo_dir: str):
+def load(pseudo_dir: str) -> dict:
+    """load pseudopotential folders architecture from description.json"""
+    
+    pseudopot_folders_arch = {}
     if pseudo_dir[-1] == "/":
         pseudo_dir = pseudo_dir[:-1]
     with open(pseudo_dir + "/" + "description.json") as json_f:
