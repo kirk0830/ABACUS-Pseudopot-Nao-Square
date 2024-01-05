@@ -25,8 +25,12 @@ def scan_elements(system: str|list) -> list:
             element += letter
     elements.append(element)
 
-    # 4. remove duplicates
-    elements = list(set(elements))
+    # 4. remove duplicates but keeps order
+    elements = list(dict.fromkeys(elements))
     # 5. remove empty strings
     elements = [element for element in elements if element != '']
     return elements
+
+if __name__ == "__main__":
+    
+    print(scan_elements("Er2O3"))

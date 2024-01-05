@@ -90,7 +90,7 @@ def pseudopot_nao(pseudopotential: list, numerical_orbital: list = []) -> str:
         result += "_"
         for orbital in numerical_orbital:
             words = orbital.split("_")
-            result += words[1][0]+words[0]
+            result += words[0][0]+words[1]
             if len(words) > 2:
                 result += words[2]
     return result
