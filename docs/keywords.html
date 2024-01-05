@@ -105,6 +105,10 @@ This document provides a full list of keywords for ABACUS Pseudopot-Nao Square. 
 
 <h2> <code>calculation</code> section </h2>
 
+<p class="inform">
+This section actually supports any number of keywords that specified list values, which indicate values in list are needed to enumerate and cross-test. Therefore to add additional keywords, specify value as usual. To let program do crosstest on this keyword with all possible values, give this keyword a list of possible values. Keyword should have identical name with that in input script. There are discrepancies between ABACUS and qespresso, so use with care.
+</p>
+
 <h3> <code>basis_type</code> </h3>
 <ul>
 <li> <b>Description:</b> basis type, can be <code>pw</code> or <code>lcao</code>. <code>software ABACUS</code> supports both <code>pw</code> and <code>lcao</code>, <code>software qespresso</code> only supports <code>pw</code>. </li>

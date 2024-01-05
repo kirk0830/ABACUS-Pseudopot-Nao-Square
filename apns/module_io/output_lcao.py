@@ -98,11 +98,8 @@ rundft: OMP_NUM_THREADS=16 mpirun -np 1 abacus | tee out.log
 Bohrium image: registry.dp.tech/deepmodeling/abacus-intel:latest (this one is default)
 Bohrium_machine_type: c32_m128_cpu (c32_m64_cpu has bad performance)
 Bohrium_platform: ali
+You can download your job results by: lbg jobgroup download <jobgroup_id>
 ------------------------------------------------------------------------------
 """
     print(print_str)
     return test_folders
-
-def packup_tests(test_status: dict):
-
-    pass

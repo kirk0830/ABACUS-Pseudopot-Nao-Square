@@ -31,7 +31,7 @@ Notes:
 """
 
 from mp_api.client import MPRester
-import apns.module_workflow.identifier as id
+import apns.module_workflow.identifier as amwi
 import os
 import json
 
@@ -50,16 +50,16 @@ def check_already_exist(mpid: str) -> bool:
     if not mpid.startswith("mp-"):
         mpid = "mp-" + mpid
     fname = mpid + ".cif"
-    return fname in os.listdir(id.TEMPORARY_FOLDER)
+    return fname in os.listdir(amwi.TEMPORARY_FOLDER)
 
 def recall_search_memory(formuli: str, n_structure: int) -> list:
     """If there is a file named materials_project_memory.json, 
     and the entry with key `formuli` has more than `n_structure` mpids,
     return the first `n_structure` mpids. Otherwise return a empty list."""
-    if not os.path.exists(id.TEMPORARY_FOLDER + "/" + "materials_project_memory.json"):
+    if not os.path.exists(amwi.TEMPORARY_FOLDER + "/" + "materials_project_memory.json"):
         return []
     else:
-        with open(id.TEMPORARY_FOLDER + "/" + "materials_project_memory.json", "r") as f:
+        with open(amwi.TEMPORARY_FOLDER + "/" + "materials_project_memory.json", "r") as f:
             memory = json.load(f)
         if formuli not in memory.keys():
             return []
@@ -72,14 +72,14 @@ def memorize(formuli: str, mpids: list) -> None:
     """If there is not a file named materials_project_memory.json, 
     create one and write the first entry. If there is already a file,
     overwrite the file with new entry."""    
-    if not os.path.exists(id.TEMPORARY_FOLDER + "/" + "materials_project_memory.json"):
-        with open(id.TEMPORARY_FOLDER + "/" + "materials_project_memory.json", "w") as f:
+    if not os.path.exists(amwi.TEMPORARY_FOLDER + "/" + "materials_project_memory.json"):
+        with open(amwi.TEMPORARY_FOLDER + "/" + "materials_project_memory.json", "w") as f:
             json.dump({formuli: mpids}, f, indent=4)
     else:
-        with open(id.TEMPORARY_FOLDER + "/" + "materials_project_memory.json", "r") as f:
+        with open(amwi.TEMPORARY_FOLDER + "/" + "materials_project_memory.json", "r") as f:
             memory = json.load(f)
         memory[formuli] = mpids
-        with open(id.TEMPORARY_FOLDER + "/" + "materials_project_memory.json", "w") as f:
+        with open(amwi.TEMPORARY_FOLDER + "/" + "materials_project_memory.json", "w") as f:
             json.dump(memory, f, indent=4)
 
 def elemental_substances(api_key: str, element: str, num_cif = 1, theoretical = 0):
@@ -116,7 +116,7 @@ def elemental_substances(api_key: str, element: str, num_cif = 1, theoretical = 
             with MPRester(api_key) as mpr:
                 structure = mpr.get_structure_by_material_id(mpi_id)
             structure.to(filename=fname, fmt="cif") # better to add symprec = None
-            os.system("mv {} {}".format(fname, id.TEMPORARY_FOLDER))
+            os.system("mv {} {}".format(fname, amwi.TEMPORARY_FOLDER))
 
         num_cif_downloaded += 1
         cif_filenames.append(fname.replace(".cif", ""))
@@ -197,8 +197,8 @@ def composites(api_key: str,
                     with MPRester(api_key) as mpr:
                         structure = mpr.get_structure_by_material_id(mpi_id)
                     structure.to(filename=fname, fmt="cif") # better to add symprec = None
-                    os.system("mv {} {}".format(fname, id.TEMPORARY_FOLDER))
-                # save the cif file as mp-id.cif
+                    os.system("mv {} {}".format(fname, amwi.TEMPORARY_FOLDER))
+                # save the cif file as mp-amwi.cif
                 num_cif_downloaded += 1
 
                 result[formuli].append(formuli + "_" + mpi_id.replace("mp-", "")) # record "system_mpid" under system formula
@@ -241,7 +241,7 @@ def binary_composites(api_key: str, element1: str, element2: str, num_cif = 1, t
             with MPRester(api_key) as mpr:
                 structure = mpr.get_structure_by_material_id(mpi_id)
             structure.to(filename=fname, fmt="cif") # better to add symprec = None
-            os.system("mv {} {}".format(fname, id.TEMPORARY_FOLDER))
+            os.system("mv {} {}".format(fname, amwi.TEMPORARY_FOLDER))
             
         num_cif_downloaded += 1
         cif_filenames.append(fname.replace(".cif", ""))
