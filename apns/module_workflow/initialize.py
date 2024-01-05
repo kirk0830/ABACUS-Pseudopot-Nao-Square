@@ -3,7 +3,7 @@
 import apns.module_io.input_translate as amiit
 import apns.module_pseudo.upf_archive as ampua
 # import apns.module_nao.nao_archive as amna
-def initialize(finp: str) -> tuple[dict, dict, dict, dict, dict]:
+def initialize(finp: str, test_mode: bool = False) -> tuple[dict, dict, dict, dict, dict]:
     """initialize the program
     
     Args:
