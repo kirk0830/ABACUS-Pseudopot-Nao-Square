@@ -198,6 +198,12 @@ def cif(system_with_mpid: str) -> str:
     """
     return "mp-" + system_with_mpid.split("_")[-1] + ".cif"
 
+def foldr_reduce(folder: str) -> str:
+
+    for key in FOLDER_REDUICE.keys():
+        folder = folder.replace(key, FOLDER_REDUICE[key])
+    return folder
+
 ABBR = {"basis": "bs", "cal": "cl", "ecut": "ec", "force": "fs", "stress": "strs", "cell": "c", "scaling": "scal", "kspacing": "kspc",
         "kpoint": "kpt", "gamma": "gm", "centered": "cen", "pw": "pw", "pbe": "pbe", "pbesol": "pbesol", "lda": "lda", "gga": "gga",
         "noncolin": "nc", "spin": "sp", "relativistic": "fr", "pseudo": "ps", "potential": "pot",
@@ -208,7 +214,7 @@ ABBR = {"basis": "bs", "cal": "cl", "ecut": "ec", "force": "fs", "stress": "strs
         "max": "x", "orbital": "orb", "rcut": "rc", "mesh": "msh", "spin": "sp", "lspinorb": "soc", "bndpar": "bndp", "symmetry": "symm",
         "temperature": "temp", "volume": "vol", "press": "prs", "spline": "spl", "freq": "frq", "wfc": "wf",
         "rho": "ro", "ecutwfc": "ecw", "ecutrho": "ecro", "extrap": "extrp", "proj": "prj", "restart": "rst",
-        "seed": "sid", "dipole": "dip", "correction": "corr", "noncolin": "nlcc", "functional": "fnl",
+        "seed": "sid", "dipole": "dip", "correction": "corr", "noncolin": "nlcc", "functional": "fnl", "functionals": "xc",
         "dft_functional": "xc", "label": "lb", "model": "mdl", "flag": "flg", "down": "dw",
         "up": "up", "charge": "chg", "damping": "dmp", "alpha": "a", "beta": "b", "gamma_only": "k000",
         "file": "f", "nnkp": "nnkp", "lambda": "lmbd", "tolerance": "tol", "step": "stp", "switch": ""}
@@ -218,3 +224,4 @@ IRREDUCIBLE = ["bs", "cl", "ec", "fs", "strs", "c", "scal", "kspc", "kpt", "gm",
                "ro", "ecw", "ecro", "extrp", "prj", "rst", "sid", "dip", "corr", "nlcc", "fnl",
                "xc", "lb", "mdl", "flg", "gate", "dw", "up", "chg", "dmp", "a", "b", "k000",
                "f", "nnkp", "lmbd", "tol", "stp", "exx"]
+FOLDER_REDUICE = {"xc": "", "bstyp": "", "cscal": "cell"}
