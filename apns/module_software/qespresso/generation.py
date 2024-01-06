@@ -3,6 +3,7 @@ Quantum ESPRESSO input file generator
 
 Author: Kirk0830
 Date: 2023-11-22
+Refactor: 2024-01-06
 
 Description:
     This file contains functions that can generate Quantum ESPRESSO input file from CIF file.
@@ -10,68 +11,190 @@ Description:
 Useful cases:
     as it is
 """
-from apns.module_structure.crystal_information_file import read_1 as read
-from apns.module_structure.crystal_information_file import _method1_atomic_position as m1ap
-from apns.module_structure.crystal_information_file import _method1_lattice as m1l
-import apns.module_database as ai
+import apns.module_structure.crystal_information_file as amscif
+import apns.module_database.database as amdd
 
-basic_parameters = {
-    "control": {
-        "calculation": "scf",
-        "restart_mode": "from_scratch",
-        "pseudo_dir": "./",
-        "outdir": "./",
-        "tprnfor": ".true.",
-        "tstress": ".true.",
-        "wf_collect": ".true.",
-        "nstep": 100,
-        "verbosity": "high",
-    },
-    "system": {
-        "ibrav": 0,
-        "nat": 0,
-        "ntyp": 0,
-        "ecutwfc": "ecutwfc_to_test",
-        "occupations": "smearing",
-        "smearing": "gaussian",
-        "degauss": 0.02,
-        "nspin": 1,
-        "starting_magnetization": 0.0,
-        "nosym": ".false.",
-        "noinv": ".false.",
-        "noncolin": ".false.",
-        "lspinorb": ".false.",
-        "input_dft": "functional_to_test",
-    },
-    "electrons": {
-        "electron_maxstep": 100,
-        "conv_thr": 1e-7,
-        "mixing_beta": 0.7,
-        "mixing_mode": "plain",
-        "mixing_ndim": 8,
-        "diagonalization": "david"
-    },
-    "ions": {
-        "ion_dynamics": "bfgs",
-        "upscale": 100
-    },
-    "cell": {
-        "cell_dynamics": "bfgs",
-        "cell_dofree": "all",
-        "cell_factor": 2,
-        "press_conv_thr": 0.2
-    },
-    "k_points": {
-        "k_points": [1, 1, 1],
-        "k_points_shift": [0, 0, 0],
-    }
-}
+"""call the following function in this way:
+sections = ["&control", "&system", "&electrons", "&ions", "&cell"]
+for section in sections:
+    _section = _calculation(section, ntype, nat, calculation_settings_suite)
+    with open(fname, 'a') as f:
+        f.write(_section)
+"""
+def _calculation(section: str = "", ntype: int = 0, natom: int = 0, **kwargs) -> str:
+    """new version of _control, _system, _electrons, _ions, _cell writes QE input file sections
+    and will be iterated on.
+    
+    Args:
+        section (str, optional): section name. Defaults to "".
+        ntype (int, optional): number of atom types. Defaults to 0.
+        natom (int, optional): number of atoms. Defaults to 0.
+        
+    Raises:
+        ValueError: section not properly set
+    
+    Returns:
+        str: section string
+    """
 
-def write_control(other_parameters: dict) -> str:
+    _section = section[1:] if section.startswith("&") else section
+    if _section not in INPUT_TEMPLATE.keys():
+        raise ValueError("section should be one of the following: {}".format(list(INPUT_TEMPLATE.keys())))
+    section_content = INPUT_TEMPLATE[_section]
+    if _section.lower() == "system":
+        if ntype == 0 or natom == 0:
+            raise ValueError("ntype and natom should be set")
+        section_content["ntyp"] = ntype
+        section_content["nat"] = natom
+        ecut_warning = False
+        if "ecutwfc" in kwargs.keys() and "ecutrho" not in kwargs.keys():
+            kwargs["ecutrho"] = kwargs["ecutwfc"] * 4
+            ecut_warning = True
+        elif "ecutrho" in kwargs.keys() and "ecutwfc" not in kwargs.keys():
+            kwargs["ecutwfc"] = kwargs["ecutrho"] / 4
+            ecut_warning = True
+        if ecut_warning:
+            print("WARNING: ecutwfc and ecutrho should be set together, here dual = 4 is used by default. "
+                + "This value is suitable for norm-conserving pseudopotentials, but not for ultrasoft pseudopotentials.")
+    for key, value in kwargs.items():
+        if key in section_content.keys():
+            section_content[key] = value
+    result = "&{}\n".format(_section.upper())
+    for key, value in section_content.items():
+        # if value is string, add quotation marks
+        if isinstance(value, str) and not (".true." in value or ".false." in value):
+            result += "%s = '%s',\n"%(key, value)
+        else:
+            result += "%s = %s,\n"%(key, str(value))
+    result += "/\n"
+    return result
+
+def _ATOMIC_SEPCIES(pseudopotential: dict = {}, **kwargs) -> str:
+    """new version of ATOMIC_SPECIES writes QE input file section
+
+    Args:
+        pseudopotential (dict, optional): pseudopotential dictionary. Defaults to {}.
+
+    Raises:
+        ValueError: pseudopotential not properly set
+
+    Returns:
+        str: section string
+    """
+    result = "ATOMIC_SPECIES\n"
+    if len(pseudopotential.keys()) == 0:
+        raise ValueError("pseudopotential should be set")
+    mass = kwargs.get("mass", {key: "1.00" for key in pseudopotential.keys()})
+    for element in pseudopotential.keys():
+        result += "{} {} {}\n".format(element, mass[element], pseudopotential[element])
+    result += "\n"
+    return result
+
+def _CIF(fname: str = "", cell_scaling: float = 0.0, constraints: list = []) -> str:
+    """new version of cif file to CELL_PARAMETERS, ATOMIC_POSITIONS, K_POINTS sections
+    
+    Args:
+        fname (str, optional): cif file name. Defaults to "".
+        cell_scaling (float, optional): cell scaling factor. Defaults to 0.0.
+        constraints (list, optional): constraints. Defaults to [].
+
+    Example of constraints:
+    >>> constraints = [
+    ...     [1, 1, 1] # in QE it means constraint on x, y, z, here for the first atom
+    ...     [0, 0, 1] # in QE it means constraint on z, here for the second atom
+    ... ]
+
+    Raises:
+    """
+    if fname == "":
+        raise ValueError("fname should be set")
+    result = "CELL_PARAMETERS (angstrom)\n"
+    cif = amscif.read_1(fname)
+    cell_vectors = amscif.cell_parameters_to_lattice_vectors(cif["cell_parameters"])
+    cell_vectors = [[(cell_scaling + 1.0) * cell_vectors[i][j] for j in range(3)] for i in range(3)]
+    result += "\n".join(["%12.8f %12.8f %12.8f"%(cell_vectors[i][0], cell_vectors[i][1], cell_vectors[i][2]) for i in range(3)])
+    
+    result += "\n\nK_POINTS automatic\n"
+    lattice_length_band_folding_maximum = 35.0 # angstrom, means nk*lattice should be no less than 31 angstrom
+    llbfm = lattice_length_band_folding_maximum
+    nkpts = [llbfm / cell_vectors[i][i] for i in range(3)]
+    result += "%d %d %d %d %d %d\n"%(int(nkpts[0]), int(nkpts[1]), int(nkpts[2]), 0, 0, 0)
+
+    natom = 0
+    for element in cif["atomic_positions"].keys():
+        natom += len(cif["atomic_positions"][element])
+    result += "\nATOMIC_POSITIONS (crystal)\n"
+    if len(constraints) == 0:
+        constraints = [[0, 0, 0]] * natom
+    elif len(constraints) < natom:
+        print("WARNING: constraints length is less than natom, here constraints are automatically extended to natom")
+        constraints = constraints + [[0, 0, 0]] * (natom - len(constraints))
+    elif len(constraints) > natom:
+        print("WARNING: constraints length is greater than natom, here constraints are automatically truncated to natom")
+        constraints = constraints[:natom]
+    for element in cif["atomic_positions"].keys():
+        for iatom in range(len(cif["atomic_positions"][element])):
+            result += "%2s %12.8f %12.8f %12.8f %d %d %d\n"%(element, cif["atomic_positions"][element][iatom][0], 
+                                                                     cif["atomic_positions"][element][iatom][1], 
+                                                                     cif["atomic_positions"][element][iatom][2], 
+                                                            constraints[iatom][0], constraints[iatom][1], constraints[iatom][2])
+    result += "\n"
+    return result, natom
+
+def _ISOLATED(element: str = "", shape: str = "", bond_length: float = 0.0, **kwargs) -> str:
+    """new version of isolated system input file generation, support dimer, trimer, tetramer
+    
+    Args:
+        element (str, optional): element symbol. Defaults to "".
+        shape (str, optional): shape of the isolated system. Defaults to "".
+        bond_length (float, optional): characteristic length of the isolated system. Defaults to 0.0.
+    
+    Raises:
+        ValueError: element, shape, bond_length not properly set
+    
+    Returns:
+        str: input file string
+    """
+    if element == "":
+        raise ValueError("element should be set")
+    if shape == "":
+        raise ValueError("shape should be set")
+    if bond_length == 0.0:
+        raise ValueError("bond_length should be set")
+    if "constraint" in kwargs.keys():
+        print("WARNING: constraint is not supported in _ISOLATED")
+
+    result = "CELL_PARAMETERS (angstrom)\n20.00000000 0.00000000 0.00000000\n0.00000000 20.00000000 0.00000000\n0.00000000 0.00000000 20.00000000\n\n"
+    result += "K_POINTS automatic\n1 1 1 0 0 0\n\n"
+    result += "ATOMIC_POSITIONS (angstrom)\n"
+    natom = 0
+    if shape == "dimer":
+        result += "%s %12.8f %12.8f %12.8f\n"%(element, 0.0, 0.0, 0.0)
+        result += "%s %12.8f %12.8f %12.8f\n"%(element, 0.0, 0.0, bond_length)
+        natom = 2
+    elif shape == "trimer":
+        result += "%s %12.8f %12.8f %12.8f\n"%(element, 0.0, 0.0, 0.0)
+        result += "%s %12.8f %12.8f %12.8f\n"%(element, bond_length, 0.0, 0.0)
+        result += "%s %12.8f %12.8f %12.8f\n"%(element, bond_length/2, bond_length/2*3**0.5, 0.0)
+        natom = 3
+    elif shape == "tetramer":
+        result += "%s %12.8f %12.8f %12.8f\n"%(element, 0.0, 0.0, 0.0)
+        result += "%s %12.8f %12.8f %12.8f\n"%(element, bond_length, 0.0, 0.0)
+        result += "%s %12.8f %12.8f %12.8f\n"%(element, bond_length/2, bond_length/2*3**0.5, 0.0)
+        result += "%s %12.8f %12.8f %12.8f\n"%(element, bond_length/2, bond_length/2*3**0.5/3, bond_length/2*3**0.5*2/3)
+        natom = 4
+    else:
+        raise ValueError("shape should be one of the following: dimer, trimer, tetramer")
+    result += "\n"
+    return result, natom
+
+"""deprecated old version of functions, but can still use in some way"""
+# DEPRECATED
+def section_control(other_parameters: dict) -> str:
     """
     write control parameters
     """
-    control = basic_parameters["control"]
+    control = INPUT_TEMPLATE["control"]
     if "control" in other_parameters.keys():
         for key, value in other_parameters["control"].items():
             control[key] = value
@@ -84,12 +207,12 @@ def write_control(other_parameters: dict) -> str:
             control_str += "%s = %s,\n"%(key, str(value))
     control_str += "/\n"
     return control_str
-
-def write_system(other_parameters: dict, atoms: dict) -> str:
+# DEPRECATED
+def section_system(other_parameters: dict, atoms: dict) -> str:
     """
     write system parameters
     """
-    system = basic_parameters["system"]
+    system = INPUT_TEMPLATE["system"]
     ntyp = len(atoms.keys())
     nat = 0
     for atom in atoms.keys():
@@ -109,12 +232,12 @@ def write_system(other_parameters: dict, atoms: dict) -> str:
             system_str += "%s = %s,\n"%(key, str(value))
     system_str += "/\n"
     return system_str
-
-def write_electrons(other_parameters: dict) -> str:
+# DEPRECATED
+def section_electrons(other_parameters: dict) -> str:
     """
     write electrons parameters
     """
-    electrons = basic_parameters["electrons"]
+    electrons = INPUT_TEMPLATE["electrons"]
     if "electrons" in other_parameters.keys():
         for key, value in other_parameters["electrons"].items():
             electrons[key] = value
@@ -127,12 +250,12 @@ def write_electrons(other_parameters: dict) -> str:
             electrons_str += "%s = %s,\n"%(key, str(value))
     electrons_str += "/\n"
     return electrons_str
-
-def write_ions(other_parameters: dict) -> str:
+# DEPRECATED
+def section_ions(other_parameters: dict) -> str:
     """
     write ions parameters
     """
-    ions = basic_parameters["ions"]
+    ions = INPUT_TEMPLATE["ions"]
     if "ions" in other_parameters.keys():
         for key, value in other_parameters["ions"].items():
             ions[key] = value
@@ -145,12 +268,12 @@ def write_ions(other_parameters: dict) -> str:
             ions_str += "%s = %s,\n"%(key, str(value))
     ions_str += "/\n"
     return ions_str
-
-def write_cell(other_parameters: dict) -> str:
+# DEPRECATED
+def section_cell(other_parameters: dict) -> str:
     """
     write cell parameters
     """
-    cell = basic_parameters["cell"]
+    cell = INPUT_TEMPLATE["cell"]
     if "cell" in other_parameters.keys():
         for key, value in other_parameters["cell"].items():
             cell[key] = value
@@ -163,8 +286,8 @@ def write_cell(other_parameters: dict) -> str:
             cell_str += "%s = %s,\n"%(key, str(value))
     cell_str += "/\n"
     return cell_str
-
-def write_atomic_species(atomic_species: dict) -> str:
+# DEPRECATED
+def section_atomic_species(atomic_species: dict) -> str:
     """
     write atomic species
     """
@@ -173,8 +296,8 @@ def write_atomic_species(atomic_species: dict) -> str:
         atomic_species_str += atomic_species["elements"][iatom] + " " + str(atomic_species["mass"][iatom]) + " " + atomic_species["pseudopotentials"][iatom] + "\n"
     atomic_species_str += "\n"
     return atomic_species_str
-
-def write_cell_parameters(lattice: dict, mode = "cif") -> str:
+# DEPRECATED
+def section_cell_parameters(lattice: dict, mode = "cif") -> str:
     """
     write cell parameters
 
@@ -196,8 +319,8 @@ def write_cell_parameters(lattice: dict, mode = "cif") -> str:
             cell_parameters_str += "%12.8f %12.8f %12.8f\n"%(default_lattice[i][0] * lattice_constant, default_lattice[i][1] * lattice_constant, default_lattice[i][2] * lattice_constant)
             
     return cell_parameters_str
-
-def write_atomic_positions(atoms: dict) -> str:
+# DEPRECATED
+def section_atomic_positions(atoms: dict) -> str:
     """
     write atomic positions
     """
@@ -208,8 +331,8 @@ def write_atomic_positions(atoms: dict) -> str:
             atomic_positions_str += "%s %12.8f %12.8f %12.8f\n"%(atom, atoms[atom]["positions"][iatom][0], atoms[atom]["positions"][iatom][1], atoms[atom]["positions"][iatom][2])
     atomic_positions_str += "\n"
     return atomic_positions_str
-
-def write_k_points(other_parameters = {}, lattice = {}, system_type = "metal") -> str:
+# DEPRECATED
+def k_points(other_parameters = {}, lattice = {}, system_type = "metal") -> str:
     """
     write k points
     """
@@ -227,7 +350,7 @@ def write_k_points(other_parameters = {}, lattice = {}, system_type = "metal") -
             int(llbfm / lattice["lattice_parameters"]["c"])
         ]
     
-    k_points = basic_parameters["k_points"]
+    k_points = INPUT_TEMPLATE["k_points"]
 
     k_points["k_points"][0] = nkpts[0]
     k_points["k_points"][1] = nkpts[1]
@@ -247,14 +370,14 @@ def write_k_points(other_parameters = {}, lattice = {}, system_type = "metal") -
         )
     k_points_str += "\n"
     return k_points_str
-
+# DEPRECATED
 def cif_to_qespresso(
         cif_file: str,
         other_parameters = {}) -> str:
     qe_fname = cif_file.split(".")[0] + ".in"
-    cif = read(cif_file)
-    atoms = m1ap(cif)
-    lattice = m1l(cif)
+    cif = amscif.read_1(cif_file)
+    atoms = amscif._method1_atomic_position(cif)
+    lattice = amscif._method1_lattice(cif)
 
     atomic_species = {
         "elements": [],
@@ -263,23 +386,23 @@ def cif_to_qespresso(
     }
     for element in atoms.keys():
         atomic_species["elements"].append(element)
-        atomic_species["mass"].append(ai.get_element_mass(element))
+        atomic_species["mass"].append(amdd.element_mass(element))
         atomic_species["pseudopotentials"].append(element + "_pseudopot")
     
     return_str = ""
-    return_str += write_control(other_parameters)
-    return_str += write_system(other_parameters, atoms)
-    return_str += write_electrons(other_parameters)
-    return_str += write_ions(other_parameters)
-    return_str += write_cell(other_parameters)
-    return_str += write_atomic_species(atomic_species)
-    return_str += write_cell_parameters(lattice)
-    return_str += write_atomic_positions(atoms)
-    return_str += write_k_points(other_parameters, lattice)
+    return_str += section_control(other_parameters)
+    return_str += section_system(other_parameters, atoms)
+    return_str += section_electrons(other_parameters)
+    return_str += section_ions(other_parameters)
+    return_str += section_cell(other_parameters)
+    return_str += section_atomic_species(atomic_species)
+    return_str += section_cell_parameters(lattice)
+    return_str += section_atomic_positions(atoms)
+    return_str += k_points(other_parameters, lattice)
     with open(qe_fname, 'w') as f:
         f.write(return_str)
     return qe_fname
-
+# DEPRECATED
 def write_dimer_structure(symbol = "H", distance = 3.0) -> str:
     """
     write atomic positions, specifically for dimer
@@ -289,7 +412,7 @@ def write_dimer_structure(symbol = "H", distance = 3.0) -> str:
     atomic_positions_str += "%s %12.8f %12.8f %12.8f"%(symbol, 0.0, 0.0, distance) + " 0 0 1\n"
     atomic_positions_str += "\n"
     return atomic_positions_str
-
+# DEPRECATED
 def write_trimer_structure(symbol = "H", distance = 3.0) -> str:
     """
     write atomic positions, specifically for trimer, with one vertical angle
@@ -300,7 +423,7 @@ def write_trimer_structure(symbol = "H", distance = 3.0) -> str:
     atomic_positions_str += "%s %12.8f %12.8f %12.8f"%(symbol, 0.0, distance, 0.0) + " 0 1 0\n"
     atomic_positions_str += "\n"
     return atomic_positions_str
-
+# DEPRECATED
 def reference_structure_from_quantum_espresso(reference_structure = "dimer", symbol = "H", distance = 3.0) -> None:
     """quantum espresso input file generation for finding the bond length of reference structure
 
@@ -338,25 +461,78 @@ def reference_structure_from_quantum_espresso(reference_structure = "dimer", sym
         raise ValueError("reference_structure should be 'dimer' or 'trimer'")
 
     return_str = ""
-    return_str += write_control({
+    return_str += section_control({
         "control": {
             "calculation": "relax",
         }
     })
-    return_str += write_system({}, {})
-    return_str += write_electrons({})
-    return_str += write_ions({})
-    return_str += write_cell({})
-    return_str += write_atomic_species({
+    return_str += section_system({}, {})
+    return_str += section_electrons({})
+    return_str += section_ions({})
+    return_str += section_cell({})
+    return_str += section_atomic_species({
         "elements": [symbol],
-        "mass": [ai.get_element_mass(symbol)],
+        "mass": [amdd.element_mass(symbol)],
         "pseudopotentials": [symbol + "_pseudopot"],
     })
-    return_str += write_cell_parameters({}, "nao")
+    return_str += section_cell_parameters({}, "nao")
     return_str += atomic_positions_str
-    return_str += write_k_points({}, {}, "isolated")
+    return_str += k_points({}, {}, "isolated")
     with open(symbol + "_" + reference_structure + ".in", 'w') as f:
         f.write(return_str)
+
+INPUT_TEMPLATE = {
+    "control": {
+        "calculation": "scf",
+        "restart_mode": "from_scratch",
+        "pseudo_dir": "./",
+        "outdir": "./",
+        "tprnfor": ".true.",
+        "tstress": ".true.",
+        "wf_collect": ".true.",
+        "nstep": 100,
+        "verbosity": "high",
+    },
+    "system": {
+        "ibrav": 0,
+        "nat": 0,
+        "ntyp": 0,
+        "ecutwfc": 100,
+        "ecutrho": 400,
+        "occupations": "smearing",
+        "smearing": "gaussian",
+        "degauss": 0.02,
+        "nspin": 1,
+        "starting_magnetization": 0.0,
+        "nosym": ".false.",
+        "noinv": ".false.",
+        "noncolin": ".false.",
+        "lspinorb": ".false.",
+        "input_dft": "pbe",
+    },
+    "electrons": {
+        "electron_maxstep": 100,
+        "conv_thr": 1e-7,
+        "mixing_beta": 0.7,
+        "mixing_mode": "plain",
+        "mixing_ndim": 8,
+        "diagonalization": "david"
+    },
+    "ions": {
+        "ion_dynamics": "bfgs",
+        "upscale": 100
+    },
+    "cell": {
+        "cell_dynamics": "bfgs",
+        "cell_dofree": "all",
+        "cell_factor": 2,
+        "press_conv_thr": 0.2
+    },
+    "k_points": {
+        "k_points": [1, 1, 1],
+        "k_points_shift": [0, 0, 0],
+    }
+}
 
 if __name__ == "__main__":
 
