@@ -10,7 +10,8 @@ def driver_v1(input_file: str):
     import apns.module_workflow.apns_itertools as amwai
     import apns.module_structure.basic as amsb
     import apns.module_io.compress as amic
-    folders = amwi.iterate(systems=inp["systems"],
+    folders = amwi.iterate(software=inp["global"]["software"].lower(),
+                           systems=inp["systems"],
                            pseudopot_nao_settings=amwai.system(
                                elements=[
                                    amwai.pseudopot_nao(
@@ -18,7 +19,7 @@ def driver_v1(input_file: str):
                                    ]
                            ),
                            calculation_settings=amwai.calculation(inp["calculation"]),
-                           cell_scalings=inp["calculation"]["cell_scaling"],
+                           characteristic_lengths=inp["calculation"]["characteristic_lengths"],
                            valid_pseudopotentials=vpspot,
                            valid_numerical_orbitals=vnao,
                            pspot_archive=pspot_arch,
@@ -51,6 +52,14 @@ def driver_v0(input_file: str):
           basis_type=work_status["calculation"]["basis_type"],
           functionals=work_status["calculation"]["functionals"],
           cell_scalings=work_status["calculation"]["cell_scaling"])
+
+def configure(input_file: str):
+    """configure the apns storing files, only run this at the first time"""
+    import json
+    with open(input_file, "r") as f:
+        inp = json.load(f)
+    import apns.module_pseudo.upf_archive as ampua
+    ampua.archive(pseudo_dir=inp["global"]["pseudo_dir"], only_scan=False)
 
 if __name__ == "__main__":
     driver_v1("input.json")

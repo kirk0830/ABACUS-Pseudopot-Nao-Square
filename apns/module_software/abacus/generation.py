@@ -145,9 +145,9 @@ def _STRU_(fname: str,
     return_str += "\n"
     if len(numerical_orbitals) > 0:
         return_str += "NUMERICAL_ORBITAL\n"
-        for _element in kwargs["numerical_orbitals"]:
+        for _element in numerical_orbitals.keys():
             numerical_orbital = _element + "_numerical_orbital"
-            numerical_orbital = kwargs["numerical_orbitals"][_element]
+            numerical_orbital = numerical_orbitals[_element]
             return_str += "%s\n" % (numerical_orbital)
         return_str += "\n"
 
@@ -183,6 +183,69 @@ def _STRU_(fname: str,
             return_str += "\n"
 
     return return_str, cell_parameters
+
+def _STRU_ISOLATED_(shape: str = "",
+                    pseudopotentials: dict = {},
+                    numerical_orbitals: dict = {},
+                    bond_length: float = 0.0,
+                    **kwargs):
+    if shape == "":
+        raise ValueError("shape must be specified.")
+    if len(pseudopotentials) == 0:
+        raise ValueError("pseudopotentials must be specified.")
+    if len(pseudopotentials) > 1:
+        raise ValueError("pseudopotentials must be specified for only one element.")
+    if len(numerical_orbitals) > 1:
+        raise ValueError("numerical_orbitals must be specified for only one element.")
+    if bond_length == 0.0:
+        raise ValueError("bond_length must be specified.")
+    
+    return_str = "ATOMIC_SPECIES\n"
+    for _element in pseudopotentials:
+        mass = kwargs.get("mass", {}).get(_element, 1.0)
+        pseudopotential = pseudopotentials[_element]
+        return_str += "%s %8.4f %s\n" % (_element, mass, pseudopotential)
+    return_str += "\n"
+    if len(numerical_orbitals) > 0:
+        return_str += "NUMERICAL_ORBITAL\n"
+        for _element in numerical_orbitals.keys():
+            numerical_orbital = _element + "_numerical_orbital"
+            numerical_orbital = numerical_orbitals[_element]
+            return_str += "%s\n" % (numerical_orbital)
+        return_str += "\n"
+
+    lattice_constant = 1.889726877
+    return_str += "LATTICE_CONSTANT\n%s\n\n"%(lattice_constant)
+    return_str += "LATTICE_VECTORS\n"
+    return_str += "%12.8f %12.8f %12.8f\n" %(20.0, 0.0, 0.0)
+    return_str += "%12.8f %12.8f %12.8f\n" %(0.0, 20.0, 0.0)
+    return_str += "%12.8f %12.8f %12.8f\n" %(0.0, 0.0, 20.0)
+
+    return_str += "\n"
+    return_str += "ATOMIC_POSITIONS\nDirect\n"
+
+    element = list(pseudopotentials.keys())[0]
+    return_str += "%s\n 0.00" % (element)
+    
+    if shape == "dimer":
+        return_str += "\n2\n"
+        return_str += "%12.8f %12.8f %12.8f m 0 0 0\n"%(0.0, 0.0, 0.0)
+        return_str += "%12.8f %12.8f %12.8f m 1 0 0\n"%(bond_length, 0.0, 0.0)
+    elif shape == "trimer":
+        return_str += "\n3\n"
+        return_str += "%12.8f %12.8f %12.8f m 0 0 0\n"%(0.0, 0.0, 0.0)
+        return_str += "%12.8f %12.8f %12.8f m 1 0 0\n"%(bond_length, 0.0, 0.0)
+        return_str += "%12.8f %12.8f %12.8f m 1 1 0\n"%(bond_length/2, bond_length/2*3**0.5, 0.0)
+    elif shape == "tetramer":
+        return_str += "\n4\n"
+        return_str += "%12.8f %12.8f %12.8f m 0 0 0\n"%(0.0, 0.0, 0.0)
+        return_str += "%12.8f %12.8f %12.8f m 1 0 0\n"%(bond_length, 0.0, 0.0)
+        return_str += "%12.8f %12.8f %12.8f m 1 1 0\n"%(bond_length/2, bond_length/2*3**0.5, 0.0)
+        return_str += "%12.8f %12.8f %12.8f m 1 1 1\n"%(bond_length/2, bond_length/2/3**0.5, bond_length/2*3**0.5)
+    else:
+        raise ValueError("shape must be dimer, trimer or tetramer.")
+
+    return return_str, [20.0, 20.0, 20.0]
 
 def KPT_generation(mode: str, gamma_centered: bool = True, **kwargs):
     """KPT file generation
@@ -231,6 +294,37 @@ def KPT_generation(mode: str, gamma_centered: bool = True, **kwargs):
             raise NotImplementedError
     else:
         raise ValueError
+    
+    return return_str
+
+def _KPT_(isolated: bool = False, gamma_centered: bool = True, **kwargs):
+    """new version of KPT file generation
+
+    Args:
+        mode (str): can be "isolated" or "crystal", "isolated" means the calculation is for isolated system, "crystal" means the calculation is for crystal system.
+        gamma_centered (bool, optional): If kpoints sampling is Gamma point centered. Defaults to True.
+        **kwargs: cell_parameters: list, metallic: bool, ...
+
+    Raises:
+        NotImplementedError: Non-Gamma centered kpoints sampling is not implemented yet.
+        ValueError: mode must be "isolated" or "crystal".
+
+    Returns:
+        _type_: readily usable string for KPT file.
+    """
+    if "cell_parameters" in kwargs and not isolated:
+            cell_parameters = kwargs["cell_parameters"]
+            if isinstance(cell_parameters, list):
+                a, b, c = cell_parameters[0], cell_parameters[1], cell_parameters[2]
+            elif isinstance(cell_parameters, dict):
+                a, b, c = cell_parameters["a"], cell_parameters["b"], cell_parameters["c"]
+            else:
+                raise TypeError("Not supported data format of cell parameters, must be list or dict.")
+            _fold = 35 if kwargs.get("metallic", False) else 25
+            return_str = "K_POINTS\n0\n%s\n%d %d %d 0 0 0\n" % ("Gamma" if gamma_centered else "MP", int(_fold/a) + 1, int(_fold/b) + 1, int(_fold/c) + 1)
+    else:
+        return_str = "K_POINTS automatic\n0\nGamma\n1 1 1 0 0 0\n"
+        print("Warning: KPT file generation failed, use default KPT file instead.") if not isolated else None
     
     return return_str
 
