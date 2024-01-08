@@ -13,4 +13,4 @@ classifiers = [
     "Development Status :: 3 - Alpha",
     "Programming Language :: Python :: 3.7",
 ]
-dependencies = ["mp_api", "numpy", "pymatgen"]
+dependencies = ["mp_api", "numpy", "pymatgen", "seekpath"]

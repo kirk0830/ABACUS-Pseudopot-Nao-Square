@@ -8,7 +8,7 @@ def iterate(software: str = "abacus", # which software? abacus or qespresso
             systems: list = [],
             pseudopot_nao_settings: list = [],
             calculation_settings: list = [],
-            characteristic_lengths: list = [],
+            extensive: dict = {},
             valid_pseudopotentials: dict = {},
             valid_numerical_orbitals: dict = {},
             pspot_archive: dict = {},
@@ -34,10 +34,13 @@ def iterate(software: str = "abacus", # which software? abacus or qespresso
         
         Defaults to empty.
         
-        `characteristic_lengths (list, optional)`: characteristic_lengths settings to iterate = 
-        >>> [0, 0.01, ...]. # for crystal calculating EOS
-        >>> [1.5, 2.0, ...]. # for molecule specifying bond length
-        
+        `extensive` (dict, optional): extensive settings in integrated in apns. Defaults to empty.
+        >>> {
+            "characteristic_lengths": [characteristic_length, ...],
+            "nkpoints_in_line": [nkpoints_in_line, ...]
+            ...
+        }
+
         Defaults to empty.
         
         `valid_pseudopotentials (dict, optional)`: 
@@ -76,7 +79,7 @@ def iterate(software: str = "abacus", # which software? abacus or qespresso
     for _system in systems: # iterate over structures
         for system_pseudopot_nao_setting in pseudopot_nao_settings: # iterate over pseudopotential and numerical orbital settings
             for calculation_setting in calculation_settings: # iterate over calculation settings
-                for characteristic_length in characteristic_lengths: # iterate over cell scaling
+                for characteristic_length in extensive["characteristic_lengths"]: # iterate over cell scaling
                     # make folder
                     if "numerical_orbital" not in system_pseudopot_nao_setting.keys():
                         system_pseudopot_nao_setting["numerical_orbital"] = []
@@ -88,7 +91,6 @@ def iterate(software: str = "abacus", # which software? abacus or qespresso
                     os.makedirs(folder, exist_ok=True) if not test_mode else print("mkdir {}".format(folder))
                     folders.append(folder)
 
-                    
                     # write pseudopotential and numerical orbital over all combinations
                     _elements = amsb.scan_elements(_system)
                     # copy pseudopotential
@@ -110,20 +112,21 @@ def iterate(software: str = "abacus", # which software? abacus or qespresso
                         fnao += valid_numerical_orbitals[_element][_naoid]["file"]
                         os.system("cp {} {}/".format(fnao, folder)) if not test_mode else print("cp {} {}/".format(fnao, folder))
                         numerical_orbitals[_element] = valid_numerical_orbitals[_element][_naoid]["file"]
-                    isolated = False
+                    
+                    nkpoints_in_line = extensive["nkpoints_in_line"]
                     for word in _system.split("_")[1]:
                         if word.isalpha():
-                            isolated = True # mpid only contains numbers, so if it contains letters, it will be dimer, trimer or tetramer
+                            nkpoints_in_line = -1 # mpid only contains numbers, so if it contains letters, it will be dimer, trimer or tetramer
                             break
                     if software == "qespresso":
                         iterate_qespresso(system_with_mpid=_system, target_folder=folder, calculation_setting=calculation_setting,
                                           pseudopotentials=pseudopotentials, 
-                                          characteristic_length=characteristic_length, isolated=isolated,
+                                          characteristic_length=characteristic_length, nkpoints_in_line=nkpoints_in_line,
                                           test_mode=test_mode)
                     elif software == "abacus":
                         iterate_abacus(system_with_mpid=_system, target_folder=folder, calculation_setting=calculation_setting,
                                        pseudopotentials=pseudopotentials, numerical_orbitals=numerical_orbitals,
-                                       characteristic_length=characteristic_length, isolated=isolated,
+                                       characteristic_length=characteristic_length, nkpoints_in_line=nkpoints_in_line,
                                        test_mode=test_mode)
     return folders
 
@@ -133,7 +136,7 @@ def iterate_abacus(system_with_mpid: str = "", # on which structure? system with
                    pseudopotentials: dict = {}, # which set of pseudopotentials?
                    numerical_orbitals: dict = {}, # which set of numerical orbitals?
                    characteristic_length: float = 0.0, # for crystal, it is cell scaling; for molecule, it is bond length
-                   isolated: bool = False,  # crystal or molecule?
+                   nkpoints_in_line: int = 0,  # for -1, assume system as isolated, for 0, will sample kpoints automatically, for >0, will generate kpath
                    test_mode: bool = True # for test
                    ) -> None:
     """iterate over all possible combinations of input parameters and generate folders
@@ -163,7 +166,7 @@ def iterate_abacus(system_with_mpid: str = "", # on which structure? system with
     else:
         print("write %s\ncontents:\n%s"%(target_folder + "/INPUT", _input))
     # write STRU
-    if not isolated:
+    if nkpoints_in_line >= 0:
         _stru, _cell = amsag._STRU_(
             fname=amwi.TEMPORARY_FOLDER + "/" + amwi.cif(system_with_mpid), 
             pseudopotentials=pseudopotentials,
@@ -179,7 +182,13 @@ def iterate_abacus(system_with_mpid: str = "", # on which structure? system with
     else:
         print("write %s\ncontents:\n%s"%(target_folder + "/STRU", _stru))
     # write KPT
-    _kpt = amsag._KPT_(isolated=isolated, cell_parameters=_cell)
+    if nkpoints_in_line < 0:
+        _kpt = amsag._KPT_(isolated=True, cell_parameters=_cell)
+    elif nkpoints_in_line == 0:
+        _kpt = amsag._KPT_(isolated=False, cell_parameters=_cell)
+    else:
+        _kpt = amsag._KLINE_(fname=amwi.TEMPORARY_FOLDER + "/" + amwi.cif(system_with_mpid),
+                             nkpts_in_line=nkpoints_in_line)
     if not test_mode:
         with open(target_folder + "/KPT", "w") as f: f.write(_kpt)
     else:
@@ -190,7 +199,7 @@ def iterate_qespresso(system_with_mpid: str = "", # on which structure? system w
                       calculation_setting: dict = {}, # use what calculation setting?
                       pseudopotentials: dict = {}, # which set of pseudopotentials?
                       characteristic_length: float = 0.0, # for non isolated, it is cell scaling; for isolated, it is bond length
-                      isolated: bool = False,  # crystal or molecule?
+                      nkpoints_in_line: int = 0,  # for -1, assume system as isolated, for 0, will sample kpoints automatically, for >0, will generate kpath
                       test_mode: bool = True # for test
                       ) -> None:
     """iterate over all possible combinations of input parameters and generate folders
@@ -215,7 +224,7 @@ def iterate_qespresso(system_with_mpid: str = "", # on which structure? system w
     """
     _in = ""
     ntype, natom = len(pseudopotentials), 0
-    if isolated:
+    if nkpoints_in_line < 0:
         _in, natom = amsqg._ISOLATED(element=system_with_mpid.split("_")[0], 
                                      shape=system_with_mpid.split("_")[1],
                                      bond_length=characteristic_length)
@@ -224,6 +233,8 @@ def iterate_qespresso(system_with_mpid: str = "", # on which structure? system w
                                 cell_scaling=characteristic_length,
                                 constraints=[])
         
+    _in = amsqg._K_POINTS(fname=amwi.TEMPORARY_FOLDER + "/" + amwi.cif(system_with_mpid), nkpoints_in_line=nkpoints_in_line) + _in
+    
     _in = amsqg._ATOMIC_SEPCIES(pseudopotential=pseudopotentials) + _in
 
     iterate_sections = ["control", "system", "electrons", "ions", "cell"]

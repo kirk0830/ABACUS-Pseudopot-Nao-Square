@@ -16,5 +16,6 @@ class TestGeneration(unittest.TestCase):
         self.assertGreater(len(result), 0)
     def test_ISOLATED(self):
         print(amsqg._ISOLATED(element="H", shape="dimer", characteristic_length=2.0))
+
 if __name__ == "__main__":
     unittest.main()

@@ -1,6 +1,7 @@
-from apns.module_structure.crystal_information_file import cell_parameters_to_lattice_vectors as cptlv
-from apns.module_structure.crystal_information_file import read_1 as read
 import re
+import seekpath as skps
+import apns.module_structure.crystal_information_file as amscif
+import apns.module_database.database as amdd
 
 def STRU_cif(fname: str, 
              pseudopotentials: dict = {}, 
@@ -22,7 +23,7 @@ def STRU_cif(fname: str,
     Returns:
         return_str (str): readily usable string for STRU file.
     """
-    cif = read(fname)
+    cif = amscif.read_1(fname)
     return_str = "ATOMIC_SPECIES\n"
     for _element in pseudopotentials:
         mass = kwargs.get("mass", {}).get(_element, 1.0)
@@ -45,7 +46,7 @@ def STRU_cif(fname: str,
         return_str += "LATTICE_CONSTANT\n1.889726877\n\n"
     return_str += "LATTICE_VECTORS\n"
     cell_parameters = cif["cell_parameters"]
-    lattice_vectors = cptlv(cell_parameters)
+    lattice_vectors = amscif.cellparam_to_latvec(cell_parameters)
 
     for ilv, lattice_vector in enumerate(lattice_vectors):
         if "cell_rescaling_factors" in kwargs:
@@ -101,7 +102,7 @@ def STRU_dimer(element: str, bond_length: float, pseudopotentials: dict, **kwarg
     return_str += "LATTICE_CONSTANT\n1.889726877\n\n"
     return_str += "LATTICE_VECTORS\n"
     if "cell_parameters" in kwargs:
-        lattice_vectors = cptlv(kwargs["cell_parameters"])
+        lattice_vectors = amscif.cellparam_to_latvec(kwargs["cell_parameters"])
     else:
         lattice_vectors = [
             [20.0, 0.0, 0.0],
@@ -136,7 +137,7 @@ def _STRU_(fname: str,
     Returns:
         return_str (str): readily usable string for STRU file.
     """
-    cif = read(fname)
+    cif = amscif.read_1(fname)
     return_str = "ATOMIC_SPECIES\n"
     for _element in pseudopotentials:
         mass = kwargs.get("mass", {}).get(_element, 1.0)
@@ -155,7 +156,7 @@ def _STRU_(fname: str,
     return_str += "LATTICE_CONSTANT\n%s\n\n"%(lattice_constant)
     return_str += "LATTICE_VECTORS\n"
     cell_parameters = cif["cell_parameters"]
-    lattice_vectors = cptlv(cell_parameters)
+    lattice_vectors = amscif.cellparam_to_latvec(cell_parameters)
 
     for lattice_vector in lattice_vectors:
         return_str += "%12.8f %12.8f %12.8f\n" %(lattice_vector[0],
@@ -328,6 +329,36 @@ def _KPT_(isolated: bool = False, gamma_centered: bool = True, **kwargs):
     
     return return_str
 
+def _KLINE_(fname: str, nkpts_in_line: int = 10):
+
+    result = amscif.read_1(fname)
+
+    cell_vectors = amscif.cellparam_to_latvec(result['cell_parameters'])
+    positions = []
+    numbers = []
+
+    for element in result['atomic_positions']:
+        for line in result['atomic_positions'][element]:
+            positions.append(line)
+            numbers.append(amdd.get_element_index(element))
+
+    result = skps.get_path(structure=(cell_vectors, positions, numbers))
+
+    kpts = []
+    for _path in result["path"]:
+        start_coord = result["point_coords"][_path[0]] # fractional coordinates
+        end_coord = result["point_coords"][_path[1]] # fractional coordinates
+        dkx, dky, dkz = [(end_coord[i] - start_coord[i])/(nkpts_in_line-1) for i in range(3)]
+        for i in range(nkpts_in_line - 1):
+            kpts.append([start_coord[0]+i*dkx, start_coord[1]+i*dky, start_coord[2]+i*dkz])
+
+    return_str = "K_POINTS\n0\n"
+    return_str += "line\n%d\n" % (len(kpts))
+    for kpt in kpts:
+        return_str += "%12.8f %12.8f %12.8f 1\n" % (kpt[0], kpt[1], kpt[2])
+
+    return return_str
+
 def INPUT(calculation: dict,
           minimal: bool = True,
           template: bool = False):
@@ -360,8 +391,6 @@ def INPUT(calculation: dict,
         valid_key = key
         if key == "functionals":
             valid_key = "dft_functional"
-        elif key == "characteristic_lengths":
-            continue
         if isinstance(calculation[key], list):
             if template:
                 values[valid_key] = valid_key + "_to_test"
