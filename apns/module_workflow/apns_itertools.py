@@ -143,7 +143,18 @@ def system(elements: list) -> list:
 
 import apns.module_structure.basic as amsb
 def systems(system_list: list, valid_pseudopotentials: dict = {}, valid_numerical_orbitals: dict = {}) -> list:
-    print("valid_pseudopotentials: ", valid_pseudopotentials)
+    """generate all possible combinations for all systems, elemental information such as valid pseudopotentials and
+    numerical orbitals should be provided
+    
+    Args:
+        systems (list): a list of system_with_mpid
+        valid_pseudopotentials (dict): a dictionary of valid pseudopotentials, which is generated from function in apns.module_pseudo
+        valid_numerical_orbitals (dict, optional): a dictionary of valid numerical orbitals, which is generated from function in apns.module_pseudo
+        
+    Returns:
+        list: a list of lists of dictionaries containing pseudopotential and numerical orbital identifiers for each pseudopot-nao combination for each
+        system, in sequence of system_list
+    """
     pseudopot_nao_settings = []
     for _system in system_list:
         elements = amsb.scan_elements(_system)
@@ -155,7 +166,6 @@ def systems(system_list: list, valid_pseudopotentials: dict = {}, valid_numerica
                 ]
         pseudopot_nao_settings.append(system(elements=elements))
     
-    print("pseudopot_nao_settings: ", pseudopot_nao_settings)
     return pseudopot_nao_settings
 """calculation parameters combination for global """
 
