@@ -360,7 +360,7 @@ def INPUT(calculation: dict,
         valid_key = key
         if key == "functionals":
             valid_key = "dft_functional"
-        elif key == "cell_scaling":
+        elif key == "characteristic_lengths":
             continue
         if isinstance(calculation[key], list):
             if template:

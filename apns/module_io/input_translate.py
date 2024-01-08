@@ -102,12 +102,18 @@ def inp_translate(fname: str, **kwargs) -> dict:
                 elements.append(element)
     # expand systems, sed the system name with system_mpids in read input
     if "system_with_mpids" in kwargs:
-        for system in kwargs["system_with_mpids"]: # example: system = Er2O3
+        for system in kwargs["system_with_mpids"].keys(): # example: system = Er2O3
             if system in inp["systems"]:
                 # remove this system from inp["systems"] list
                 inp["systems"].remove(system)
             for structure in kwargs["system_with_mpids"][system]: # example: structure = Er2O3_2460
-                inp["systems"].append(structure)
+                if structure not in inp["systems"]:
+                    # for `crystal` case, for example Cr crystal, the above remove will remove Cr, 
+                    # but Cr_dimer cannot be removed because it is not the key of kwargs["system_with_mpids"]
+                    # , it is just the case of `isolated
+                    inp["systems"].append(structure)
+    else:
+        raise ValueError("system_with_mpids not found in kwargs.")
     # expand pseudopotentials and numerical_orbitals from list to dict
     inp = expand(inp, elements)
     # for unset attributes, use default values
@@ -134,7 +140,7 @@ DEFAULT_INPUT = {
         "basis_type": "pw",
         "functionals": ["PBE"],
         "ecutwfc": [100],
-        "cell_scaling": [0.00]
+        "characteristic_lengths": [0.00]
     },
     "systems": [],
     "pseudopotentials": {
