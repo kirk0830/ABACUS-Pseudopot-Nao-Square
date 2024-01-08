@@ -11,6 +11,8 @@ def scan_elements(system: str|list) -> list:
     system = ''.join([i for i in system if not i.isdigit()])
     # 2. remove all special characters
     system = ''.join([i for i in system if i.isalpha()])
+    # 3. remove all "dimer", "trimer", "tetramer"
+    system = system.replace("dimer", "").replace("trimer", "").replace("tetramer", "")
     # 3. split the system word by uppercase letters
     elements = []
     element = ""

@@ -89,16 +89,22 @@ def download_structure(finp: str) -> dict:
             _crystal.append(system)
     if len(_isolated)*len(_crystal) != 0:
         raise ValueError("Severe error: isolated molecule and crystal cannot be mixed.")
-    
-    system_with_mpids = amsmp.composites(api_key=inp["materials_project"]["api_key"],
-                                         formula=_crystal,
-                                         num_cif=inp["materials_project"]["n_structures"],
-                                         theoretical=inp["materials_project"]["theoretical"],
-                                         is_stable=inp["materials_project"]["most_stable"])
-    
-    for system in _isolated:
-        system_with_mpids[system.split("_")[0]].append(system)
 
+    system_with_mpids = {}
+
+    if len(_crystal):
+        system_with_mpids = amsmp.composites(api_key=inp["materials_project"]["api_key"],
+                                            formula=_crystal,
+                                            num_cif=inp["materials_project"]["n_structures"],
+                                            theoretical=inp["materials_project"]["theoretical"],
+                                            is_stable=inp["materials_project"]["most_stable"])
+    elif len(_isolated):
+        for system in _isolated:
+            element = system.split("_")[0]
+            system_with_mpids.setdefault(element, []).append(system)
+    else:
+        raise ValueError("No system to download or generate, check your setting.")
+    
     return system_with_mpids
 
 import apns.module_structure.basic as amsb

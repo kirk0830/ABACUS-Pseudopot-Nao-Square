@@ -154,7 +154,7 @@ of param suites. If a parameter is specified as list, then will be a dimension f
 otherwise will be a scalar and its value will be copied to all param suites.
 
 Methodologically, a loop over the returned list will quickly adjust the template file, especially for
-ABACUS the INPUT file. There is a parameter not in INPUT, it is, the cell_scaling, is used to scale
+ABACUS the INPUT file. There is a parameter not in INPUT, it is, the characteristic_lengths, is used to scale
 LATTICE_CONSTANT in STRU file."""
 def calculation(work_status_calculation_section: dict) -> list:
 

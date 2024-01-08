@@ -35,7 +35,7 @@ class TestIterate(unittest.TestCase):
                 "ecutwfc": 300
             }
         ]
-    cell_scalings = [0.00]
+    characteristic_lengths = [0.00]
     valid_pseudopotentials = {
             "Er": {
                 "sg15_10": {
@@ -114,7 +114,7 @@ class TestIterate(unittest.TestCase):
                               systems=self.system,
                               pseudopot_nao_settings=self.pseudopot_nao_settings,
                               calculation_settings=self.calculation_settings,
-                              cell_scalings=self.cell_scalings,
+                              characteristic_lengths=self.characteristic_lengths,
                               valid_pseudopotentials=self.valid_pseudopotentials,
                               valid_numerical_orbitals=self.valid_numerical_orbitals,
                               pspot_archive=self.pspot_archive,
@@ -128,7 +128,7 @@ class TestIterate(unittest.TestCase):
                               systems=self.system,
                               pseudopot_nao_settings=self.pseudopot_nao_settings,
                               calculation_settings=self.calculation_settings,
-                              cell_scalings=self.cell_scalings,
+                              characteristic_lengths=self.characteristic_lengths,
                               valid_pseudopotentials=self.valid_pseudopotentials,
                               valid_numerical_orbitals=self.valid_numerical_orbitals,
                               pspot_archive=self.pspot_archive,

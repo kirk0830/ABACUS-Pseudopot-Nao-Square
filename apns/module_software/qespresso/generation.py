@@ -54,8 +54,8 @@ def _calculation(section: str = "", ntype: int = 0, natom: int = 0, **kwargs) ->
             kwargs["ecutwfc"] = kwargs["ecutrho"] / 4
             ecut_warning = True
         if ecut_warning:
-            print("WARNING: ecutwfc and ecutrho should be set together, here dual = 4 is used by default. "
-                + "This value is suitable for norm-conserving pseudopotentials, but not for ultrasoft pseudopotentials.")
+            print("WARNING: ecutwfc and ecutrho should be set together, here dual = 4 is used by default.\n"
+                + "         This value is suitable for norm-conserving pseudopotentials, but not for ultrasoft pseudopotentials.")
     for key, value in kwargs.items():
         if key in section_content.keys():
             section_content[key] = value
@@ -170,7 +170,7 @@ def _ISOLATED(element: str = "", shape: str = "", bond_length: float = 0.0, **kw
     natom = 0
     if shape == "dimer":
         result += "%s %12.8f %12.8f %12.8f\n"%(element, 0.0, 0.0, 0.0)
-        result += "%s %12.8f %12.8f %12.8f\n"%(element, 0.0, 0.0, bond_length)
+        result += "%s %12.8f %12.8f %12.8f\n"%(element, bond_length, 0.0, 0.0)
         natom = 2
     elif shape == "trimer":
         result += "%s %12.8f %12.8f %12.8f\n"%(element, 0.0, 0.0, 0.0)

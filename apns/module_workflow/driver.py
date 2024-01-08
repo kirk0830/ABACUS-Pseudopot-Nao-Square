@@ -1,4 +1,12 @@
+"""version 1 driver is more well-designed, it seperate the whole workflow in a different way from version 0
 
+version 1 considers more about "ITERATE" rather than "FLOW" in version 0.
+Therefore version 1 will first do Cartesian direct product on calculation_settings and pseudopotential-
+numerical atomic orbital settings. The first iteration layer is caculation_settings, the second iteration-
+layer is pseudopotential-numerical atomic orbital settings. The third iteration layer is systems.
+
+Therefore 
+"""
 def driver_v1(input_file: str):
     """new version of driver"""
 
@@ -30,6 +38,7 @@ def driver_v1(input_file: str):
     import os
     amic.pack(folders, "apns_{}.zip".format(time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime())))
     for folder in folders:
+        pass
         os.system("rm -rf {}".format(folder))
     """submit?"""
     # sorry I don't connect with abacustest yet
@@ -51,7 +60,7 @@ def driver_v0(input_file: str):
           software=work_status["global"]["software"],
           basis_type=work_status["calculation"]["basis_type"],
           functionals=work_status["calculation"]["functionals"],
-          cell_scalings=work_status["calculation"]["cell_scaling"])
+          cell_scalings=work_status["calculation"]["characteristic_lengths"])
 
 def configure(input_file: str):
     """configure the apns storing files, only run this at the first time"""

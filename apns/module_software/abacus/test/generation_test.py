@@ -10,7 +10,7 @@ class TestAbacus(unittest.TestCase):
         "ecutwfc": 100,
         "cal_force": 1,
         "cal_stress": 1,
-        "cell_scaling": 0.0
+        "characteristic_lengths": 0.0
     }
 
     pseudopotentials = {
