@@ -6,7 +6,7 @@ here = pathlib.Path(__file__).parent.resolve()
 readme = (here / 'README.md').read_text(encoding='utf-8')
 
 # did not include torch and pyscf here
-install_requires=["mp_api", "numpy", "pymatgen"]
+install_requires=["mp_api", "numpy", "pymatgen", "seekpath"]
 
 setuptools.setup(
     name="apns",

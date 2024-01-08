@@ -7,7 +7,7 @@ def main(input_file: str, version: str = "v1"):
 if __name__ == "__main__":
     import sys
     if len(sys.argv) < 2: # interactive mode
-        main("input.json", "v1")
+        main("input.json")
     elif len(sys.argv) < 3: # command line mode
         main(sys.argv[1])
     else: # command line mode with version

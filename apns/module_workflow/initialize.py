@@ -33,13 +33,13 @@ def initialize(finp: str, test_mode: bool = False) -> tuple[dict, dict, dict, di
         nao_arch: numerical orbital archive, a dict whose keys are "numerical orbital identifier", stored in
                   `nao_dir`, values are folders' absolute path.
     """
-    initialize_cache()
-    system_with_mpids = download_structure(finp)
-    _inp = amiit.inp_translate(fname=finp, system_with_mpids=system_with_mpids)
-    valid_pseudopotentials, valid_numerical_orbitals = scan_valid_pseudopot_nao(_inp)
+    initialize_cache() # initialize cache directory
+    system_with_mpids = download_structure(finp) # download structure from Materials Project to cache directory, the cif named as mp-xxx.cif
+    _inp = amiit.inp_translate(fname=finp, system_with_mpids=system_with_mpids) # translate input file to json and modify it
+    valid_pseudopotentials, valid_numerical_orbitals = scan_valid_pseudopot_nao(_inp) # scan valid pseudopotentials and numerical orbitals according to input file
 
-    pseudopot_arch = ampua.load(_inp["global"]["pseudo_dir"])
-    # nao_arch = amna.load(_inp["global"]["nao_dir"])
+    pseudopot_arch = ampua.load(_inp["global"]["pseudo_dir"]) # load pseudopotential archive
+    # nao_arch = amna.load(_inp["global"]["nao_dir"]) # load numerical orbital archive, not implemented yet
 
     return _inp, valid_pseudopotentials, valid_numerical_orbitals, pseudopot_arch, None
 
@@ -60,17 +60,51 @@ import json
 import apns.module_structure.materials_project as amsmp
 def download_structure(finp: str) -> dict:
     """download structure from remote server and return a dict whose keys are system 
-    formula and values are lists of corresponding system_mpids"""
+    formula and values are lists of corresponding system_mpids
+    
+    There is also a special case where system has name like "xxx_dimer", "xxx_trimer"
+    or "xxx_tetramer", which means the system is a isolated molecule, in this case,
+    the system will not be downloaded from remote server. It will directly assume as 
+    a "system" with its "mpid", although the "mpid" now is "dimer", "trimer" or
+    "tetramer".
+
+    Args:
+        finp (str): input file
+    
+    Raises:
+
+    Returns:
+        dict: a dict whose keys are system formula and values are lists of corresponding system_mpids
+    """
 
     with open(finp, "r") as f:
         inp = json.load(f)
 
-    system_with_mpids = amsmp.composites(api_key=inp["materials_project"]["api_key"],
-                                         formula=inp["systems"],
-                                         num_cif=inp["materials_project"]["n_structures"],
-                                         theoretical=inp["materials_project"]["theoretical"],
-                                         is_stable=inp["materials_project"]["most_stable"])
+    _isolated = []
+    _crystal = []
+    for system in inp["systems"]:
+        if system.endswith("_dimer") or system.endswith("_trimer") or system.endswith("_tetramer"):
+            _isolated.append(system)
+        else:
+            _crystal.append(system)
+    if len(_isolated)*len(_crystal) != 0:
+        raise ValueError("Severe error: isolated molecule and crystal cannot be mixed.")
 
+    system_with_mpids = {}
+
+    if len(_crystal):
+        system_with_mpids = amsmp.composites(api_key=inp["materials_project"]["api_key"],
+                                            formula=_crystal,
+                                            num_cif=inp["materials_project"]["n_structures"],
+                                            theoretical=inp["materials_project"]["theoretical"],
+                                            is_stable=inp["materials_project"]["most_stable"])
+    elif len(_isolated):
+        for system in _isolated:
+            element = system.split("_")[0]
+            system_with_mpids.setdefault(element, []).append(system)
+    else:
+        raise ValueError("No system to download or generate, check your setting.")
+    
     return system_with_mpids
 
 import apns.module_structure.basic as amsb
@@ -88,9 +122,8 @@ def scan_valid_pseudopot_nao(finp: str|dict) -> tuple[dict, dict]:
         tuple[dict, dict]: valid pseudopotentials and valid numerical orbitals
     """
 
-    valid_pseudopotentials = []
-    valid_numerical_orbitals = []
-
+    valid_pseudopotentials = {}
+    
     if isinstance(finp, str):
         with open(finp, "r") as f:
             inp = json.load(f)
@@ -104,7 +137,8 @@ def scan_valid_pseudopot_nao(finp: str|dict) -> tuple[dict, dict]:
     for element in elements:
         if element not in valid_pseudopotentials.keys():
             raise ValueError("No valid pseudopotential for element {}.".format(element))
-
+    
+    valid_numerical_orbitals = {element: {} for element in elements}
     if inp["calculation"]["basis_type"] == "lcao":
         raise NotImplementedError("lcao calculation is not supported yet.")
         """TO BE IMPLEMENTED

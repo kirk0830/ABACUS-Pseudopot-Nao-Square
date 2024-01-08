@@ -1,6 +1,7 @@
-from apns.module_structure.crystal_information_file import cell_parameters_to_lattice_vectors as cptlv
-from apns.module_structure.crystal_information_file import read_1 as read
 import re
+import seekpath as skps
+import apns.module_structure.crystal_information_file as amscif
+import apns.module_database.database as amdd
 
 def STRU_cif(fname: str, 
              pseudopotentials: dict = {}, 
@@ -22,7 +23,7 @@ def STRU_cif(fname: str,
     Returns:
         return_str (str): readily usable string for STRU file.
     """
-    cif = read(fname)
+    cif = amscif.read_1(fname)
     return_str = "ATOMIC_SPECIES\n"
     for _element in pseudopotentials:
         mass = kwargs.get("mass", {}).get(_element, 1.0)
@@ -45,7 +46,7 @@ def STRU_cif(fname: str,
         return_str += "LATTICE_CONSTANT\n1.889726877\n\n"
     return_str += "LATTICE_VECTORS\n"
     cell_parameters = cif["cell_parameters"]
-    lattice_vectors = cptlv(cell_parameters)
+    lattice_vectors = amscif.cellparam_to_latvec(cell_parameters)
 
     for ilv, lattice_vector in enumerate(lattice_vectors):
         if "cell_rescaling_factors" in kwargs:
@@ -101,7 +102,7 @@ def STRU_dimer(element: str, bond_length: float, pseudopotentials: dict, **kwarg
     return_str += "LATTICE_CONSTANT\n1.889726877\n\n"
     return_str += "LATTICE_VECTORS\n"
     if "cell_parameters" in kwargs:
-        lattice_vectors = cptlv(kwargs["cell_parameters"])
+        lattice_vectors = amscif.cellparam_to_latvec(kwargs["cell_parameters"])
     else:
         lattice_vectors = [
             [20.0, 0.0, 0.0],
@@ -136,18 +137,18 @@ def _STRU_(fname: str,
     Returns:
         return_str (str): readily usable string for STRU file.
     """
-    cif = read(fname)
+    cif = amscif.read_1(fname)
     return_str = "ATOMIC_SPECIES\n"
     for _element in pseudopotentials:
-        mass = kwargs.get("mass", {}).get(_element, 1.0)
+        mass = kwargs.get("mass", {}).get(_element, amdd.element_mass(_element))
         pseudopotential = pseudopotentials[_element]
         return_str += "%s %8.4f %s\n" % (_element, mass, pseudopotential)
     return_str += "\n"
     if len(numerical_orbitals) > 0:
         return_str += "NUMERICAL_ORBITAL\n"
-        for _element in kwargs["numerical_orbitals"]:
+        for _element in numerical_orbitals.keys():
             numerical_orbital = _element + "_numerical_orbital"
-            numerical_orbital = kwargs["numerical_orbitals"][_element]
+            numerical_orbital = numerical_orbitals[_element]
             return_str += "%s\n" % (numerical_orbital)
         return_str += "\n"
 
@@ -155,7 +156,7 @@ def _STRU_(fname: str,
     return_str += "LATTICE_CONSTANT\n%s\n\n"%(lattice_constant)
     return_str += "LATTICE_VECTORS\n"
     cell_parameters = cif["cell_parameters"]
-    lattice_vectors = cptlv(cell_parameters)
+    lattice_vectors = amscif.cellparam_to_latvec(cell_parameters)
 
     for lattice_vector in lattice_vectors:
         return_str += "%12.8f %12.8f %12.8f\n" %(lattice_vector[0],
@@ -183,6 +184,69 @@ def _STRU_(fname: str,
             return_str += "\n"
 
     return return_str, cell_parameters
+
+def _STRU_ISOLATED_(shape: str = "",
+                    pseudopotentials: dict = {},
+                    numerical_orbitals: dict = {},
+                    bond_length: float = 0.0,
+                    **kwargs):
+    if shape == "":
+        raise ValueError("shape must be specified.")
+    if len(pseudopotentials) == 0:
+        raise ValueError("pseudopotentials must be specified.")
+    if len(pseudopotentials) > 1:
+        raise ValueError("pseudopotentials must be specified for only one element.")
+    if len(numerical_orbitals) > 1:
+        raise ValueError("numerical_orbitals must be specified for only one element.")
+    if bond_length == 0.0:
+        raise ValueError("bond_length must be specified.")
+    
+    return_str = "ATOMIC_SPECIES\n"
+    for _element in pseudopotentials:
+        mass = kwargs.get("mass", {}).get(_element, amdd.element_mass(_element))
+        pseudopotential = pseudopotentials[_element]
+        return_str += "%s %8.4f %s\n" % (_element, mass, pseudopotential)
+    return_str += "\n"
+    if len(numerical_orbitals) > 0:
+        return_str += "NUMERICAL_ORBITAL\n"
+        for _element in numerical_orbitals.keys():
+            numerical_orbital = _element + "_numerical_orbital"
+            numerical_orbital = numerical_orbitals[_element]
+            return_str += "%s\n" % (numerical_orbital)
+        return_str += "\n"
+
+    lattice_constant = 1.889726877
+    return_str += "LATTICE_CONSTANT\n%s\n\n"%(lattice_constant)
+    return_str += "LATTICE_VECTORS\n"
+    return_str += "%12.8f %12.8f %12.8f\n" %(20.0, 0.0, 0.0)
+    return_str += "%12.8f %12.8f %12.8f\n" %(0.0, 20.0, 0.0)
+    return_str += "%12.8f %12.8f %12.8f\n" %(0.0, 0.0, 20.0)
+
+    return_str += "\n"
+    return_str += "ATOMIC_POSITIONS\nDirect\n"
+
+    element = list(pseudopotentials.keys())[0]
+    return_str += "%s\n 0.00" % (element)
+    
+    if shape == "dimer":
+        return_str += "\n2\n"
+        return_str += "%12.8f %12.8f %12.8f m 0 0 0\n"%(0.0, 0.0, 0.0)
+        return_str += "%12.8f %12.8f %12.8f m 1 0 0\n"%(bond_length, 0.0, 0.0)
+    elif shape == "trimer":
+        return_str += "\n3\n"
+        return_str += "%12.8f %12.8f %12.8f m 0 0 0\n"%(0.0, 0.0, 0.0)
+        return_str += "%12.8f %12.8f %12.8f m 1 0 0\n"%(bond_length, 0.0, 0.0)
+        return_str += "%12.8f %12.8f %12.8f m 1 1 0\n"%(bond_length/2, bond_length/2*3**0.5, 0.0)
+    elif shape == "tetramer":
+        return_str += "\n4\n"
+        return_str += "%12.8f %12.8f %12.8f m 0 0 0\n"%(0.0, 0.0, 0.0)
+        return_str += "%12.8f %12.8f %12.8f m 1 0 0\n"%(bond_length, 0.0, 0.0)
+        return_str += "%12.8f %12.8f %12.8f m 1 1 0\n"%(bond_length/2, bond_length/2*3**0.5, 0.0)
+        return_str += "%12.8f %12.8f %12.8f m 1 1 1\n"%(bond_length/2, bond_length/2/3**0.5, bond_length/2*3**0.5)
+    else:
+        raise ValueError("shape must be dimer, trimer or tetramer.")
+
+    return return_str, [20.0, 20.0, 20.0]
 
 def KPT_generation(mode: str, gamma_centered: bool = True, **kwargs):
     """KPT file generation
@@ -234,6 +298,67 @@ def KPT_generation(mode: str, gamma_centered: bool = True, **kwargs):
     
     return return_str
 
+def _KPT_(isolated: bool = False, gamma_centered: bool = True, **kwargs):
+    """new version of KPT file generation
+
+    Args:
+        mode (str): can be "isolated" or "crystal", "isolated" means the calculation is for isolated system, "crystal" means the calculation is for crystal system.
+        gamma_centered (bool, optional): If kpoints sampling is Gamma point centered. Defaults to True.
+        **kwargs: cell_parameters: list, metallic: bool, ...
+
+    Raises:
+        NotImplementedError: Non-Gamma centered kpoints sampling is not implemented yet.
+        ValueError: mode must be "isolated" or "crystal".
+
+    Returns:
+        _type_: readily usable string for KPT file.
+    """
+    if "cell_parameters" in kwargs and not isolated:
+            cell_parameters = kwargs["cell_parameters"]
+            if isinstance(cell_parameters, list):
+                a, b, c = cell_parameters[0], cell_parameters[1], cell_parameters[2]
+            elif isinstance(cell_parameters, dict):
+                a, b, c = cell_parameters["a"], cell_parameters["b"], cell_parameters["c"]
+            else:
+                raise TypeError("Not supported data format of cell parameters, must be list or dict.")
+            _fold = 35 if kwargs.get("metallic", False) else 25
+            return_str = "K_POINTS\n0\n%s\n%d %d %d 0 0 0\n" % ("Gamma" if gamma_centered else "MP", int(_fold/a) + 1, int(_fold/b) + 1, int(_fold/c) + 1)
+    else:
+        return_str = "K_POINTS automatic\n0\nGamma\n1 1 1 0 0 0\n"
+        print("Warning: KPT file generation failed, use default KPT file instead.") if not isolated else None
+    
+    return return_str
+
+def _KLINE_(fname: str, nkpts_in_line: int = 10):
+
+    result = amscif.read_1(fname)
+
+    cell_vectors = amscif.cellparam_to_latvec(result['cell_parameters'])
+    positions = []
+    numbers = []
+
+    for element in result['atomic_positions']:
+        for line in result['atomic_positions'][element]:
+            positions.append(line)
+            numbers.append(amdd.get_element_index(element))
+
+    result = skps.get_path(structure=(cell_vectors, positions, numbers))
+
+    kpts = []
+    for _path in result["path"]:
+        start_coord = result["point_coords"][_path[0]] # fractional coordinates
+        end_coord = result["point_coords"][_path[1]] # fractional coordinates
+        dkx, dky, dkz = [(end_coord[i] - start_coord[i])/(nkpts_in_line-1) for i in range(3)]
+        for i in range(nkpts_in_line - 1):
+            kpts.append([start_coord[0]+i*dkx, start_coord[1]+i*dky, start_coord[2]+i*dkz])
+
+    return_str = "K_POINTS\n0\n"
+    return_str += "line\n%d\n" % (len(kpts))
+    for kpt in kpts:
+        return_str += "%12.8f %12.8f %12.8f 1\n" % (kpt[0], kpt[1], kpt[2])
+
+    return return_str
+
 def INPUT(calculation: dict,
           minimal: bool = True,
           template: bool = False):
@@ -266,8 +391,6 @@ def INPUT(calculation: dict,
         valid_key = key
         if key == "functionals":
             valid_key = "dft_functional"
-        elif key == "cell_scaling":
-            continue
         if isinstance(calculation[key], list):
             if template:
                 values[valid_key] = valid_key + "_to_test"
