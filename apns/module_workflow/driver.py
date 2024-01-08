@@ -15,7 +15,6 @@ def driver_v1(input_file: str):
     inp, vpspot, vnao, pspot_arch, nao_arch = amwinit.initialize(input_file)
     """iteratively generation"""
     import apns.module_workflow.apns_itertools as amwai
-    import apns.module_io.compress as amic
     import apns.module_workflow.iterate as amwi
     folders = amwi.iterate(software=inp["global"]["software"].lower(),
                            systems=inp["systems"],
@@ -32,12 +31,18 @@ def driver_v1(input_file: str):
     """compress"""
     import time
     import os
+    import apns.module_io.compress as amic
     amic.pack(folders, "apns_{}.zip".format(time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime())))
     for folder in folders:
         pass
         os.system("rm -rf {}".format(folder))
     """submit?"""
+    import apns.module_io.abacustest as amia
+    amia.image_information(software=inp["global"]["software"].lower())
     # sorry I don't connect with abacustest yet
+    """citation"""
+    import apns.module_io.citation as amicite
+    amicite.citation(software=inp["global"]["software"].lower())
 
 def driver_v0(input_file: str):
     """old version of driver"""
