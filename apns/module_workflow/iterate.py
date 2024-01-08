@@ -90,6 +90,8 @@ def iterate(software: str = "abacus", # which software? abacus or qespresso
                                                               numerical_orbital=spns["numerical_orbital"]),
                                            amwi.calculation(calculation_setting))
                     folder = amwi.folder_reduce(folder)
+                    if len(folder) > 100:
+                        folder = "_".join(folder.split("_")[1:])
                     os.makedirs(folder, exist_ok=True) if not test_mode else print("mkdir {}".format(folder))
                     folders.append(folder)
 
