@@ -5,18 +5,20 @@ class TestIterate(unittest.TestCase):
 
     system = ["Er2O3_679"]
     pseudopot_nao_settings = [
-            {
-                "pseudopotential": ["sg15_10", "sg15_10"],
-                "numerical_orbital": ["TZDP_6", "TZDP_10"]
-            },
-            {
-                "pseudopotential": ["sg15_11", "sg15_10"],
-                "numerical_orbital": ["TZDP_6", "TZDP_10"]
-            },
-            {
-                "pseudopotential": ["pd_04", "sg15_10"],
-                "numerical_orbital": ["TZDP_10", "TZDP_10"]
-            }
+            [
+                {#                  for element 0, for element 1
+                    "pseudopotential": ["sg15_10", "sg15_10"],
+                    "numerical_orbital": ["TZDP_6", "TZDP_10"]
+                }, # for combination 1
+                {
+                    "pseudopotential": ["sg15_11", "sg15_10"],
+                    "numerical_orbital": ["TZDP_6", "TZDP_10"]
+                }, # for combination 2
+                {
+                    "pseudopotential": ["pd_04", "sg15_10"],
+                    "numerical_orbital": ["TZDP_10", "TZDP_10"]
+                } # for combination 3
+            ] # for system 1
         ]
     calculation_settings = [
             {
@@ -35,7 +37,10 @@ class TestIterate(unittest.TestCase):
                 "ecutwfc": 300
             }
         ]
-    characteristic_lengths = [0.00]
+    extensive = {
+        "characteristic_lengths": [0.00],
+        "nkpoints_in_line": 0,
+    }
     valid_pseudopotentials = {
             "Er": {
                 "sg15_10": {
@@ -114,7 +119,7 @@ class TestIterate(unittest.TestCase):
                               systems=self.system,
                               pseudopot_nao_settings=self.pseudopot_nao_settings,
                               calculation_settings=self.calculation_settings,
-                              characteristic_lengths=self.characteristic_lengths,
+                              extensive=self.extensive,
                               valid_pseudopotentials=self.valid_pseudopotentials,
                               valid_numerical_orbitals=self.valid_numerical_orbitals,
                               pspot_archive=self.pspot_archive,
@@ -128,7 +133,7 @@ class TestIterate(unittest.TestCase):
                               systems=self.system,
                               pseudopot_nao_settings=self.pseudopot_nao_settings,
                               calculation_settings=self.calculation_settings,
-                              characteristic_lengths=self.characteristic_lengths,
+                              extensive=self.extensive,
                               valid_pseudopotentials=self.valid_pseudopotentials,
                               valid_numerical_orbitals=self.valid_numerical_orbitals,
                               pspot_archive=self.pspot_archive,

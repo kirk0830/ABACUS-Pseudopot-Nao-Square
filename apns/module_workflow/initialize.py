@@ -122,9 +122,8 @@ def scan_valid_pseudopot_nao(finp: str|dict) -> tuple[dict, dict]:
         tuple[dict, dict]: valid pseudopotentials and valid numerical orbitals
     """
 
-    valid_pseudopotentials = []
-    valid_numerical_orbitals = []
-
+    valid_pseudopotentials = {}
+    
     if isinstance(finp, str):
         with open(finp, "r") as f:
             inp = json.load(f)
@@ -138,7 +137,8 @@ def scan_valid_pseudopot_nao(finp: str|dict) -> tuple[dict, dict]:
     for element in elements:
         if element not in valid_pseudopotentials.keys():
             raise ValueError("No valid pseudopotential for element {}.".format(element))
-
+    
+    valid_numerical_orbitals = {element: {} for element in elements}
     if inp["calculation"]["basis_type"] == "lcao":
         raise NotImplementedError("lcao calculation is not supported yet.")
         """TO BE IMPLEMENTED

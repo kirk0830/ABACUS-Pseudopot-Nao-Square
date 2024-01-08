@@ -85,7 +85,7 @@ def _ATOMIC_SEPCIES(pseudopotential: dict = {}, **kwargs) -> str:
     result = "ATOMIC_SPECIES\n"
     if len(pseudopotential.keys()) == 0:
         raise ValueError("pseudopotential should be set")
-    mass = kwargs.get("mass", {key: "1.00" for key in pseudopotential.keys()})
+    mass = kwargs.get("mass", {key: amdd.element_mass(key) for key in pseudopotential.keys()})
     for element in pseudopotential.keys():
         result += "{} {} {}\n".format(element, mass[element], pseudopotential[element])
     result += "\n"
@@ -95,7 +95,7 @@ def _K_POINTS(fname: str = "", nkpoints_in_line: int = 0) -> str:
 
     cif = amscif.read_1(fname)
     cell_parameters = cif["cell_parameters"]
-    result = "\n\nK_POINTS"
+    result = "K_POINTS"
     if nkpoints_in_line <= 0:
         result += " automatic\n"
         if nkpoints_in_line == 0:
@@ -158,7 +158,7 @@ def _CIF(fname: str = "", cell_scaling: float = 0.0, constraints: list = []) -> 
     natom = 0
     for element in cif["atomic_positions"].keys():
         natom += len(cif["atomic_positions"][element])
-    result += "\nATOMIC_POSITIONS (crystal)\n"
+    result += "\n\nATOMIC_POSITIONS (crystal)\n"
     if len(constraints) == 0:
         constraints = [[0, 0, 0]] * natom
     elif len(constraints) < natom:
@@ -200,7 +200,7 @@ def _ISOLATED(element: str = "", shape: str = "", bond_length: float = 0.0, **kw
         print("WARNING: constraint is not supported in _ISOLATED")
 
     result = "CELL_PARAMETERS (angstrom)\n20.00000000 0.00000000 0.00000000\n0.00000000 20.00000000 0.00000000\n0.00000000 0.00000000 20.00000000\n\n"
-    result += "ATOMIC_POSITIONS (angstrom)\n"
+    result += "\nATOMIC_POSITIONS (angstrom)\n"
     natom = 0
     if shape == "dimer":
         result += "%s %12.8f %12.8f %12.8f\n"%(element, 0.0, 0.0, 0.0)

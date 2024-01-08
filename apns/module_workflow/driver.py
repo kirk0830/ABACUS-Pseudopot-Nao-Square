@@ -14,18 +14,14 @@ def driver_v1(input_file: str):
     import apns.module_workflow.initialize as amwinit
     inp, vpspot, vnao, pspot_arch, nao_arch = amwinit.initialize(input_file)
     """iteratively generation"""
-    import apns.module_workflow.iterate as amwi
     import apns.module_workflow.apns_itertools as amwai
-    import apns.module_structure.basic as amsb
     import apns.module_io.compress as amic
+    import apns.module_workflow.iterate as amwi
     folders = amwi.iterate(software=inp["global"]["software"].lower(),
                            systems=inp["systems"],
-                           pseudopot_nao_settings=amwai.system(
-                               elements=[
-                                   amwai.pseudopot_nao(
-                                   list(vpspot[element].keys())) for element in amsb.scan_elements(inp["systems"])
-                                   ]
-                           ),
+                           pseudopot_nao_settings=amwai.systems(system_list=inp["systems"], 
+                                                                valid_pseudopotentials=vpspot, 
+                                                                valid_numerical_orbitals=vnao),
                            calculation_settings=amwai.calculation(inp["calculation"]),
                            extensive=inp["extensive"],
                            valid_pseudopotentials=vpspot,

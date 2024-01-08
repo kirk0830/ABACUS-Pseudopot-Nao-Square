@@ -76,16 +76,18 @@ def iterate(software: str = "abacus", # which software? abacus or qespresso
         `list`: folders generated
     """
     folders = []
-    for _system in systems: # iterate over structures
-        for system_pseudopot_nao_setting in pseudopot_nao_settings: # iterate over pseudopotential and numerical orbital settings
+    for _is, _system in enumerate(systems): # iterate over structures
+        system_pseudopot_nao_settings = pseudopot_nao_settings[_is]
+        for spns in system_pseudopot_nao_settings: # iterate over pseudopotential and numerical orbital settings
+            # spns: system_pseudopot_nao_setting
             for calculation_setting in calculation_settings: # iterate over calculation settings
                 for characteristic_length in extensive["characteristic_lengths"]: # iterate over cell scaling
                     # make folder
-                    if "numerical_orbital" not in system_pseudopot_nao_setting.keys():
-                        system_pseudopot_nao_setting["numerical_orbital"] = []
-                    folder = amwi._folder_(_system, 
-                                           amwi.pseudopot_nao(system_pseudopot_nao_setting["pseudopotential"],
-                                                              system_pseudopot_nao_setting["numerical_orbital"]), 
+                    if "numerical_orbital" not in spns.keys():
+                        spns["numerical_orbital"] = []
+                    folder = amwi._folder_(_system,
+                                           amwi.pseudopot_nao(pseudopotential=spns["pseudopotential"],
+                                                              numerical_orbital=spns["numerical_orbital"]),
                                            amwi.calculation(calculation_setting))
                     folder = amwi.folder_reduce(folder)
                     os.makedirs(folder, exist_ok=True) if not test_mode else print("mkdir {}".format(folder))
@@ -95,7 +97,7 @@ def iterate(software: str = "abacus", # which software? abacus or qespresso
                     _elements = amsb.scan_elements(_system)
                     # copy pseudopotential
                     pseudopotentials = {}
-                    _pspotids = system_pseudopot_nao_setting["pseudopotential"] # get pseudopotential identifiers of one combination
+                    _pspotids = spns["pseudopotential"] # get pseudopotential identifiers of one combination
                     for i in range(len(_pspotids)): # iterate over all elements
                         _pspotid = _pspotids[i] # for one element, get its pseudopotential identifier, however, which is this element?
                         _element = _elements[i]
@@ -104,7 +106,7 @@ def iterate(software: str = "abacus", # which software? abacus or qespresso
                         pseudopotentials[_element] = valid_pseudopotentials[_element][_pspotid]["file"]
                     # copy numerical orbital
                     numerical_orbitals = {}
-                    _naoids = system_pseudopot_nao_setting["numerical_orbital"] # get numerical orbital identifiers of one combination
+                    _naoids = spns["numerical_orbital"] # get numerical orbital identifiers of one combination
                     for i in range(len(_naoids)):
                         _naoid = _naoids[i] + "@" + _pspotids[i]
                         _element = _elements[i]

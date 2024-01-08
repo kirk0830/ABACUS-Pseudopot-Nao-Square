@@ -28,7 +28,7 @@ def scan_elements(system: str) -> list:
     elements = [element for element in elements if element != '']
     return elements
 
-def _svp_(elements: list, pseudopotentials: dict):
+def _svp_(elements: list, pseudopotentials: dict) -> dict:
 
     valid_pseudopotentials = { element: {} for element in elements }
     all_available_pseudopotentials = arch.archive()

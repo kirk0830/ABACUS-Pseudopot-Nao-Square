@@ -140,7 +140,7 @@ def _STRU_(fname: str,
     cif = amscif.read_1(fname)
     return_str = "ATOMIC_SPECIES\n"
     for _element in pseudopotentials:
-        mass = kwargs.get("mass", {}).get(_element, 1.0)
+        mass = kwargs.get("mass", {}).get(_element, amdd.element_mass(_element))
         pseudopotential = pseudopotentials[_element]
         return_str += "%s %8.4f %s\n" % (_element, mass, pseudopotential)
     return_str += "\n"
@@ -203,7 +203,7 @@ def _STRU_ISOLATED_(shape: str = "",
     
     return_str = "ATOMIC_SPECIES\n"
     for _element in pseudopotentials:
-        mass = kwargs.get("mass", {}).get(_element, 1.0)
+        mass = kwargs.get("mass", {}).get(_element, amdd.element_mass(_element))
         pseudopotential = pseudopotentials[_element]
         return_str += "%s %8.4f %s\n" % (_element, mass, pseudopotential)
     return_str += "\n"
