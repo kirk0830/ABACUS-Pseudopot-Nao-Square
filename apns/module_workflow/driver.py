@@ -1,4 +1,12 @@
+"""version 1 driver is more well-designed, it seperate the whole workflow in a different way from version 0
 
+version 1 considers more about "ITERATE" rather than "FLOW" in version 0.
+Therefore version 1 will first do Cartesian direct product on calculation_settings and pseudopotential-
+numerical atomic orbital settings. The first iteration layer is caculation_settings, the second iteration-
+layer is pseudopotential-numerical atomic orbital settings. The third iteration layer is systems.
+
+Therefore 
+"""
 def driver_v1(input_file: str):
     """new version of driver"""
 
@@ -6,19 +14,15 @@ def driver_v1(input_file: str):
     import apns.module_workflow.initialize as amwinit
     inp, vpspot, vnao, pspot_arch, nao_arch = amwinit.initialize(input_file)
     """iteratively generation"""
-    import apns.module_workflow.iterate as amwi
     import apns.module_workflow.apns_itertools as amwai
-    import apns.module_structure.basic as amsb
-    import apns.module_io.compress as amic
-    folders = amwi.iterate(systems=inp["systems"],
-                           pseudopot_nao_settings=amwai.system(
-                               elements=[
-                                   amwai.pseudopot_nao(
-                                   list(vpspot[element].keys())) for element in amsb.scan_elements(inp["systems"])
-                                   ]
-                           ),
+    import apns.module_workflow.iterate as amwi
+    folders = amwi.iterate(software=inp["global"]["software"].lower(),
+                           systems=inp["systems"],
+                           pseudopot_nao_settings=amwai.systems(system_list=inp["systems"], 
+                                                                valid_pseudopotentials=vpspot, 
+                                                                valid_numerical_orbitals=vnao),
                            calculation_settings=amwai.calculation(inp["calculation"]),
-                           cell_scalings=inp["calculation"]["cell_scaling"],
+                           extensive=inp["extensive"],
                            valid_pseudopotentials=vpspot,
                            valid_numerical_orbitals=vnao,
                            pspot_archive=pspot_arch,
@@ -27,11 +31,18 @@ def driver_v1(input_file: str):
     """compress"""
     import time
     import os
+    import apns.module_io.compress as amic
     amic.pack(folders, "apns_{}.zip".format(time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime())))
     for folder in folders:
+        pass
         os.system("rm -rf {}".format(folder))
     """submit?"""
+    import apns.module_io.abacustest as amia
+    amia.image_information(software=inp["global"]["software"].lower())
     # sorry I don't connect with abacustest yet
+    """citation"""
+    import apns.module_io.citation as amicite
+    amicite.citation(software=inp["global"]["software"].lower())
 
 def driver_v0(input_file: str):
     """old version of driver"""
@@ -50,7 +61,15 @@ def driver_v0(input_file: str):
           software=work_status["global"]["software"],
           basis_type=work_status["calculation"]["basis_type"],
           functionals=work_status["calculation"]["functionals"],
-          cell_scalings=work_status["calculation"]["cell_scaling"])
+          cell_scalings=work_status["calculation"]["characteristic_lengths"])
+
+def configure(input_file: str):
+    """configure the apns storing files, only run this at the first time"""
+    import json
+    with open(input_file, "r") as f:
+        inp = json.load(f)
+    import apns.module_pseudo.upf_archive as ampua
+    ampua.archive(pseudo_dir=inp["global"]["pseudo_dir"], only_scan=False)
 
 if __name__ == "__main__":
     driver_v1("input.json")

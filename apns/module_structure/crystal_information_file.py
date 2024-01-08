@@ -26,7 +26,7 @@ def check_folder_availability(folder: str) -> None:
         print("Folder check: %s, not found, exit."%folder)
         exit(1)
 
-def cell_parameters_to_lattice_vectors(cell_parameters: dict):
+def cellparam_to_latvec(cell_parameters: dict):
 
     vector_a = cell_parameters["a"] * np.array([1, 0, 0])
     vector_b = cell_parameters["b"] * np.array([np.cos(np.deg2rad(cell_parameters["gamma"])), np.sin(np.deg2rad(cell_parameters["gamma"])), 0])
@@ -165,7 +165,7 @@ def _method1_lattice(cif_contents: dict) -> dict:
         A dictionary that contains the lattice information.
     """
     lattice = {}
-    lattice_vectors = cell_parameters_to_lattice_vectors(cif_contents["lattice_parameters"])
+    lattice_vectors = cellparam_to_latvec(cif_contents["lattice_parameters"])
     lattice["lattice_vectors"] = lattice_vectors
     lattice["lattice_parameters"] = cif_contents["lattice_parameters"]
     return lattice

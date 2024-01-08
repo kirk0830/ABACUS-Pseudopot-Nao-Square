@@ -43,8 +43,8 @@ pseudopotentials param here is the list of pseudopotential identifiers.
 
 In principle the other param can also be list of numerical orbital identifiers, but will implement in
 the future."""
-def pseudopot_nao(pseudopotentials: list|dict) -> list:
-    """pack up identifiers
+def pseudopot_nao(pseudopotentials: list, numerical_orbitals: list = []) -> list:
+    """seperate valid pseudopotentials (and numerical orbitals) into different combinations for one single element
     
     Args:
         pseudopotentials (list|dict): list of pseudopotential identifiers or dict of numerical orbital identifiers whose keys are pseudopotential identifiers
@@ -61,30 +61,26 @@ def pseudopot_nao(pseudopotentials: list|dict) -> list:
         {'pseudopotential': 'pd_04'}
     ]
     >>> pseudopot_nao(
-        ...     pseudopotentials={
-            ...         "sg15_10": ["DZP_6", "TZDP_7"],
-            ...         "pd_04": ["DZP_6", "TZDP_7"]
-            ...     }
+        ...     pseudopotentials=["sg15_10", "pd_04"],
+        ...     numerical_orbitals=["DZP_6@sg15_10", "TZDP_6@sg15_10", "TZDP_10@pd_04"]
         ... )
     [
-        {'pseudopotential': 'sg15_10', 'numerical_orbital': 'DZP_6'},
-        {'pseudopotential': 'sg15_10', 'numerical_orbital': 'TZDP_7'},
-        {'pseudopotential': 'pd_04', 'numerical_orbital': 'DZP_6'},
-        {'pseudopotential': 'pd_04', 'numerical_orbital': 'TZDP_7'}
+        {'pseudopotential': 'sg15_10', 'numerical_orbital': 'DZP_6'}, 
+        {'pseudopotential': 'sg15_10', 'numerical_orbital': 'TZDP_6'}, 
+        {'pseudopotential': 'pd_04', 'numerical_orbital': 'TZDP_10'}
     ]
     """
-    if isinstance(pseudopotentials, list):
+    if len(numerical_orbitals) == 0:
         return [
             { "pseudopotential": pseudopotential } for pseudopotential in pseudopotentials
-        ]
-    elif isinstance(pseudopotentials, dict):
-        return [
-            { "pseudopotential": pseudopotential,
-              "numerical_orbital": pseudopotentials[pseudopotential] }
-            for pseudopotential in pseudopotentials.keys()
-        ]
+            ]
     else:
-        raise TypeError("pseudopotentials should be list (basis_type pw) or dict (basis_type lcao)")
+        return [
+            {
+                "pseudopotential": numerical_orbital.split("@")[1],
+                "numerical_orbital": numerical_orbital.split("@")[0]
+            } for numerical_orbital in numerical_orbitals
+            ]
 
 """This function provides element-wise combination of pseudopotential-nao combination yielded by
 function pseudopot_nao. Elements' pseudopotential-nao combination should be stored in a list.
@@ -145,6 +141,32 @@ def system(elements: list) -> list:
         )
     return result
 
+import apns.module_structure.basic as amsb
+def systems(system_list: list, valid_pseudopotentials: dict = {}, valid_numerical_orbitals: dict = {}) -> list:
+    """generate all possible combinations for all systems, elemental information such as valid pseudopotentials and
+    numerical orbitals should be provided
+    
+    Args:
+        systems (list): a list of system_with_mpid
+        valid_pseudopotentials (dict): a dictionary of valid pseudopotentials, which is generated from function in apns.module_pseudo
+        valid_numerical_orbitals (dict, optional): a dictionary of valid numerical orbitals, which is generated from function in apns.module_pseudo
+        
+    Returns:
+        list: a list of lists of dictionaries containing pseudopotential and numerical orbital identifiers for each pseudopot-nao combination for each
+        system, in sequence of system_list
+    """
+    pseudopot_nao_settings = []
+    for _system in system_list:
+        elements = amsb.scan_elements(_system)
+        elements = [
+            pseudopot_nao(
+                pseudopotentials=list(valid_pseudopotentials[element].keys()),
+                numerical_orbitals=list(valid_numerical_orbitals[element].keys())
+                ) for element in elements
+                ]
+        pseudopot_nao_settings.append(system(elements=elements))
+    
+    return pseudopot_nao_settings
 """calculation parameters combination for global """
 
 """This function provides Cartesian direct product of calculation parameters.
@@ -154,7 +176,7 @@ of param suites. If a parameter is specified as list, then will be a dimension f
 otherwise will be a scalar and its value will be copied to all param suites.
 
 Methodologically, a loop over the returned list will quickly adjust the template file, especially for
-ABACUS the INPUT file. There is a parameter not in INPUT, it is, the cell_scaling, is used to scale
+ABACUS the INPUT file. There is a parameter not in INPUT, it is, the characteristic_lengths, is used to scale
 LATTICE_CONSTANT in STRU file."""
 def calculation(work_status_calculation_section: dict) -> list:
 

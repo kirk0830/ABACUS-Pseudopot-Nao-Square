@@ -152,6 +152,9 @@ def composites(api_key: str,
     else:
         raise TypeError("num_cif must be a list or an integer")
     
+    if len(formula) == 0:
+        raise ValueError("empty request to Materials Project")
+
     result = {}
     
     print("Establishing connection to Materials Project database...")

@@ -27,10 +27,15 @@ This page introduces basic usage of APNS implemented presently.
                                 // "lcao" is only supported by ABACUS<br>
         "functionals": ["PBE"], // enumerate! xc functional<br>
         "ecutwfc": [100],       // enumerate! ecutwfc that will impose for all systems<br>
-        "cell_scaling": [0.00]  // enumerate! cell scaling factor, NOT IMPLEMENTED YET<br>
+        ...                     // other keywords<br>
     },<br>
     "systems": ["Er2O3"],       // enumerate! system name, will be used to find CIF via Materials Project API.<br>
                                 // or specify not symmetrized CIF file path in structures list<br>
+    "extensive": {<br>
+        "characteristic_lengths": [] // for isolated system such as dimer,..., is bond length. For crystal, it is scale factor of cell<br>
+        "nkpoints_in_line": 10,      // number of kpoints in each segment of kpath. Default is 0, for isolated system, autoset to -1.<br>
+                                     // 0 is interpreted as MP sampling, a positive number will generate a kpath instead of mesh<br>
+    },<br>
     "materials_project": {<br>
         "api_key": "xxx",       // your Materials Project API<br>
         "n_structures": 1,      // number of structures want to download, for each system or specify a list for systems<br>
@@ -130,13 +135,6 @@ This section actually supports any number of keywords that specified list values
 <li> <b>Default:</b> <code>[100]</code> </li>
 </ul>
 
-<h3> <code>cell_scaling</code> </h3>
-<ul>
-<li> <b>Description:</b> scaling factor for cell, specified as list. </li>
-<li> <b>Type:</b> list </li>
-<li> <b>Default:</b> <code>[0.00]</code> </li>
-</ul>
-
 <h2> <code>systems</code> section </h2>
 <p>This section should be organized in the following way:</p>
 <code>
@@ -159,6 +157,22 @@ This section actually supports any number of keywords that specified list values
     }
 }
 </code>
+
+<h2> <code>extensive</code> section </h2>
+
+<h3> <code>characteristic_lengths</code> </h3>
+<ul>
+<li> <b>Description:</b> characteristic length, for cell, it is deformation ratio of lattice, for isolated system, it is the bond length </li>
+<li> <b>Type:</b> list </li>
+<li> <b>Default:</b> <code>[0.00]</code> </li>
+</ul>
+
+<h3> <code>nkpoints_in_line</code> </h3>
+<ul>
+<li> <b>Description:</b> number of kpoints in each segment of kpath. Default is 0, for isolated system, autoset to -1. 0 is interpreted as MP sampling, a positive number will generate a kpath instead of mesh </li>
+<li> <b>Type:</b> int </li>
+<li> <b>Default:</b> <code>0</code> </li>
+</ul>
 
 <h2> <code>materials_project</code> section </h2>
 
