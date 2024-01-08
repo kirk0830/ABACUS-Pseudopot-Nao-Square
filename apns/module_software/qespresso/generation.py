@@ -169,10 +169,13 @@ def _CIF(fname: str = "", cell_scaling: float = 0.0, constraints: list = []) -> 
         constraints = constraints[:natom]
     for element in cif["atomic_positions"].keys():
         for iatom in range(len(cif["atomic_positions"][element])):
-            result += "%2s %12.8f %12.8f %12.8f %d %d %d\n"%(element, cif["atomic_positions"][element][iatom][0], 
-                                                                      cif["atomic_positions"][element][iatom][1], 
-                                                                      cif["atomic_positions"][element][iatom][2], 
-                                                            constraints[iatom][0], constraints[iatom][1], constraints[iatom][2])
+            line = "%2s %12.8f %12.8f %12.8f %d %d %d\n"%(element, cif["atomic_positions"][element][iatom][0], 
+                                                                   cif["atomic_positions"][element][iatom][1], 
+                                                                   cif["atomic_positions"][element][iatom][2], 
+                                                                   constraints[iatom][0], 
+                                                                   constraints[iatom][1], 
+                                                                   constraints[iatom][2])
+            result += line.replace(" 0 0 0", "")
     result += "\n"
     return result, natom
 
