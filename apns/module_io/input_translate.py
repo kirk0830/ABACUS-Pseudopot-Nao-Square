@@ -17,7 +17,12 @@ def check(inp: dict) -> None:
     if inp["global"]["software"] == "qespresso":
         if inp["calculation"]["basis_type"] == "lcao":
             raise ValueError("Quantum ESPRESSO only supports pw calculation.")
-        
+    if inp["calculation"]["calculation"] == "scf":
+        if inp["extensive"]["nkpoints_in_line"] > 0:
+            print("calculation: ", inp["calculation"]["calculation"])
+            print("nkpoints_in_line: ", inp["extensive"]["nkpoints_in_line"])
+            raise ValueError("confused with calculation requested: for nkpoints > 0 specifies a band calculation, not a scf calculation.")
+
 def default(inp: dict) -> dict:
     """set default value for unset keywords for global and calculation sections
 
@@ -27,7 +32,7 @@ def default(inp: dict) -> dict:
     Returns:
         dict: input filled with default values.
     """
-    sections = ["global", "calculation"]
+    sections = ["global", "calculation", "extensive"]
     for section in sections:
         for key in DEFAULT_INPUT[section].keys():
             if key not in inp[section].keys():
@@ -140,7 +145,11 @@ DEFAULT_INPUT = {
         "basis_type": "pw",
         "functionals": ["PBE"],
         "ecutwfc": [100],
-        "characteristic_lengths": [0.00]
+        "calculation": "scf"
+    },
+    "extensive": {
+        "characteristic_lengths": [0.00],
+        "nkpoints_in_line": 0
     },
     "systems": [],
     "pseudopotentials": {

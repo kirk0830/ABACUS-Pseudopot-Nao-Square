@@ -33,6 +33,13 @@ class TestAbacus(unittest.TestCase):
         self.assertGreater(len(_stru), 0)
         print(_stru)
     
+    def test_KLINE(self):
+        """Test the generation of template kline file for Abacus
+        """
+        _kline = abacus._KLINE_(fname="apns_cache/mp-160.cif",
+                                nkpts_in_line=5)
+        self.assertGreater(len(_kline), 0)
+        print(_kline)
 
 if __name__ == "__main__":
     unittest.main()

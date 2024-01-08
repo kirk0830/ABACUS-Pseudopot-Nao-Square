@@ -27,7 +27,7 @@ def driver_v1(input_file: str):
                                    ]
                            ),
                            calculation_settings=amwai.calculation(inp["calculation"]),
-                           characteristic_lengths=inp["calculation"]["characteristic_lengths"],
+                           extensive=inp["extensive"],
                            valid_pseudopotentials=vpspot,
                            valid_numerical_orbitals=vnao,
                            pspot_archive=pspot_arch,

@@ -13,6 +13,7 @@ Useful cases:
 """
 import apns.module_structure.crystal_information_file as amscif
 import apns.module_database.database as amdd
+import seekpath as skps
 
 """call the following function in this way:
 sections = ["&control", "&system", "&electrons", "&ions", "&cell"]
@@ -90,6 +91,46 @@ def _ATOMIC_SEPCIES(pseudopotential: dict = {}, **kwargs) -> str:
     result += "\n"
     return result
 
+def _K_POINTS(fname: str = "", nkpoints_in_line: int = 0) -> str:
+
+    cif = amscif.read_1(fname)
+    cell_parameters = cif["cell_parameters"]
+    result = "\n\nK_POINTS"
+    if nkpoints_in_line <= 0:
+        result += " automatic\n"
+        if nkpoints_in_line == 0:
+            lattice_length_band_folding_maximum = 35.0 # angstrom, means nk*lattice should be no less than 31 angstrom
+            llbfm = lattice_length_band_folding_maximum
+            nkpts = [int(llbfm / cell_parameters[component]) for component in ["a", "b", "c"]]
+        elif nkpoints_in_line == -1:
+            nkpts = [1, 1, 1]
+        result += "%d %d %d %d %d %d\n"%(nkpts[0], nkpts[1], nkpts[2], 0, 0, 0)
+    else:
+        result += "crystal\n"
+        cell_vectors = amscif.cellparam_to_latvec(cell_parameters)
+        positions = []
+        numbers = []
+
+        for element in cif["atomic_positions"].keys():
+            for line in cif["atomic_positions"][element]:
+                positions.append(line)
+                numbers.append(amdd.get_element_index(element))
+        
+        _skps_result = skps.get_path(structure=(cell_vectors, positions, numbers))
+
+        k_points = []
+        for _path in _skps_result["path"]:
+            start_coord = _skps_result["point_coords"][_path[0]]
+            end_coord = _skps_result["point_coords"][_path[1]]
+            dkx, dky, dkz = [(end_coord[i] - start_coord[i])/(nkpoints_in_line-1) for i in range(3)]
+            for i in range(nkpoints_in_line - 1):
+                k_points.append([start_coord[0]+i*dkx, start_coord[1]+i*dky, start_coord[2]+i*dkz])
+
+        for k_point in k_points:
+            result += "%12.8f %12.8f %12.8f 1\n"%(k_point[0], k_point[1], k_point[2])
+    result += "\n"
+    return result
+
 def _CIF(fname: str = "", cell_scaling: float = 0.0, constraints: list = []) -> str:
     """new version of cif file to CELL_PARAMETERS, ATOMIC_POSITIONS, K_POINTS sections
     
@@ -110,16 +151,10 @@ def _CIF(fname: str = "", cell_scaling: float = 0.0, constraints: list = []) -> 
         raise ValueError("fname should be set")
     result = "CELL_PARAMETERS (angstrom)\n"
     cif = amscif.read_1(fname)
-    cell_vectors = amscif.cell_parameters_to_lattice_vectors(cif["cell_parameters"])
+    cell_vectors = amscif.cellparam_to_latvec(cif["cell_parameters"])
     cell_vectors = [[(cell_scaling + 1.0) * cell_vectors[i][j] for j in range(3)] for i in range(3)]
     result += "\n".join(["%12.8f %12.8f %12.8f"%(cell_vectors[i][0], cell_vectors[i][1], cell_vectors[i][2]) for i in range(3)])
     
-    result += "\n\nK_POINTS automatic\n"
-    lattice_length_band_folding_maximum = 35.0 # angstrom, means nk*lattice should be no less than 31 angstrom
-    llbfm = lattice_length_band_folding_maximum
-    nkpts = [llbfm / cell_vectors[i][i] for i in range(3)]
-    result += "%d %d %d %d %d %d\n"%(int(nkpts[0]), int(nkpts[1]), int(nkpts[2]), 0, 0, 0)
-
     natom = 0
     for element in cif["atomic_positions"].keys():
         natom += len(cif["atomic_positions"][element])
@@ -135,8 +170,8 @@ def _CIF(fname: str = "", cell_scaling: float = 0.0, constraints: list = []) -> 
     for element in cif["atomic_positions"].keys():
         for iatom in range(len(cif["atomic_positions"][element])):
             result += "%2s %12.8f %12.8f %12.8f %d %d %d\n"%(element, cif["atomic_positions"][element][iatom][0], 
-                                                                     cif["atomic_positions"][element][iatom][1], 
-                                                                     cif["atomic_positions"][element][iatom][2], 
+                                                                      cif["atomic_positions"][element][iatom][1], 
+                                                                      cif["atomic_positions"][element][iatom][2], 
                                                             constraints[iatom][0], constraints[iatom][1], constraints[iatom][2])
     result += "\n"
     return result, natom
@@ -165,7 +200,6 @@ def _ISOLATED(element: str = "", shape: str = "", bond_length: float = 0.0, **kw
         print("WARNING: constraint is not supported in _ISOLATED")
 
     result = "CELL_PARAMETERS (angstrom)\n20.00000000 0.00000000 0.00000000\n0.00000000 20.00000000 0.00000000\n0.00000000 0.00000000 20.00000000\n\n"
-    result += "K_POINTS automatic\n1 1 1 0 0 0\n\n"
     result += "ATOMIC_POSITIONS (angstrom)\n"
     natom = 0
     if shape == "dimer":
