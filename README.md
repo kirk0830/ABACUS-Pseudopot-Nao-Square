@@ -65,10 +65,14 @@ prepare `input.json` like this:
     "calculation": {
         "basis_type": "pw",
         "functionals": ["PBE"],
-        "ecutwfc": [100],
-        "cell_scaling": [0.0]
+        "ecutwfc": [20,30,40,50,60,70,80,90,100,150,200],
+        "cal_force": 1,
+        "cal_stress": 1
     },
-    "systems": ["H", "He"],
+    "extensive": {
+        "characteristic_lengths": [0.0]
+    },
+    "systems": ["CoFe2O4"],
     "materials_project": {
         "api_key": "your Materials Project API key",
         "n_structures": 1,
@@ -76,8 +80,8 @@ prepare `input.json` like this:
         "most_stable": true
     },
     "pseudopotentials": {
-        "kinds": ["all"],
-        "versions": [""],
+        "kinds": ["sg15"],
+        "versions": ["all"],
         "appendices": [""]
     },
     "numerical_orbitals": {
