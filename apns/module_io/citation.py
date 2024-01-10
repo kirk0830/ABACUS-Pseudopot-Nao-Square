@@ -9,7 +9,7 @@ def citation(software: str = "abacus",
     seekpath()
     materials_project()
     # pseudopotentials
-    pseudopotential(kind=list(pseudopot_nao["pseudopotentials"]))
+    pseudopotential()
     if "numeric_orbitals" in pseudopot_nao.keys():
         numerical_orbital()
 
