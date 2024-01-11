@@ -6,19 +6,22 @@ def wash_pseudopot_name(name: str):
 
     result = name.upper()
     result = result.replace("FR", " (Full Relativistic)")
+    result = result.replace("SPD", "-spd").replace("-HIGH", "-high")
+
     # if has four consecutive number, assume the last two as version number
     _match = re.match(r".*([0-9]{4}).*", result)
     if _match:
         result = result.replace(_match.group(1), _match.group(1)[:-2] + " v" + ".".join(_match.group(1)[-2:]))
     return result
 
-def collect_result_by_test():
+
+def collect_result_by_test(path_to_work: str = "./"):
     """this function will scan all the folders under current folder, and collect the result of each test"""
 
-    test_pattern = r"([\w]+_[0-9]+_[\w]+)((_([A-Z][0-9])?)?)(_[\w]+)(.*)"
+    test_pattern = r"([\w]+_[0-9]+_[\w\-\.]+)((_([A-Z][0-9])?)?)(_[\w]+)(.*)"
     """regulation: only use / to split path, not \\"""
     result = {}
-    for root, folders, files in list(os.walk('./')):
+    for root, folders, files in list(os.walk(path_to_work)):
         if "running_scf.log" in files:
             # first check if the calculation terminated abnormally
             normal_termination = False
@@ -125,7 +128,8 @@ def export_dat(result_system):
 
 if __name__ == "__main__":
     
-    result = collect_result_by_test()
+    result = collect_result_by_test("../11549318/")
+
     result = sort_by_ecutwfc(result)
     result_system = distribute_result_to_system(result)
     export_dat(result_system)
@@ -133,37 +137,32 @@ if __name__ == "__main__":
     import matplotlib.pyplot as plt
     for system in result_system:
         # subplot for each pseudopotential
-        fig, axs = plt.subplots(len(result_system[system]), 1, figsize=(20, 10))
+        npseudo = len(result_system[system])
+        if npseudo <= 1:
+            print("warning: not enough result of pseudopotential for " + system)
+            continue
+        fig, axs = plt.subplots(npseudo, 1, figsize=(20, 10))
         # set font as Arial
         plt.rcParams["font.family"] = "Arial"
         for i, pseudopotential in enumerate(result_system[system]):
 
             natom = result_system[system][pseudopotential]["natom"]
-            i_highlight_e = -1
-            i_highlight_p = -1
             ecutwfc = result_system[system][pseudopotential]["ecutwfc"]
+            # two convergence criteria
             energies = result_system[system][pseudopotential]["energy"]
             energies = [energy - energies[-1] for energy in energies]
             pressures = result_system[system][pseudopotential]["pressure"]
             pressures = [pressure - pressures[-1] for pressure in pressures]
-            for j in range(len(energies)):
-                delta_e = np.abs(energies[j] - energies[-1])/natom
-                if delta_e < 1e-3: # 1meV
-                    i_highlight_e = j
-                    break
-            for j in range(len(pressures)):
-                delta_p = np.abs(pressures[j] - pressures[-1])
-                if delta_p < 0.1:
-                    i_highlight_p = j
-                    break
+
             #energies /= np.abs(np.max(energies))
             energy_axis = axs[i]
             pressure_axis = axs[i].twinx()
+            
             # plot
-            energy_axis.plot(ecutwfc, energies, 
-                            linestyle="-", marker="o", color="#2B316B", alpha=0.8)
-            pressure_axis.plot(ecutwfc, pressures, 
-                            linestyle="--", marker="s", color="#24B5A5", alpha=0.8)
+            energy_axis.plot(ecutwfc, energies, label="Energy per atom",
+                             linestyle="-", marker="o", color="#2B316B", alpha=0.8)
+            pressure_axis.plot(ecutwfc, pressures, label="Pressure",
+                               linestyle="--", marker="s", color="#24B5A5", alpha=0.8)
             #energy_axis.set_xlabel("ecutwfc (Ry)")
             #energy_axis.set_ylabel("energy (Ry)")
             
@@ -194,17 +193,34 @@ if __name__ == "__main__":
             pressure_axis.set_yticks(yticks_p)
 
             # red-circle the point indiced by i_highlight
-            if i_highlight_e != -1 and i_highlight_p != -1:
-                i_highlight = max(i_highlight_e, i_highlight_p)
+
+            i_highlight_e_high = -1
+            i_highlight_p_high = -1
+            for j in range(len(energies)):
+                delta_e = np.abs(energies[j] - energies[-1])/natom
+                if delta_e < 1e-3: # 1meV
+                    i_highlight_e_high = j
+                    break
+            for j in range(len(pressures)):
+                delta_p = np.abs(pressures[j] - pressures[-1])
+                if delta_p < 0.1:
+                    i_highlight_p_high = j
+                    break
+            if i_highlight_e_high != -1 and i_highlight_p_high != -1:
+                i_highlight = max(i_highlight_e_high, i_highlight_p_high)
                 energy_axis.plot(ecutwfc[i_highlight], 
                                 energies[i_highlight], 
-                                "o", markersize=15, markerfacecolor="none", markeredgecolor="#D8006A", markeredgewidth=2)
+                                "o", markersize=15, markerfacecolor="none", markeredgecolor="#D8006A", markeredgewidth=2,
+                                zorder=10)
                 # add a text to indicate the point
-                energy_axis.text(ecutwfc[i_highlight], 
-                                energies[i_highlight] + deltay_e * 0.5, 
-                                str(ecutwfc[i_highlight])+", < 1 meV, < 0.1 kbar", 
-                                fontsize=12,
-                                horizontalalignment='left', verticalalignment='bottom')
+                # energy_axis.text(ecutwfc[i_highlight], 
+                #                 energies[i_highlight] - deltay_e * 1.5, 
+                #                 str(ecutwfc[i_highlight])+" Ry, < 1 meV, < 0.1 kbar", 
+                #                 fontsize=12,
+                #                 horizontalalignment='left', verticalalignment='bottom',
+                #                 backgroundcolor="#FFFFFF",
+                #                 zorder=9)
+
             # add vertical and horizontal grid lines
             energy_axis.grid(True, color="#c6c6c6")
             #pressure_axis.grid(True, color="#c6c6c6")
@@ -226,6 +242,19 @@ if __name__ == "__main__":
         fig.text(0.04, 0.5, "Relative electronic energy per atom (eV)", va='center', rotation='vertical', fontsize = 16)
         # add one y title
         fig.text(0.96, 0.5, "Relative pressure (kbar)", va='center', rotation='vertical', fontsize = 16)
+
+        # add annotation
+        annotation_title = "APNS Pseudopotential test note"
+        fig.text(0.01, 0.05, annotation_title,
+                 fontstyle="italic", fontsize=8, backgroundcolor="#FFFFFF",
+                 horizontalalignment='left', verticalalignment='bottom')
+        annotation =  "* The red circle indicates the point with energy difference per atom less than 1 meV and pressure difference less than 0.1 kbar.\n"
+        annotation += "* The line with red circle at the end indicates the pseudopotential does not reach convergence at < 200 Ry ecutwfc."
+        # add a box to show annotation, with black edge
+        fig.text(0.01, 0.02, annotation, 
+                 fontsize=8, backgroundcolor="#FFFFFF", 
+                 horizontalalignment='left', verticalalignment='bottom')
+
         # save svg
         plt.savefig(system + ".svg")
         plt.savefig(system + ".png")
@@ -235,3 +264,4 @@ if __name__ == "__main__":
         fmarkdown = system + ".md"
         with open(fmarkdown, "w") as f:
             f.writelines(rg.generate_result_page(element=system))
+            
