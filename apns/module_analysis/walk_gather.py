@@ -6,12 +6,14 @@ def wash_pseudopot_name(name: str):
 
     result = name.upper()
     result = result.replace("FR", " (Full Relativistic)")
-    result = result.replace("SPD-HIGH", "-spd-high")
+    result = result.replace("SPD", "-spd").replace("-HIGH", "-high")
+
     # if has four consecutive number, assume the last two as version number
     _match = re.match(r".*([0-9]{4}).*", result)
     if _match:
         result = result.replace(_match.group(1), _match.group(1)[:-2] + " v" + ".".join(_match.group(1)[-2:]))
     return result
+
 
 def collect_result_by_test(path_to_work: str = "./"):
     """this function will scan all the folders under current folder, and collect the result of each test"""
@@ -127,6 +129,7 @@ def export_dat(result_system):
 if __name__ == "__main__":
     
     result = collect_result_by_test("../11549318/")
+
     result = sort_by_ecutwfc(result)
     result_system = distribute_result_to_system(result)
     export_dat(result_system)
@@ -144,8 +147,8 @@ if __name__ == "__main__":
         for i, pseudopotential in enumerate(result_system[system]):
 
             natom = result_system[system][pseudopotential]["natom"]
-
             ecutwfc = result_system[system][pseudopotential]["ecutwfc"]
+            # two convergence criteria
             energies = result_system[system][pseudopotential]["energy"]
             energies = [energy - energies[-1] for energy in energies]
             pressures = result_system[system][pseudopotential]["pressure"]
@@ -154,11 +157,12 @@ if __name__ == "__main__":
             #energies /= np.abs(np.max(energies))
             energy_axis = axs[i]
             pressure_axis = axs[i].twinx()
+            
             # plot
             energy_axis.plot(ecutwfc, energies, label="Energy per atom",
-                            linestyle="-", marker="o", color="#2B316B", alpha=0.8)
+                             linestyle="-", marker="o", color="#2B316B", alpha=0.8)
             pressure_axis.plot(ecutwfc, pressures, label="Pressure",
-                            linestyle="--", marker="s", color="#24B5A5", alpha=0.8)
+                               linestyle="--", marker="s", color="#24B5A5", alpha=0.8)
             #energy_axis.set_xlabel("ecutwfc (Ry)")
             #energy_axis.set_ylabel("energy (Ry)")
             
@@ -189,6 +193,7 @@ if __name__ == "__main__":
             pressure_axis.set_yticks(yticks_p)
 
             # red-circle the point indiced by i_highlight
+
             i_highlight_e_high = -1
             i_highlight_p_high = -1
             for j in range(len(energies)):
@@ -215,6 +220,7 @@ if __name__ == "__main__":
                 #                 horizontalalignment='left', verticalalignment='bottom',
                 #                 backgroundcolor="#FFFFFF",
                 #                 zorder=9)
+
             # add vertical and horizontal grid lines
             energy_axis.grid(True, color="#c6c6c6")
             #pressure_axis.grid(True, color="#c6c6c6")
@@ -236,6 +242,7 @@ if __name__ == "__main__":
         fig.text(0.04, 0.5, "Relative electronic energy per atom (eV)", va='center', rotation='vertical', fontsize = 16)
         # add one y title
         fig.text(0.96, 0.5, "Relative pressure (kbar)", va='center', rotation='vertical', fontsize = 16)
+
         # add annotation
         annotation_title = "APNS Pseudopotential test note"
         fig.text(0.01, 0.05, annotation_title,
@@ -247,6 +254,7 @@ if __name__ == "__main__":
         fig.text(0.01, 0.02, annotation, 
                  fontsize=8, backgroundcolor="#FFFFFF", 
                  horizontalalignment='left', verticalalignment='bottom')
+
         # save svg
         plt.savefig(system + ".svg")
         plt.savefig(system + ".png")
@@ -256,3 +264,4 @@ if __name__ == "__main__":
         fmarkdown = system + ".md"
         with open(fmarkdown, "w") as f:
             f.writelines(rg.generate_result_page(element=system))
+            
