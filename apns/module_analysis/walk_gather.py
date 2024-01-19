@@ -1,24 +1,102 @@
 import os
-import result_generation as rg
+import apns.module_analysis.result_generation as rg
 import re
 
 def wash_pseudopot_name(name: str):
 
     result = name.upper()
     result = result.replace("FR", " (Full Relativistic)")
-    result = result.replace("SPD", "-spd").replace("-HIGH", "-high")
-
+    if result.startswith("PD04"):
+        result = result.replace("PD04", "").lower()
+        result = "PD04" + "-" + result.strip()
     # if has four consecutive number, assume the last two as version number
     _match = re.match(r".*([0-9]{4}).*", result)
     if _match:
         result = result.replace(_match.group(1), _match.group(1)[:-2] + " v" + ".".join(_match.group(1)[-2:]))
     return result
 
+def grep_energy(fname: str) -> float|bool:
+    line = ""
+    with open(fname, "r") as f:
+        while True:
+            line = f.readline()
+            if not line:
+                print("Abnormal job for test-case: " + fname + ", it is forced stopped.")
+                return False
+            line = line.strip()
+            if line.startswith("TIME STATISTICS"):
+                print("warning: scf calculation not converged in " + fname)
+                return False
+            if line.startswith("!"):
+                break
+    return float(line.split()[-2])
 
-def collect_result_by_test(path_to_work: str = "./"):
-    """this function will scan all the folders under current folder, and collect the result of each test"""
+def grep_pressure(fname: str) -> float|bool:
+    line = ""
+    with open(fname, "r") as f:
+        while True:
+            line = f.readline()
+            if not line:
+                print("Abnormal job for test-case: " + fname + ", it is forced stopped.")
+                return False
+            line = line.strip()
+            if line.startswith("TIME STATISTICS"):
+                print("warning: scf calculation not converged in " + fname)
+                return False
+            if line.startswith("TOTAL-PRESSURE"):
+                break
+    return float(line.split()[-2])
 
-    test_pattern = r"([\w]+_[0-9]+_[\w\-\.]+)((_([A-Z][0-9])?)?)(_[\w]+)(.*)"
+def grep_natom(fname: str) -> int|bool:
+    line = ""
+    with open(fname, "r") as f:
+        while True:
+            line = f.readline()
+            if not line:
+                print("Abnormal job for test-case: " + fname + ", it is forced stopped.")
+                return False
+            line = line.strip()
+            if line.startswith("TIME STATISTICS"):
+                print("warning: scf calculation not converged in " + fname)
+                return False
+            if line.startswith("TOTAL ATOM NUMBER"):
+                break
+    return int(line.split()[-1])
+
+def grep_ecutwfc(fname: str) -> float|bool:
+    """grep ecutwfc from INPUT file"""
+    with open(fname, "r") as f:
+        lines = f.readlines()
+    
+    for line in lines:
+        if line.startswith("ecutwfc"):
+            return float(line.split()[1])
+    
+    return False
+
+DATATYPES = {
+    "energy": float, "pressure": float, "natom": int
+}
+
+def push_greps(labels: list):
+
+    grep_funcs = {}
+    for label in labels:
+        grep_funcs[label] = eval("grep_" + label) # is this a good practice?
+    
+    return grep_funcs
+
+def initialize_test_result(labels: list):
+    """return a dictionary with all labels initialized to 0"""
+    result = {}
+    for label in labels:
+        result[label] = DATATYPES[label](0)
+    return result
+
+def collect_result_by_test(path_to_work: str = "./", labels: list = ["energy"]):
+    """new version of this function will scan all the folders under current folder, and collect the result of each test"""
+
+    test_pattern = r"([\w]+_[0-9]+_[\w\-\.\+]+)((_([A-Z][0-9])?)?)(_[\w]+)(.*)"
     """regulation: only use / to split path, not \\"""
     result = {}
     for root, folders, files in list(os.walk(path_to_work)):
@@ -36,25 +114,12 @@ def collect_result_by_test(path_to_work: str = "./"):
             if not normal_termination:
                 print("warning: scf calculation not terminated normally in " + root)
                 continue
-            line = ""
-            natom = 0
-            energy = 0.0
-            pressure = 0.0
-            with open(root + "/" + "running_scf.log", "r") as f:
-                while not line.startswith("!"):
-                    line = f.readline().strip()
-                    if line.startswith("TIME STATISTICS"):
-                        print("warning: scf calculation not converged in " + root)
-                        break
-                    if line.startswith("TOTAL ATOM NUMBER"):
-                        natom = int(line.split()[-1])
-                    if line.startswith("TOTAL-PRESSURE"):
-                        pressure = float(line.split()[-2]) # in kbar
-                energy = float(line.split()[-2])
-            with open(root + "/" + "INPUT", "r") as f:
-                while not line.startswith("ecutwfc"):
-                    line = f.readline().strip()
-                ecutwfc = float(line.split()[1])
+            test_result = initialize_test_result(labels)
+            grep_funcs = push_greps(labels)
+            test_result["ecutwfc"] = grep_ecutwfc(root + "/" + "INPUT")
+            test_result["natom"] = grep_natom(root + "/" + "running_scf.log")
+            for label in labels:
+                test_result[label] = grep_funcs[label](root + "/" + "running_scf.log")
 
             layers = root.split("/")
             test = ""
@@ -63,37 +128,38 @@ def collect_result_by_test(path_to_work: str = "./"):
                 if _match:
                     test = _match.group(1)
                     break
+
             if test not in result:
-                result[test] = {
-                    "ecutwfc": [],
-                    "energy": [],
-                    "pressure": [],
-                }
-            result[test]["ecutwfc"].append(ecutwfc)
-            result[test]["energy"].append(energy)
-            result[test]["pressure"].append(pressure)
-            result[test]["natom"] = natom
+                result[test] = {label: [] for label in labels}
+                result[test]["ecutwfc"] = []
+
+            for label in labels:
+                result[test][label].append(test_result[label])
+
+            result[test]["ecutwfc"].append(test_result["ecutwfc"])
+            result[test]["natom"] = test_result["natom"]
+
     return result
 
 import numpy as np
 def sort_by_ecutwfc(result):
-    """sort the result by ecutwfc"""
+    """because tests are not guaranteed to arrange with ascending or discending order of ecutwfc,
+    here sort the result by ecutwfc
+    
+    Args:
+        result (dict): the result dictionary, saves the result of each test"""
     for test in result:
         ecutwfc = result[test]["ecutwfc"]
-        energy = result[test]["energy"]
-        pressure = result[test]["pressure"]
-        idx = np.argsort(ecutwfc)
-        ecutwfc = np.array(ecutwfc)[idx]
-        energy = np.array(energy)[idx]
-        pressure = np.array(pressure)[idx]
-
-        result[test]["ecutwfc"] = ecutwfc
-        result[test]["energy"] = energy
-        result[test]["pressure"] = pressure
+        indices = np.argsort(ecutwfc)
+        for property in result[test]:
+            if property == "ecutwfc" or property == "natom":
+                continue
+            result[test][property] = np.array(result[test][property])[indices]
+        result[test]["ecutwfc"] = np.array(ecutwfc)[indices]
     return result
 
-def distribute_result_to_system(result):
-    """distribute the result to different systems"""
+def distribute_result_to_system(result: dict, labels: list = ["energy"]):
+    """new version of distribute result to system, which is more general"""
     result_system = {}
     for test in result.keys():
         system = test.split("_")[0]
@@ -102,37 +168,46 @@ def distribute_result_to_system(result):
             result_system[system] = {}
         if pseudopotential not in result_system[system]:
             result_system[system][pseudopotential] = {
-                "ecutwfc": [],
-                "energy": [],
-                "pressure": []
+                label: [] for label in labels
             }
-        result_system[system][pseudopotential]["ecutwfc"] = result[test]["ecutwfc"]
-        result_system[system][pseudopotential]["energy"] = result[test]["energy"]
-        result_system[system][pseudopotential]["pressure"] = result[test]["pressure"]
-        result_system[system][pseudopotential]["natom"] = result[test]["natom"]
+            result_system[system][pseudopotential].update({
+                "ecutwfc": [],
+                "natom": []
+            })
+        for label in labels:
+            result_system[system][pseudopotential][label] = result[test][label]
+        result_system[system][pseudopotential].update({
+            "ecutwfc": result[test]["ecutwfc"],
+            "natom": result[test]["natom"]
+        })
     return result_system
 
-def export_dat(result_system):
-    """export the result to dat file"""
+def export_dat(result_system: dict, labels: list = ["energy"]):
+    """new version of export_dat, which is more general"""
     for system in result_system:
         with open(system + ".dat", "w") as f:
             for pseudopotential in result_system[system]:
                 f.write("# pseudopotential: " + pseudopotential + "\n")
-                f.write("# ecutwfc (Ry) | energy (Ry) | pressure (kbar) \n")
+                f.write("# ecutwfc (Ry) | ")
+                for label in labels:
+                    f.write(label + " | ")
+                f.write("\n")
                 for i in range(len(result_system[system][pseudopotential]["ecutwfc"])):
                     line = str(result_system[system][pseudopotential]["ecutwfc"][i])
-                    line += " " + str(result_system[system][pseudopotential]["energy"][i])
-                    line += " " + str(result_system[system][pseudopotential]["pressure"][i])
+                    for label in labels:
+                        line += " " + str(result_system[system][pseudopotential][label][i])
                     f.write(line + "\n")
                 f.write("\n")
 
 if __name__ == "__main__":
     
-    result = collect_result_by_test("../11549318/")
-
+    root_path = "../11588012/"
+    labels = ["energy", "pressure"]
+    
+    result = collect_result_by_test("../11588012/", labels)
     result = sort_by_ecutwfc(result)
-    result_system = distribute_result_to_system(result)
-    export_dat(result_system)
+    result_system = distribute_result_to_system(result, labels)
+    export_dat(result_system, labels)
 
     import matplotlib.pyplot as plt
     for system in result_system:

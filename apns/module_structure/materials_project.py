@@ -178,10 +178,12 @@ def composites(api_key: str,
                         print("Automatically switch to is_stable = False, this operation will include more substable structures.")
                         docs = mpr.materials.summary.search(formula=formuli, theoretical=theoretical, is_stable=False)
                         mpi_ids = [doc.material_id for doc in docs]
+                        is_stable = False
                     elif not theoretical:
                         print("Automatically switch to theoretical = True, this operation will include also not experimentally observed structures.")
                         docs = mpr.materials.summary.search(formula=formuli, theoretical=True, is_stable=is_stable)
                         mpi_ids = [doc.material_id for doc in docs]
+                        theoretical = True
                     else:
                         raise ValueError("No structure found for formula {}".format(formuli))
                     

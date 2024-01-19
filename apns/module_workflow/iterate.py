@@ -81,14 +81,14 @@ def iterate(software: str = "abacus", # which software? abacus or qespresso
         for spns in system_pseudopot_nao_settings: # iterate over pseudopotential and numerical orbital settings
             # spns: system_pseudopot_nao_setting
             for calculation_setting in calculation_settings: # iterate over calculation settings
-                for characteristic_length in extensive["characteristic_lengths"]: # iterate over cell scaling
+                for characteristic_length in extensive["characteristic_lengths"]: # iterate over cell scaling, will be dict soon as extensive_settings...
                     # make folder
                     if "numerical_orbital" not in spns.keys():
                         spns["numerical_orbital"] = []
                     folder = amwi._folder_(_system,
                                            amwi.pseudopot_nao(pseudopotential=spns["pseudopotential"],
                                                               numerical_orbital=spns["numerical_orbital"]),
-                                           amwi.calculation(calculation_setting))
+                                           amwi.calculation(calculation_setting)) # I FORGOT TO ADD CHARACTERISTIC LENGTH
                     folder = amwi.folder_reduce(folder)
                     if len(folder) > 100:
                         folder = "_".join(folder.split("_")[1:])
