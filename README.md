@@ -66,9 +66,14 @@ prepare `input.json` like this:
         "basis_type": "pw",
         "functionals": ["PBE"],
         "ecutwfc": [100],
-        "cell_scaling": [0.0]
+        "cal_force": 1,
+        "cal_stress": 1,
+        "scf_nmax": 500
     },
-    "systems": ["H", "He"],
+    "extensive": {
+        "characteristic_lengths": [0.0]
+    },
+    "systems": ["Cs", "Ba", "Hf", "Ta", "W", "Re", "Os", "Ir", "Pt", "Au", "Hg", "Tl", "Pb", "Bi", "Po", "At", "Rn"],
     "materials_project": {
         "api_key": "your Materials Project API key",
         "n_structures": 1,
