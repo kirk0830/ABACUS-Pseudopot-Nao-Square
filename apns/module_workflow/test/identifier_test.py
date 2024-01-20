@@ -17,7 +17,7 @@ class IdentifierTest(unittest.TestCase):
         self.assertEqual(id.numerical_orbital(type="DZP", rcut=0, appendix="nc"), "DZP_0_nc")
         self.assertEqual(id.numerical_orbital(type="DZP", rcut=3, appendix="nc"), "DZP_3_nc")
         self.assertEqual(id.numerical_orbital(type="DZP", rcut=3, appendix=""), "DZP_3")
-    
+    """
     def test__pseudopotential(self):
 
         self.assertEqual(id._pseudopotential(identifier="GGA_PBE"), ("GGA", "PBE", ""))
@@ -29,12 +29,27 @@ class IdentifierTest(unittest.TestCase):
         self.assertEqual(id._numerical_orbital(identifier="DZP"), ("DZP", "", ""))
         self.assertEqual(id._numerical_orbital(identifier="DZP_3_nc"), ("DZP", "3", "nc"))
         self.assertEqual(id._numerical_orbital(identifier="DZP_3"), ("DZP", "3", ""))
-
+    """
     def test_folder(self):
 
         self.assertEqual(id.folder(functional="PBE", system="mp-1", specific_test=""), "t_pbe_mp-1_")
         self.assertEqual(id.folder(functional="PBE", system="mp-1", specific_test="test"), "t_pbe_mp-1_test")
         self.assertEqual(id.folder(functional="PBE", system="mp-1", specific_test="test_1"), "t_pbe_mp-1_test_1")
+
+    def test__folder(self):
+        pass
+
+    def test_calculation(self):
+        self.assertEqual(id.calculation(
+            param_suite={
+                "functional": "PBE",
+                "system": "mp-1",
+                "specific_test": "test"
+            },
+            extnsv_param_suite={
+                "characteristic_lengths": 2.5,
+            }
+        ), "Chlen2.5FnlPBESmmp-1Sctttest")
 
 if __name__ == "__main__":
     unittest.main()

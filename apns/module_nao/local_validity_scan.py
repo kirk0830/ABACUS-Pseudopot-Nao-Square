@@ -158,3 +158,8 @@ def scan_valid_numerical_orbitals(work_status: dict, valid_pseudopotentials: dic
                                 }
                 os.chdir("..")
     return valid_numerical_orbitals
+
+def _svno_(element: str, vp: dict, nao: dict):
+    """scan valid numerical orbitals based on valid pseudopotentials for present element
+    
+    """
