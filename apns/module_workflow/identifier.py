@@ -184,11 +184,13 @@ def shorten_keywords(keyword: str) -> str:
     else:
         return "".join([shorten_keywords(fragment) for fragment in keyword.split("_")])
 
-def calculation(param_suite: dict) -> str:
+def calculation(param_suite: dict, extnsv_param_suite: dict = {}) -> str:
 
     result = ""
+    for param in extnsv_param_suite.keys():
+        result += shorten_keywords(param).capitalize() + str(extnsv_param_suite[param])
     for param in param_suite.keys():
-        result += shorten_keywords(param) + str(param_suite[param])
+        result += shorten_keywords(param).capitalize() + str(param_suite[param])
     return result
 
 def cif(system_with_mpid: str) -> str:
@@ -224,7 +226,7 @@ ABBR = {"basis": "bs", "cal": "cl", "ecut": "ec", "force": "fs", "stress": "strs
         "dft_functional": "xc", "label": "lb", "model": "mdl", "flag": "flg", "down": "dw",
         "up": "up", "charge": "chg", "damping": "dmp", "alpha": "a", "beta": "b", "gamma_only": "k000",
         "file": "f", "nnkp": "nnkp", "lambda": "lmbd", "tolerance": "tol", "step": "stp", "switch": "", 
-        "calculation": ""}
+        "calculation": "", "characteristic_lengths": "chlen"}
 IRREDUCIBLE = ["bs", "cl", "ec", "fs", "strs", "c", "scal", "kspc", "kpt", "gm", "cen", "pw", "pbe", "pbesol", "lda", "gga", "nc", "sp", "fr", "ps", "pot"
                "bnd", "typ", "fn", "mix", "efield", "blk", "msd", "hyb", "thr", "kin", "wt", "ht", "smr", "bsl", "dscrptr", "wnr", "grd", "thmst", "fac", "dpks", "rlx", "nloc",
                "x", "orb", "rc", "msh", "sp", "soc", "bndp", "symm", "temp", "vol", "prs", "spl", "frq", "wf",

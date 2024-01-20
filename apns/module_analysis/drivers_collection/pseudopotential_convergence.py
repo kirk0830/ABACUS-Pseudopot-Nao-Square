@@ -1,138 +1,16 @@
-import os
-import result_generation as rg
-import re
-
-def wash_pseudopot_name(name: str):
-
-    result = name.upper()
-    result = result.replace("FR", " (Full Relativistic)")
-    result = result.replace("SPD", "-spd").replace("-HIGH", "-high")
-
-    # if has four consecutive number, assume the last two as version number
-    _match = re.match(r".*([0-9]{4}).*", result)
-    if _match:
-        result = result.replace(_match.group(1), _match.group(1)[:-2] + " v" + ".".join(_match.group(1)[-2:]))
-    return result
-
-
-def collect_result_by_test(path_to_work: str = "./"):
-    """this function will scan all the folders under current folder, and collect the result of each test"""
-
-    test_pattern = r"([\w]+_[0-9]+_[\w\-\.]+)((_([A-Z][0-9])?)?)(_[\w]+)(.*)"
-    """regulation: only use / to split path, not \\"""
-    result = {}
-    for root, folders, files in list(os.walk(path_to_work)):
-        if "running_scf.log" in files:
-            # first check if the calculation terminated abnormally
-            normal_termination = False
-            root = root.replace("\\", "/")
-            parent_folder = "/".join(root.split("/")[:-1])
-            with open(parent_folder + "/" + "out.log", "r") as f:
-                lines = f.readlines()
-                for line in lines:
-                    if "TIME STATISTICS" in line:
-                        normal_termination = True
-                        break
-            if not normal_termination:
-                print("warning: scf calculation not terminated normally in " + root)
-                continue
-            line = ""
-            natom = 0
-            energy = 0.0
-            pressure = 0.0
-            with open(root + "/" + "running_scf.log", "r") as f:
-                while not line.startswith("!"):
-                    line = f.readline().strip()
-                    if line.startswith("TIME STATISTICS"):
-                        print("warning: scf calculation not converged in " + root)
-                        break
-                    if line.startswith("TOTAL ATOM NUMBER"):
-                        natom = int(line.split()[-1])
-                    if line.startswith("TOTAL-PRESSURE"):
-                        pressure = float(line.split()[-2]) # in kbar
-                energy = float(line.split()[-2])
-            with open(root + "/" + "INPUT", "r") as f:
-                while not line.startswith("ecutwfc"):
-                    line = f.readline().strip()
-                ecutwfc = float(line.split()[1])
-
-            layers = root.split("/")
-            test = ""
-            for layer in layers:
-                _match = re.match(test_pattern, layer)
-                if _match:
-                    test = _match.group(1)
-                    break
-            if test not in result:
-                result[test] = {
-                    "ecutwfc": [],
-                    "energy": [],
-                    "pressure": [],
-                }
-            result[test]["ecutwfc"].append(ecutwfc)
-            result[test]["energy"].append(energy)
-            result[test]["pressure"].append(pressure)
-            result[test]["natom"] = natom
-    return result
-
+import apns.module_analysis.result_import as amari
+import apns.module_analysis.module_render.pseudopotential_html_generator as amaphg
 import numpy as np
-def sort_by_ecutwfc(result):
-    """sort the result by ecutwfc"""
-    for test in result:
-        ecutwfc = result[test]["ecutwfc"]
-        energy = result[test]["energy"]
-        pressure = result[test]["pressure"]
-        idx = np.argsort(ecutwfc)
-        ecutwfc = np.array(ecutwfc)[idx]
-        energy = np.array(energy)[idx]
-        pressure = np.array(pressure)[idx]
-
-        result[test]["ecutwfc"] = ecutwfc
-        result[test]["energy"] = energy
-        result[test]["pressure"] = pressure
-    return result
-
-def distribute_result_to_system(result):
-    """distribute the result to different systems"""
-    result_system = {}
-    for test in result.keys():
-        system = test.split("_")[0]
-        pseudopotential = test.split("_")[-1]
-        if system not in result_system:
-            result_system[system] = {}
-        if pseudopotential not in result_system[system]:
-            result_system[system][pseudopotential] = {
-                "ecutwfc": [],
-                "energy": [],
-                "pressure": []
-            }
-        result_system[system][pseudopotential]["ecutwfc"] = result[test]["ecutwfc"]
-        result_system[system][pseudopotential]["energy"] = result[test]["energy"]
-        result_system[system][pseudopotential]["pressure"] = result[test]["pressure"]
-        result_system[system][pseudopotential]["natom"] = result[test]["natom"]
-    return result_system
-
-def export_dat(result_system):
-    """export the result to dat file"""
-    for system in result_system:
-        with open(system + ".dat", "w") as f:
-            for pseudopotential in result_system[system]:
-                f.write("# pseudopotential: " + pseudopotential + "\n")
-                f.write("# ecutwfc (Ry) | energy (Ry) | pressure (kbar) \n")
-                for i in range(len(result_system[system][pseudopotential]["ecutwfc"])):
-                    line = str(result_system[system][pseudopotential]["ecutwfc"][i])
-                    line += " " + str(result_system[system][pseudopotential]["energy"][i])
-                    line += " " + str(result_system[system][pseudopotential]["pressure"][i])
-                    f.write(line + "\n")
-                f.write("\n")
 
 if __name__ == "__main__":
     
-    result = collect_result_by_test("../11549318/")
-
-    result = sort_by_ecutwfc(result)
-    result_system = distribute_result_to_system(result)
-    export_dat(result_system)
+    root_path = "../../11588012/"
+    axis_label = "ecutwfc"
+    labels = ["energy", "pressure"]
+    
+    result = amari.collect_result_by_test(path_to_work=root_path, labels=labels)
+    result = amari.sort(result=result, axis_label=axis_label)
+    result_system = amari.distribute_result_to_system(result=result, labels=labels, to_markdown=True)
 
     import matplotlib.pyplot as plt
     for system in result_system:
@@ -147,7 +25,7 @@ if __name__ == "__main__":
         for i, pseudopotential in enumerate(result_system[system]):
 
             natom = result_system[system][pseudopotential]["natom"]
-            ecutwfc = result_system[system][pseudopotential]["ecutwfc"]
+            ecutwfc = result_system[system][pseudopotential][axis_label]
             # two convergence criteria
             energies = result_system[system][pseudopotential]["energy"]
             energies = [energy - energies[-1] for energy in energies]
@@ -159,9 +37,9 @@ if __name__ == "__main__":
             pressure_axis = axs[i].twinx()
             
             # plot
-            energy_axis.plot(ecutwfc, energies, label="Energy per atom",
+            eline = energy_axis.plot(ecutwfc, energies, label="Energy per atom",
                              linestyle="-", marker="o", color="#2B316B", alpha=0.8)
-            pressure_axis.plot(ecutwfc, pressures, label="Pressure",
+            pline = pressure_axis.plot(ecutwfc, pressures, label="Pressure",
                                linestyle="--", marker="s", color="#24B5A5", alpha=0.8)
             #energy_axis.set_xlabel("ecutwfc (Ry)")
             #energy_axis.set_ylabel("energy (Ry)")
@@ -225,7 +103,7 @@ if __name__ == "__main__":
             energy_axis.grid(True, color="#c6c6c6")
             #pressure_axis.grid(True, color="#c6c6c6")
             # at inside right top corner, add title
-            energy_axis.text(0.995, 0.90, wash_pseudopot_name(pseudopotential), 
+            energy_axis.text(0.995, 0.90, amari.wash_pseudopot_name(pseudopotential), 
                             fontsize=14, backgroundcolor="#FFFFFF", 
                             horizontalalignment='right', verticalalignment='top', transform=energy_axis.transAxes)
             # resize subplots
@@ -233,6 +111,10 @@ if __name__ == "__main__":
             # disable xtitle except the last one
             if i != len(result_system[system]) - 1:
                 energy_axis.set_xticklabels([])
+            else:
+                lines = eline + pline
+                labels = [l.get_label() for l in lines]
+                axs[i].legend(lines, labels, loc='upper center', bbox_to_anchor=(0.95, -0.3), ncol=1, fontsize=10, fancybox=True, shadow=True)
 
         # add title
         fig.suptitle(system+" basic energy convergence test", fontsize = 16)
@@ -263,5 +145,5 @@ if __name__ == "__main__":
         # generate html
         fmarkdown = system + ".md"
         with open(fmarkdown, "w") as f:
-            f.writelines(rg.generate_result_page(element=system))
-            
+            f.writelines(amaphg.generate_result_page(element=system))
+ 

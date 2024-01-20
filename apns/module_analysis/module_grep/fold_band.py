@@ -1,6 +1,7 @@
+"""old version of driver for analysis of band structure of qespresso non-band structure calculation"""
+
 import numpy as np
 import matplotlib.pyplot as plt
-import re
 
 def split_band(line: str) -> list:
     # first split by space:

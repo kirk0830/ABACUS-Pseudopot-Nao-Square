@@ -29,7 +29,7 @@ def scan_elements(system: str) -> list:
     return elements
 
 def _svp_(elements: list, pseudopotentials: dict) -> dict:
-
+    """new version of scan valid pseudopotential"""
     valid_pseudopotentials = { element: {} for element in elements }
     all_available_pseudopotentials = arch.archive()
 
