@@ -34,12 +34,14 @@ def _folder_match_(folder: str):
         return "pd03"
     elif folder.startswith("sg15"):
         return "sg15"
+    elif folder.startswith("hgh"):
+        return "hgh"
     else:
         print("Current folder name is: ", folder)
         raise ValueError("Folder name not recognized, add a logic branch in this function"
                       +"\nand create a function to create description.json to describe the folder.")
 
-def _scan_(pseudo_dir: str):
+def _scan_(pseudo_dir: str, allow_skip: bool = True):
     """Returns a dictionary of pseudopotentials, element-wise.
 
     Args:
@@ -59,6 +61,9 @@ def _scan_(pseudo_dir: str):
         for pseudopotential in dir[2]:
             match = re.match(r"^([A-Za-z]{1,2})([-._]?.*)(.upf)$", pseudopotential, re.IGNORECASE)
             if match:
+                # there is indeed upf files in present dir
+                if "description.json" in dir[2] and allow_skip:
+                    continue # if description.json has been already in directionary, skip
                 # find dir contains pseudopotential
                 element = match.group(1)[0].upper() + match.group(1)[1:].lower()
                 if element not in result:
@@ -188,6 +193,55 @@ def _DOJO_(path: str):
     os.chdir(path_backup)
     return description
 
+def _HGH_(path: str):
+    """add description.json in HGH pseudopotential folder"""
+    folder_and_files = {}
+    path_backup = os.path.abspath(os.getcwd())
+    os.chdir(path)
+    files = os.listdir()
+    for file in files:
+        _match = re.match(r"^([A-Z][a-z]?)(\.pbe\-)(.*)(\-)?(hgh.UPF)$", file, re.IGNORECASE)
+        if _match:
+            folder = _match.group(3) if _match.group(3) != "" else "standard"
+            if folder not in folder_and_files.keys():
+                folder_and_files[folder] = []
+            folder_and_files[folder].append(file)
+    for folder in folder_and_files.keys():
+        os.mkdir(folder)
+        for file in folder_and_files[folder]:
+            os.rename(file, folder+'/'+file)
+        description = {"kind": "hgh", "version": folder, "appendix": ""}
+        with open(folder+'/'+"description.json", "w") as json_f:
+            json.dump(description, json_f, indent=4)
+
+    os.chdir(path_backup)
+    return folder_and_files
+
+"""we will also have rrkjus, gbrv two kinds of ultrasoft pseudopotentials, but they are easy to archive"""
+
+def _RRKJ_(path: str):
+    """rrkjus has only 0.3.1 and 1.0.0 versions now
+    This kind of pseudopotential will be tested soon, now ABACUS supports the use of ultrasoft pseudopotential"""
+    pass
+
+def _KJPAW_(path: str):
+    """kjpaw has only 0.3.1 and 1.0.0 versions now
+    This kind of pseudopotential will not be test soon"""
+    pass
+
+def _GBRV_(path: str):
+    """GBRV ultrasoft pseudopotential newest version is always available at:
+    https://www.physics.rutgers.edu/gbrv/all_pbe_UPF_v1.5.tar.gz
+    This kind of pseudopotential will be tested soon, now ABACUS supports the use of ultrasoft pseudopotential
+    """
+    pass
+
+def _PSLNC_(path: str):
+    """pslnc (pslibrary norm-conserving) seems only has 0.3.1 version that can be downloaded from TEHOS website:
+    http://theossrv1.epfl.ch/Main/Pseudopotentials
+    """
+    pass
+
 def archive(pseudo_dir: str = "./download/pseudopotentials/", only_scan: bool = only_scan):
     """archive pseudopotential files, will also create description.json in each folder created
 
@@ -203,7 +257,7 @@ def archive(pseudo_dir: str = "./download/pseudopotentials/", only_scan: bool = 
         pseudo_dir += "/"
 
     if not only_scan:
-        _, folders = _scan_(pseudo_dir=pseudo_dir)
+        _, folders = _scan_(pseudo_dir=pseudo_dir, allow_skip=True)
         
         for folder in folders:
             folder_path = folder
@@ -217,11 +271,13 @@ def archive(pseudo_dir: str = "./download/pseudopotentials/", only_scan: bool = 
                 _DOJO_(folder_path)
             elif kind == "sg15":
                 _SG15_(folder_path)
+            elif kind == "hgh":
+                _HGH_(folder_path)
             else:
                 raise NotImplementedError("Folder name not recognized, add a logic branch in this function"
                       +"\nand create a function to create description.json to describe the folder.")
 
-    results, folders = _scan_(pseudo_dir=pseudo_dir)
+    results, folders = _scan_(pseudo_dir=pseudo_dir, allow_skip=False)
 
     _description_ = {}
     for folder in folders:
@@ -282,4 +338,4 @@ def load(pseudo_dir: str) -> dict:
 
 if __name__ == "__main__":
 
-    print(archive(only_scan=False))
+    print(archive(only_scan=True))
