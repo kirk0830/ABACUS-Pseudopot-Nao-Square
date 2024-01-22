@@ -13,6 +13,7 @@ def driver_v1(input_file: str):
     """initialize"""
     import apns.module_workflow.initialize as amwinit
     inp, vpspot, vnao, pspot_arch, nao_arch = amwinit.initialize(input_file)
+    """software-related availability check"""
     """iteratively generation"""
     import apns.module_workflow.apns_itertools as amwai
     import apns.module_workflow.iterate as amwi

@@ -327,7 +327,14 @@ def description(upf_path: str):
     return description
 
 def load(pseudo_dir: str) -> dict:
-    """load pseudopotential folders architecture from description.json"""
+    """load pseudopotential folders architecture from description.json
+    
+    Returns:
+    >>> {
+    ...    "identifier_1": "path_1",
+    ...    "identifier_2": "path_2",
+    ...    ...
+    ... }"""
     
     pseudopot_folders_arch = {}
     if pseudo_dir[-1] == "/":

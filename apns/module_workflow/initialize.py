@@ -41,6 +41,9 @@ def initialize(finp: str, test_mode: bool = False) -> tuple[dict, dict, dict, di
     pseudopot_arch = ampua.load(_inp["global"]["pseudo_dir"]) # load pseudopotential archive
     # nao_arch = amna.load(_inp["global"]["nao_dir"]) # load numerical orbital archive, not implemented yet
 
+    if not pspot_software_availability(_inp, valid_pseudopotentials, pseudopot_arch):
+        raise ValueError("Selected software is not compatible with input file.")
+
     return _inp, valid_pseudopotentials, valid_numerical_orbitals, pseudopot_arch, None
 
 import os
@@ -132,12 +135,16 @@ def scan_valid_pseudopot_nao(finp: str|dict) -> tuple[dict, dict]:
     else:
         raise TypeError("finp should be str or dict.")
     
+    """get all elements across all systems"""
     elements = amsb.scan_elements(inp["systems"])
+
+    """from elements, get all valid pseudopotentials"""
     valid_pseudopotentials = amplvs._svp_(elements, inp["pseudopotentials"])
     for element in elements:
         if element not in valid_pseudopotentials.keys():
             raise ValueError("No valid pseudopotential for element {}.".format(element))
-    
+
+    """from elements, get all valid numerical orbitals"""
     valid_numerical_orbitals = {element: {} for element in elements}
     if inp["calculation"]["basis_type"] == "lcao":
         raise NotImplementedError("lcao calculation is not supported yet.")
@@ -149,3 +156,28 @@ def scan_valid_pseudopot_nao(finp: str|dict) -> tuple[dict, dict]:
         """
     
     return valid_pseudopotentials, valid_numerical_orbitals
+
+import apns.module_pseudo.general_parser as ampgp
+def pspot_software_availability(inp: dict, valid_pseudopotentials: dict, pseudopot_arch: dict) -> bool:
+    """check if the input file is compatible with the software
+    
+    Args:
+        inp (dict): input json
+        valid_pseudopotentials (dict): valid pseudopotentials
+        
+    Raises:
+    
+    Returns:
+        bool: True if compatible, False if not
+    """
+
+    """check files one by one"""
+
+    for element in valid_pseudopotentials.keys():
+        for identifier in valid_pseudopotentials[element].keys():
+            fpspot = pseudopot_arch[identifier] + "/" + valid_pseudopotentials[element][identifier]["file"]
+            print("Parsing pseudopotential file: ", fpspot)
+            if not ampgp.is_compatible(fpspot, software=inp["global"]["software"]):
+                return False
+    return True
+    
