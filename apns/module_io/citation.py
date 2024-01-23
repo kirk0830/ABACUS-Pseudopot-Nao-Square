@@ -1,5 +1,8 @@
 def citation(software: str = "abacus",
-             pseudopot_nao: dict = {}):
+             pseudopot_nao: dict = None):
+    
+    if pseudopot_nao is None:
+        pseudopot_nao = {}
     # software: ABACUS, qespresso
     if software == "abacus":
         abacus()
@@ -36,7 +39,7 @@ def qespresso():
     print("The calculation is done by Quantum ESPRESSO, which is cited as:")
     print("- P. Giannozzi, et al., QUANTUM ESPRESSO: a modular and open-source software project for quantum simulations of materials, J. Phys.: Condens. Matter 21, 395502 (2009)")
     
-def pseudopotential(kind: list = []):
+def pseudopotential(kind: list):
 
     print("%d kinds of pseudopotentials are used in this test, which are cited as:" % len(kind))
 

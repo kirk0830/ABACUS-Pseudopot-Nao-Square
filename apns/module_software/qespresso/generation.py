@@ -70,7 +70,7 @@ def _calculation(section: str = "", ntype: int = 0, natom: int = 0, **kwargs) ->
     result += "/\n"
     return result
 
-def _ATOMIC_SEPCIES(pseudopotential: dict = {}, **kwargs) -> str:
+def _ATOMIC_SEPCIES(pseudopotential: dict, **kwargs) -> str:
     """new version of ATOMIC_SPECIES writes QE input file section
 
     Args:
@@ -83,8 +83,6 @@ def _ATOMIC_SEPCIES(pseudopotential: dict = {}, **kwargs) -> str:
         str: section string
     """
     result = "ATOMIC_SPECIES\n"
-    if len(pseudopotential.keys()) == 0:
-        raise ValueError("pseudopotential should be set")
     mass = kwargs.get("mass", {key: amdd.element_mass(key) for key in pseudopotential.keys()})
     for element in pseudopotential.keys():
         result += "{} {} {}\n".format(element, mass[element], pseudopotential[element])
@@ -131,7 +129,7 @@ def _K_POINTS(fname: str = "", nkpoints_in_line: int = 0) -> str:
     result += "\n"
     return result
 
-def _CIF(fname: str = "", cell_scaling: float = 0.0, constraints: list = []) -> str:
+def _CIF(fname: str = "", cell_scaling: float = 0.0, constraints: list = None) -> str:
     """new version of cif file to CELL_PARAMETERS, ATOMIC_POSITIONS, K_POINTS sections
     
     Args:
