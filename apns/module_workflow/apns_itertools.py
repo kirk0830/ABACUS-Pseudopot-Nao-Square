@@ -43,7 +43,7 @@ pseudopotentials param here is the list of pseudopotential identifiers.
 
 In principle the other param can also be list of numerical orbital identifiers, but will implement in
 the future."""
-def pseudopot_nao(pseudopotentials: list, numerical_orbitals: list = []) -> list:
+def pseudopot_nao(pseudopotentials: list, numerical_orbitals: list = None) -> list:
     """seperate valid pseudopotentials (and numerical orbitals) into different combinations for one single element
     
     Args:
@@ -142,7 +142,7 @@ def system(elements: list) -> list:
     return result
 
 import apns.module_structure.basic as amsb
-def systems(system_list: list, valid_pseudopotentials: dict = {}, valid_numerical_orbitals: dict = {}) -> list:
+def systems(system_list: list, valid_pseudopotentials: dict, valid_numerical_orbitals: dict = None) -> list:
     """generate all possible combinations for all systems, elemental information such as valid pseudopotentials and
     numerical orbitals should be provided
     
@@ -155,6 +155,8 @@ def systems(system_list: list, valid_pseudopotentials: dict = {}, valid_numerica
         list: a list of lists of dictionaries containing pseudopotential and numerical orbital identifiers for each pseudopot-nao combination for each
         system, in sequence of system_list
     """
+    if valid_numerical_orbitals is None:
+        valid_numerical_orbitals = {}
     pseudopot_nao_settings = []
     for _system in system_list:
         elements = amsb.scan_elements(_system)

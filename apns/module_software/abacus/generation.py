@@ -4,7 +4,7 @@ import apns.module_structure.crystal_information_file as amscif
 import apns.module_database.database as amdd
 
 def STRU_cif(fname: str, 
-             pseudopotentials: dict = {}, 
+             pseudopotentials: dict, 
              template: bool = False, 
              **kwargs):
     """convert cif file to STRU file.
@@ -117,8 +117,8 @@ def STRU_dimer(element: str, bond_length: float, pseudopotentials: dict, **kwarg
     return return_str
 
 def _STRU_(fname: str, 
-           pseudopotentials: dict = {},
-           numerical_orbitals: dict = {},
+           pseudopotentials: dict,
+           numerical_orbitals: dict = None,
            cell_scaling: float = 0.0, 
            **kwargs):
     """convert cif file to STRU file, refactored version
@@ -144,7 +144,7 @@ def _STRU_(fname: str,
         pseudopotential = pseudopotentials[_element]
         return_str += "%s %8.4f %s\n" % (_element, mass, pseudopotential)
     return_str += "\n"
-    if len(numerical_orbitals) > 0:
+    if numerical_orbitals is not None:
         return_str += "NUMERICAL_ORBITAL\n"
         for _element in numerical_orbitals.keys():
             numerical_orbital = _element + "_numerical_orbital"
@@ -185,9 +185,9 @@ def _STRU_(fname: str,
 
     return return_str, cell_parameters
 
-def _STRU_ISOLATED_(shape: str = "",
-                    pseudopotentials: dict = {},
-                    numerical_orbitals: dict = {},
+def _STRU_ISOLATED_(shape: str,
+                    pseudopotentials: dict,
+                    numerical_orbitals: dict = None,
                     bond_length: float = 0.0,
                     **kwargs):
     if shape == "":
@@ -207,7 +207,7 @@ def _STRU_ISOLATED_(shape: str = "",
         pseudopotential = pseudopotentials[_element]
         return_str += "%s %8.4f %s\n" % (_element, mass, pseudopotential)
     return_str += "\n"
-    if len(numerical_orbitals) > 0:
+    if numerical_orbitals is not None:
         return_str += "NUMERICAL_ORBITAL\n"
         for _element in numerical_orbitals.keys():
             numerical_orbital = _element + "_numerical_orbital"

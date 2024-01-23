@@ -90,7 +90,7 @@ def download_pseudopotential(pseudopotentials: list):
 
 def driver(pseudopotential_kind: str,
            functional: str,
-           elements: list = [],
+           elements: list,
            startsfrom: str = "H",
            destination: str = "./download/pseudopotentials/"):
     """Main function to download pseudopotentials from Quantum ESPRESSO official website pptable

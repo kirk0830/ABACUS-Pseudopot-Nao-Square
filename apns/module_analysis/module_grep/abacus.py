@@ -36,7 +36,11 @@ def grep_energy(fname: str) -> float|bool:
                 return False
             if line.startswith("!"):
                 break
-    return float(line.split()[-2])
+    if "convergence has not been achieved" in line:
+        print("warning: scf calculation not converged in " + fname)
+        return False
+    else:
+        return float(line.split()[-2])
 
 def grep_pressure(fname: str) -> float|bool:
     line = ""
