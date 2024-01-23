@@ -81,7 +81,7 @@ def r_numerical_orbital(identifier: str) -> tuple:
     else:
         return words[0], words[1], "_".join(words[2:])
 
-def pseudopot_nao(pseudopotential: list, numerical_orbital: list = []) -> str:
+def pseudopot_nao(pseudopotential: list, numerical_orbital: list = None) -> str:
 
     result = ""
     for pseudo in pseudopotential:
@@ -184,8 +184,10 @@ def shorten_keywords(keyword: str) -> str:
     else:
         return "".join([shorten_keywords(fragment) for fragment in keyword.split("_")])
 
-def calculation(param_suite: dict, extnsv_param_suite: dict = {}) -> str:
+def calculation(param_suite: dict, extnsv_param_suite: dict = None) -> str:
 
+    if extnsv_param_suite is None:
+        extnsv_param_suite = {} # extensive parameter suite is not always given
     result = ""
     for param in extnsv_param_suite.keys():
         result += shorten_keywords(param).capitalize() + str(extnsv_param_suite[param])

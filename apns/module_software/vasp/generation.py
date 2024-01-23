@@ -31,7 +31,7 @@ def KPOINTS(fname: str = "", nkpoints_in_line: int = 0):
     
     return result
 
-def POSCAR(fname: str = "", constraints: list = []):
+def POSCAR(fname: str = "", constraints: list = None):
 
     if fname == "":
         raise ValueError("fname should not be empty")

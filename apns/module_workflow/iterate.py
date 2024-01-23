@@ -4,15 +4,15 @@ import apns.module_software.qespresso.generation as amsqg
 import apns.module_structure.basic as amsb
 import os
 
-def iterate(software: str = "abacus", # which software? abacus or qespresso
-            systems: list = [],
-            pseudopot_nao_settings: list = [],
-            calculation_settings: list = [],
-            extensive: dict = {},
-            valid_pseudopotentials: dict = {},
-            valid_numerical_orbitals: dict = {},
-            pspot_archive: dict = {},
-            nao_archive: dict = {},
+def iterate(software: str, # which software? abacus or qespresso
+            systems: list,
+            pseudopot_nao_settings: list,
+            calculation_settings: list,
+            extensive: dict,
+            valid_pseudopotentials: dict,
+            valid_numerical_orbitals: dict,
+            pspot_archive: dict,
+            nao_archive: dict,
             test_mode: bool = True):
     """iterate over all possible combinations of input parameters and generate folders
     
@@ -136,9 +136,9 @@ def iterate(software: str = "abacus", # which software? abacus or qespresso
 
 def iterate_abacus(system_with_mpid: str = "", # on which structure? system with mp-id
                    target_folder: str = "./", # in which folder? target folder
-                   calculation_setting: dict ={}, # use what calculation setting?
-                   pseudopotentials: dict = {}, # which set of pseudopotentials?
-                   numerical_orbitals: dict = {}, # which set of numerical orbitals?
+                   calculation_setting: dict = None, # use what calculation setting?
+                   pseudopotentials: dict = None, # which set of pseudopotentials?
+                   numerical_orbitals: dict = None, # which set of numerical orbitals?
                    characteristic_length: float = 0.0, # for crystal, it is cell scaling; for molecule, it is bond length
                    nkpoints_in_line: int = 0,  # for -1, assume system as isolated, for 0, will sample kpoints automatically, for >0, will generate kpath
                    test_mode: bool = True # for test
@@ -158,9 +158,9 @@ def iterate_abacus(system_with_mpid: str = "", # on which structure? system with
     """
     if system_with_mpid.count("_") != 1:
         raise ValueError("system_with_mpid should be like 'Er2O3_12345'")
-    if calculation_setting == {}:
+    if calculation_setting is None:
         print("Warning: calculation_setting is empty, use default")
-    if pseudopotentials == {}:
+    if pseudopotentials is None:
         raise ValueError("pseudopotentials is empty")
     
     # write INPUT
@@ -200,8 +200,8 @@ def iterate_abacus(system_with_mpid: str = "", # on which structure? system with
 
 def iterate_qespresso(system_with_mpid: str = "", # on which structure? system with mp-id, or element with shape (e.g. Er_dimer)
                       target_folder: str = "./", # in which folder? target folder
-                      calculation_setting: dict = {}, # use what calculation setting?
-                      pseudopotentials: dict = {}, # which set of pseudopotentials?
+                      calculation_setting: dict = None, # use what calculation setting?
+                      pseudopotentials: dict = None, # which set of pseudopotentials?
                       characteristic_length: float = 0.0, # for non isolated, it is cell scaling; for isolated, it is bond length
                       nkpoints_in_line: int = 0,  # for -1, assume system as isolated, for 0, will sample kpoints automatically, for >0, will generate kpath
                       test_mode: bool = True # for test
@@ -226,6 +226,11 @@ def iterate_qespresso(system_with_mpid: str = "", # on which structure? system w
     Returns:
         `None`
     """
+    if calculation_setting is None:
+        print("Warning: calculation_setting is empty, use default")
+    if pseudopotentials is None:
+        raise ValueError("pseudopotentials is empty")
+    
     _in = ""
     ntype, natom = len(pseudopotentials), 0
     if nkpoints_in_line < 0:
