@@ -4,7 +4,7 @@ import numpy as np
 
 if __name__ == "__main__":
     
-    root_path = "../../11588012/"
+    root_path = "../11548850/"
     axis_label = "ecutwfc"
     labels = ["energy", "pressure"]
     
@@ -131,7 +131,7 @@ if __name__ == "__main__":
                  fontstyle="italic", fontsize=8, backgroundcolor="#FFFFFF",
                  horizontalalignment='left', verticalalignment='bottom')
         annotation =  "* The red circle indicates the point with energy difference per atom less than 1 meV and pressure difference less than 0.1 kbar.\n"
-        annotation += "* The line with red circle at the end indicates the pseudopotential does not reach convergence at < 200 Ry ecutwfc."
+        annotation += "* The line with red circle at the end indicates the pseudopotential does not reach convergence till the last ecutwfc (200 or 300 Ry)."
         # add a box to show annotation, with black edge
         fig.text(0.01, 0.02, annotation, 
                  fontsize=8, backgroundcolor="#FFFFFF", 

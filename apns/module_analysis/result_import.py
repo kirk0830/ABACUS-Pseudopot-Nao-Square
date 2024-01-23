@@ -31,9 +31,10 @@ def initialize_test_result(labels: list):
         result[label] = _datatypes[label](0)
     return result
 
-import apns.module_analysis.module_grep.abacus as amaa # I consider whether it is safe to use wildcard import
+import apns.module_analysis.module_grep.abacus as amaa
 import apns.module_analysis.module_grep.qespresso as amaq
-def initialize_greps(software: str = "abacus", labels: list = []):
+
+def initialize_greps(software: str = "abacus", labels: list = None):
     """gather grep methods for specific software
     Is it general enough? yes
     
@@ -44,21 +45,23 @@ def initialize_greps(software: str = "abacus", labels: list = []):
         grep_ecutwfc (function): the grep function for ecutwfc
         grep_natom (function): the grep function for natom
     """
+    if labels is None:
+        labels = []
+
     grep_funcs = {}
     if software == "abacus":
-        
         _greps = amaa.return_all_greps()
         for label in labels:
             if label != "ecutwfc" and label != "natom":
-                grep_funcs[label] = _greps[label] # this will raise KeyError if label not in _greps
+                grep_funcs[label] = _greps[label]
     elif software == "qespresso":
-        
         raise NotImplementedError("module_analysis for qespresso is not implemented yet")
         for label in labels:
             pass
     else:
         raise NotImplementedError("module_analysis for " + software + " is not implemented yet")
-    return grep_funcs, _greps["ecutwfc"], _greps["natom"] # at least return ecutwfc and natom grep
+    
+    return grep_funcs, _greps["ecutwfc"], _greps["natom"]
 
 def fname_setting(software: str = "abacus"):
     """return the file names (stdout, log and input script) for specific software
@@ -119,10 +122,16 @@ def collect_result_by_test(path_to_work: str = "./",
 
         test_result = initialize_test_result(labels)
         grep_funcs, grep_ecutwfc, grep_natom = initialize_greps(software = software, labels = labels)
+
+        _result = {}
+        for label in labels:
+            _result[label] = grep_funcs[label](root + "/" + log) # exception handle here, if convergence is not reached, will return False
+            if _result is False:
+                continue
+        
+        test_result.update(_result)
         test_result["ecutwfc"] = grep_ecutwfc(root + "/" + input_script)
         test_result["natom"] = grep_natom(root + "/" + log)
-        for label in labels:
-            test_result[label] = grep_funcs[label](root + "/" + log)
 
         layers = root.split("/")
         test = ""
@@ -145,7 +154,7 @@ def collect_result_by_test(path_to_work: str = "./",
     return result
 
 import numpy as np
-def sort(result, axis_label: str = "ecutwfc", scalar_labels: list = []):
+def sort(result, axis_label: str = "ecutwfc", scalar_labels: list = None):
     """because tests are not guaranteed to arrange with ascending or discending order of something,
     here sort the result by ecutwfc by default
     
@@ -156,6 +165,8 @@ def sort(result, axis_label: str = "ecutwfc", scalar_labels: list = []):
         add more in compulsory_scalar_labels, to make it more general
     """
     compulsory_scalar_labels = ["natom"]
+    if scalar_labels is None:
+        scalar_labels = []
     scalar_labels += compulsory_scalar_labels
     for test in result:
         axis = result[test][axis_label]

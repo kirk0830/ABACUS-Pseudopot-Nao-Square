@@ -180,4 +180,4 @@ def pspot_software_availability(inp: dict, valid_pseudopotentials: dict, pseudop
             if not ampgp.is_compatible(fpspot, software=inp["global"]["software"]):
                 return False
     return True
-    
+    """or I can use it as a filter to filter out incompatible pseudopotentials"""

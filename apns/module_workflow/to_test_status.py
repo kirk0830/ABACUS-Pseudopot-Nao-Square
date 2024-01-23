@@ -91,7 +91,10 @@ def _valid_files_scan_(work_status: dict):
 
     return valid_pseudopotentials, valid_numerical_orbitals
 
-def _test_initialization_(work_status: dict, system: str, valid_pseudopotentials: dict, valid_numerical_orbitals: dict = {}):
+def _test_initialization_(work_status: dict, system: str, valid_pseudopotentials: dict, valid_numerical_orbitals: dict = None):
+
+    if valid_numerical_orbitals is None:
+        valid_numerical_orbitals = {}
 
     test = {}
     # convert test name from tuple (["pd_04_spd", "D6"], ["sg15_10", "D6"], ...) to pd04spdsg1510..._D6D6...., each test is equivalent with one tuple
