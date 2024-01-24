@@ -1,18 +1,4 @@
 """With Python-xml parser, provide general parser for UPF format pseudopotential"""
-def search(root, tag):
-    if root.tag == tag:
-        return {"attrib": root.attrib, "data": root.text}
-    for child in root:
-        search(child, tag)
-
-def recursive_kernel(root, parsed: dict | None = None): # thanks to CaiC pointed out that in most cases the default argument should be literal rather than mutable
-    if parsed is None:
-        parsed = {}
-    if root.tag not in parsed:
-        parsed[root.tag] = {"attrib": root.attrib, "data": root.text}
-    for child in root:
-        recursive_kernel(child, parsed)
-    return parsed
 
 def preprocess(fname: str):
     """ADC pseudopotential has & symbol at the beginning of line, which is not allowed in xml, replace & with &amp;"""
@@ -71,11 +57,16 @@ def postprocess(parsed: dict):
 
 import json
 import xml.etree.ElementTree as ET
+
+def iter_tree(root: ET.Element):
+    """iterate through the tree, return a dictionary flattened from the tree"""
+    return {child.tag: {"attrib": child.attrib, "data": child.text} for child in list(root.iter())}
+
 def parse(fname: str):
     preprocess(fname)
     tree = ET.ElementTree(file=fname)
     root = tree.getroot()
-    parsed = recursive_kernel(root)
+    parsed = iter_tree(root)
     parsed = postprocess(parsed)
     return parsed
 
@@ -210,5 +201,9 @@ def compatible_with_qespresso(parsed: dict):
 if __name__ == "__main__":
     directory = './download/pseudopotentials/hgh/'
     fname = "Al.pbe-hgh.UPF"
-    parse_to_json(directory+fname)
+    #parse_to_json(directory+fname)
     #print(is_compatible(directory + fname))
+    pseudopot = iter_tree(directory+fname)
+    import json
+    with open(directory+fname[:-4]+'.json', 'w') as f:
+        json.dump(pseudopot, f, indent=4)
