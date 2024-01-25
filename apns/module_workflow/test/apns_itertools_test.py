@@ -97,6 +97,13 @@ class TestApnsItertools(unittest.TestCase):
         print(amwai.systems(system_list=self.system_list, 
                             valid_pseudopotentials=self.vpspot,
                             valid_numerical_orbitals=self.vnao))
+        
+    def test_extensive(self):
+        print(amwai.extensive(extensive_settings={
+            "characteristic_lengths": [10, 20, 30],
+            "nkpoints_in_line": 10,
+            "magnetism": "antiferromagnetic"
+        }))
 
 if __name__ == "__main__":
     unittest.main()

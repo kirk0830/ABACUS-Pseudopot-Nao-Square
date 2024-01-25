@@ -23,7 +23,7 @@ def driver_v1(input_file: str):
                                                                 valid_pseudopotentials=vpspot, 
                                                                 valid_numerical_orbitals=vnao),
                            calculation_settings=amwai.calculation(inp["calculation"]),
-                           extensive=inp["extensive"],
+                           extensive_settings=amwai.extensive(inp["extensive"]),
                            valid_pseudopotentials=vpspot,
                            valid_numerical_orbitals=vnao,
                            pspot_archive=pspot_arch,
