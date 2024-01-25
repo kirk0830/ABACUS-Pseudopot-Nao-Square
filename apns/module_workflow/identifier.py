@@ -105,7 +105,10 @@ def r_folder(identifier: str) -> tuple:
 
     return tuple(i for i in identifier.split("_") if i != "")
 
-def _folder_(system: str, pseudo_nao_identifier: str, calculation_identifier: str) -> str:
+def _folder_(system: str, 
+             pseudo_nao_identifier: str, 
+             calculation_identifier: str, 
+             extensive_identifier: str) -> str:
     
     """new version of Generate identifier of folder
 
@@ -117,7 +120,7 @@ def _folder_(system: str, pseudo_nao_identifier: str, calculation_identifier: st
     Returns:
         str: identifier of folder
     """
-    folder_name_fragments = [system, pseudo_nao_identifier, calculation_identifier]
+    folder_name_fragments = [system, pseudo_nao_identifier, calculation_identifier, extensive_identifier]
     return "_".join(folder_name_fragments)
 
 def qespresso(system: str, template: bool = False):
@@ -184,15 +187,31 @@ def shorten_keywords(keyword: str) -> str:
     else:
         return "".join([shorten_keywords(fragment) for fragment in keyword.split("_")])
 
-def calculation(param_suite: dict, extnsv_param_suite: dict = None) -> str:
+def calculation(param_suite: dict) -> str:
 
-    if extnsv_param_suite is None:
-        extnsv_param_suite = {} # extensive parameter suite is not always given
     result = ""
-    for param in extnsv_param_suite.keys():
-        result += shorten_keywords(param).capitalize() + str(extnsv_param_suite[param])
     for param in param_suite.keys():
         result += shorten_keywords(param).capitalize() + str(param_suite[param])
+    return result
+
+def extensive(param_suite: dict) -> str:
+    """to render identifier for extensive settings. This function can only be programmed in a 
+    case-by-case manner, because some of the extensive settings are global and some are local.
+    to iterate. 
+    The params to iterate:
+    - characteristic_lengths
+    However, if only one value is given, then it is a global setting, so it will not be added in
+    the identifier.
+    
+    The params global:
+    - nkpoints_in_line
+    - magnetism
+    """
+    result = ""
+    iterate_keys = ["characteristic_lengths"]
+    for iterkey in iterate_keys:
+        if iterkey in param_suite.keys():
+            result += shorten_keywords(iterkey).capitalize() + str(param_suite[iterkey])
     return result
 
 def cif(system_with_mpid: str) -> str:

@@ -14,9 +14,13 @@ def preprocess(fname: str):
         for line in lines:
             """if line starts with &, replace & with &amp;, 
             but if already &amp;, do not replace"""
-            if line.startswith("&") and not line.startswith("&amp;"):
+            if line.strip().startswith("&") and not line.strip().startswith("&amp;"):
                 line = line.replace("&", "&amp;")
+            
             f.write(line)
+
+            if line.strip() == "</UPF>":
+                break
 
 import re
 def is_numeric_data(data):
@@ -96,6 +100,12 @@ def determine_type(parsed: dict):
     if "ADC" in parsed["PP_HEADER"]["attrib"]["generated"]:
         return "ADC"
     if "ADC" in parsed["PP_HEADER"]["attrib"]["author"]:
+        return "ADC"
+    if "Generated using \"atomic\" code by A. Dal Corso" in parsed["PP_INFO"]["data"]:
+        return "ADC"
+    if "Generated using \"atomic\" code by A. Dal Corso" in parsed["PP_HEADER"]["attrib"]["generated"]:
+        return "ADC"
+    if "Generated using \"atomic\" code by A. Dal Corso" in parsed["PP_HEADER"]["attrib"]["author"]:
         return "ADC"
     
     """GTH
