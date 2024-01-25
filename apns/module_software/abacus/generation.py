@@ -196,7 +196,7 @@ def _STRU_ISOLATED_(shape: str,
         raise ValueError("pseudopotentials must be specified.")
     if len(pseudopotentials) > 1:
         raise ValueError("pseudopotentials must be specified for only one element.")
-    if len(numerical_orbitals) > 1:
+    if numerical_orbitals is not None and len(numerical_orbitals) > 1:
         raise ValueError("numerical_orbitals must be specified for only one element.")
     if bond_length == 0.0:
         raise ValueError("bond_length must be specified.")
