@@ -177,7 +177,9 @@ def pspot_software_availability(inp: dict, valid_pseudopotentials: dict, pseudop
         for identifier in valid_pseudopotentials[element].keys():
             fpspot = pseudopot_arch[identifier] + "/" + valid_pseudopotentials[element][identifier]["file"]
             print("Parsing pseudopotential file: ", fpspot)
-            if not ampgp.is_compatible(fpspot, software=inp["global"]["software"]):
+            if not ampgp.is_compatible(fpspot, software=inp["global"]["software"].lower()):
                 return False
+            else:
+                print("Compatiblity check OK.")
     return True
     """or I can use it as a filter to filter out incompatible pseudopotentials"""

@@ -227,4 +227,23 @@ def calculation(work_status_calculation_section: dict) -> list:
 
     return result
 
-
+def extensive(extensive_settings: dict) -> list:
+    """generate all possible combination of extensive settings
+    
+    Args:
+        extensive_settings (dict): extensive settings in input.json
+        
+    Returns:
+        list: a list of extensive settings dictionaries
+    """
+    result = []
+    
+    iterable_keys = ["characteristic_lengths"]
+    other_keys = [key for key in extensive_settings.keys() if key not in iterable_keys]
+    iterables = [extensive_settings[key] for key in iterable_keys]
+    for combination in list(it.product(*iterables)):
+        result.append(dict(zip(iterable_keys, combination)))
+    for key in other_keys:
+        for i in range(len(result)):
+            result[i][key] = extensive_settings[key]
+    return result

@@ -8,7 +8,7 @@ def iterate(software: str, # which software? abacus or qespresso
             systems: list,
             pseudopot_nao_settings: list,
             calculation_settings: list,
-            extensive: dict,
+            extensive_settings: list,
             valid_pseudopotentials: dict,
             valid_numerical_orbitals: dict,
             pspot_archive: dict,
@@ -81,14 +81,16 @@ def iterate(software: str, # which software? abacus or qespresso
         for spns in system_pseudopot_nao_settings: # iterate over pseudopotential and numerical orbital settings
             # spns: system_pseudopot_nao_setting
             for calculation_setting in calculation_settings: # iterate over calculation settings
-                for characteristic_length in extensive["characteristic_lengths"]: # iterate over cell scaling, will be dict soon as extensive_settings...
+                for extensive_setting in extensive_settings: # iterate over extensive settings
                     # make folder
                     if "numerical_orbital" not in spns.keys():
                         spns["numerical_orbital"] = []
-                    folder = amwi._folder_(_system,
-                                           amwi.pseudopot_nao(pseudopotential=spns["pseudopotential"],
-                                                              numerical_orbital=spns["numerical_orbital"]),
-                                           amwi.calculation(calculation_setting)) # I FORGOT TO ADD CHARACTERISTIC LENGTH
+                    folder = amwi._folder_(system=_system,
+                                           pseudo_nao_identifier=amwi.pseudopot_nao(pseudopotential=spns["pseudopotential"],
+                                                                                    numerical_orbital=spns["numerical_orbital"]),
+                                           calculation_identifier=amwi.calculation(calculation_setting),
+                                           extensive_identifier=amwi.extensive(extensive_setting))
+                    # if name is too long, find ways to reduce the length
                     folder = amwi.folder_reduce(folder)
                     if len(folder) > 100:
                         folder = "_".join(folder.split("_")[1:])
@@ -117,11 +119,12 @@ def iterate(software: str, # which software? abacus or qespresso
                         os.system("cp {} {}/".format(fnao, folder)) if not test_mode else print("cp {} {}/".format(fnao, folder))
                         numerical_orbitals[_element] = valid_numerical_orbitals[_element][_naoid]["file"]
                     
-                    nkpoints_in_line = extensive["nkpoints_in_line"]
+                    nkpoints_in_line = extensive_setting["nkpoints_in_line"]
                     for word in _system.split("_")[1]:
                         if word.isalpha():
                             nkpoints_in_line = -1 # mpid only contains numbers, so if it contains letters, it will be dimer, trimer or tetramer
                             break
+                    characteristic_length = extensive_setting["characteristic_lengths"]
                     if software == "qespresso":
                         iterate_qespresso(system_with_mpid=_system, target_folder=folder, calculation_setting=calculation_setting,
                                           pseudopotentials=pseudopotentials, 
@@ -170,6 +173,7 @@ def iterate_abacus(system_with_mpid: str = "", # on which structure? system with
     else:
         print("write %s\ncontents:\n%s"%(target_folder + "/INPUT", _input))
     # write STRU
+    numerical_orbitals = None if numerical_orbitals is not None and len(numerical_orbitals) == 0 else numerical_orbitals
     if nkpoints_in_line >= 0:
         _stru, _cell = amsag._STRU_(
             fname=amwi.TEMPORARY_FOLDER + "/" + amwi.cif(system_with_mpid), 

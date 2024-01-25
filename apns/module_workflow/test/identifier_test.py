@@ -45,11 +45,15 @@ class IdentifierTest(unittest.TestCase):
                 "functional": "PBE",
                 "system": "mp-1",
                 "specific_test": "test"
-            },
-            extnsv_param_suite={
-                "characteristic_lengths": 2.5,
             }
-        ), "Chlen2.5FnlPBESmmp-1Sctttest")
+        ), "FnlPBESmmp-1Sctttest")
+    
+    def test_extensive(self):
+        self.assertEqual(id.extensive(param_suite={
+            "characteristic_lengths": 2.5,
+            "nkpoints_in_line": 10,
+            "magnetism": "ferromagnetic"
+        }), "Chlen2.5")
 
 if __name__ == "__main__":
     unittest.main()
