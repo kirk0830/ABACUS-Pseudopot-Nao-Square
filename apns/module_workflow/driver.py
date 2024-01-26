@@ -16,14 +16,17 @@ def driver_v1(input_file: str):
     """software-related availability check"""
     """iteratively generation"""
     import apns.module_workflow.apns_itertools as amwai
+    pseudopot_nao_settings, calculation_settings, extensive_settings = amwai.setup_iterables(system_list=inp["systems"],
+                                                                                             pseudopotentials=vpspot,
+                                                                                             numerical_orbitals=vnao,
+                                                                                             calculation_settings=inp["calculation"],
+                                                                                             extensive_settings=inp["extensive"])
     import apns.module_workflow.iterate as amwi
     folders = amwi.iterate(software=inp["global"]["software"].lower(),
                            systems=inp["systems"],
-                           pseudopot_nao_settings=amwai.systems(system_list=inp["systems"], 
-                                                                valid_pseudopotentials=vpspot, 
-                                                                valid_numerical_orbitals=vnao),
-                           calculation_settings=amwai.calculation(inp["calculation"]),
-                           extensive_settings=amwai.extensive(inp["extensive"]),
+                           pseudopot_nao_settings=pseudopot_nao_settings,
+                           calculation_settings=calculation_settings,
+                           extensive_settings=extensive_settings,
                            valid_pseudopotentials=vpspot,
                            valid_numerical_orbitals=vnao,
                            pspot_archive=pspot_arch,

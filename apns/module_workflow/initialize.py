@@ -42,7 +42,7 @@ def initialize(finp: str, test_mode: bool = False) -> tuple[dict, dict, dict, di
     # nao_arch = amna.load(_inp["global"]["nao_dir"]) # load numerical orbital archive, not implemented yet
 
     if not pspot_software_availability(_inp, valid_pseudopotentials, pseudopot_arch):
-        raise ValueError("Selected software is not compatible with input file.")
+        raise ValueError("All valid pseudopotentials are not compatible with the software.")
 
     return _inp, valid_pseudopotentials, valid_numerical_orbitals, pseudopot_arch, None
 
@@ -96,11 +96,15 @@ def download_structure(finp: str) -> dict:
     system_with_mpids = {}
 
     if len(_crystal):
+        consider_magnetism = False
+        if inp["calculation"]["nspin"] == 2 and inp["extensive"]["magnetism"] == "materials_project":
+            consider_magnetism = True
         system_with_mpids = amsmp.composites(api_key=inp["materials_project"]["api_key"],
-                                            formula=_crystal,
-                                            num_cif=inp["materials_project"]["n_structures"],
-                                            theoretical=inp["materials_project"]["theoretical"],
-                                            is_stable=inp["materials_project"]["most_stable"])
+                                             formula=_crystal,
+                                             num_cif=inp["materials_project"]["n_structures"],
+                                             theoretical=inp["materials_project"]["theoretical"],
+                                             is_stable=inp["materials_project"]["most_stable"],
+                                             consider_magnetism=consider_magnetism)
     elif len(_isolated):
         for system in _isolated:
             element = system.split("_")[0]
@@ -174,12 +178,17 @@ def pspot_software_availability(inp: dict, valid_pseudopotentials: dict, pseudop
     """check files one by one"""
 
     for element in valid_pseudopotentials.keys():
+        pseudopot_exceptions = []
         for identifier in valid_pseudopotentials[element].keys():
             fpspot = pseudopot_arch[identifier] + "/" + valid_pseudopotentials[element][identifier]["file"]
             print("Parsing pseudopotential file: ", fpspot)
             if not ampgp.is_compatible(fpspot, software=inp["global"]["software"].lower()):
-                return False
+                print("Compatiblity check failed for pseudopotential file: ", fpspot, " will be skipped.")
+                pseudopot_exceptions.append(identifier)
             else:
                 print("Compatiblity check OK.")
-    return True
-    """or I can use it as a filter to filter out incompatible pseudopotentials"""
+        for identifier in pseudopot_exceptions:
+            del valid_pseudopotentials[element][identifier]
+        if valid_pseudopotentials[element] == {}:
+            return False
+    return valid_pseudopotentials != {}
