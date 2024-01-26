@@ -247,3 +247,14 @@ def extensive(extensive_settings: dict) -> list:
         for i in range(len(result)):
             result[i][key] = extensive_settings[key]
     return result
+
+def setup_iterables(system_list: list,
+                    pseudopotentials: dict,
+                    numerical_orbitals: dict,
+                    calculation_settings: dict,
+                    extensive_settings: dict) -> tuple[list, list, list]:
+    return systems(system_list=system_list,
+                   valid_pseudopotentials=pseudopotentials,
+                   valid_numerical_orbitals=numerical_orbitals), \
+           calculation(calculation_settings), \
+           extensive(extensive_settings)

@@ -9,8 +9,7 @@ class TestAbacus(unittest.TestCase):
         "functionals": "PBE",
         "ecutwfc": 100,
         "cal_force": 1,
-        "cal_stress": 1,
-        "characteristic_lengths": 0.0
+        "cal_stress": 1
     }
 
     pseudopotentials = {
@@ -24,10 +23,10 @@ class TestAbacus(unittest.TestCase):
         self.assertGreater(len(_input), 0)
         print(_input)
 
-    def test_STRU_ISOLATED(self):
+    def test_STRU_Molecule(self):
         """Test the generation of template structure file for isolated system
         """
-        _stru, _ = abacus._STRU_ISOLATED_(shape="trimer",
+        _stru, _ = abacus.STRU_Molecule(shape="trimer",
                                        pseudopotentials=self.pseudopotentials,
                                        bond_length=3.0)
         self.assertGreater(len(_stru), 0)
@@ -40,6 +39,30 @@ class TestAbacus(unittest.TestCase):
                                 nkpts_in_line=5)
         self.assertGreater(len(_kline), 0)
         print(_kline)
+
+    def test_STRU_Pymatgen(self):
+        """Test the generation of template structure file for Abacus
+        """
+        _stru, _ = abacus.STRU_Pymatgen(fname="apns_cache/mp-160.cif",
+                                     pseudopotentials={
+                                         "B": "B_ONCV_PBE-1.0.upf",
+                                     },
+                                     numerical_orbitals=None,
+                                     cell_scaling=1.0,
+                                     starting_magnetization=None)
+        self.assertGreater(len(_stru), 0)
+        
+        # test mp-8.cif, Re2
+        starting_magnetization = [-1, 1] # antiferromagnetic
+        _stru, _ = abacus.STRU_Pymatgen(fname="apns_cache/mp-8.cif",
+                                     pseudopotentials={
+                                         "Re": "Re_ONCV_PBE-1.0.upf",
+                                     },
+                                     numerical_orbitals=None,
+                                     cell_scaling=1.0,
+                                     starting_magnetization=starting_magnetization)
+        self.assertGreater(len(_stru), 0)
+        print(_stru)
 
 if __name__ == "__main__":
     unittest.main()

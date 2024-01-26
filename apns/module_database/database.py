@@ -120,6 +120,8 @@ def element_mass(label: str) -> float:
         "Nh": 286, "Fl": 289, "Mc": 289, "Lv": 293, "Ts": 294,
         "Og": 294
     }
+    # remove all numbers in label
+    label = ''.join([i for i in label if not i.isdigit()])
     return mass[label]
 
 def number_to_multiplicity(n: int) -> str:

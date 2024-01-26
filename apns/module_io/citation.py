@@ -11,10 +11,7 @@ def citation(software: str = "abacus",
     # python packages
     seekpath()
     materials_project()
-    # pseudopotentials
-    pseudopotential(kind=list(pseudopot_nao["pseudopotentials"]))
-    if "numeric_orbitals" in pseudopot_nao.keys():
-        numerical_orbital()
+    
 
 def seekpath():
 

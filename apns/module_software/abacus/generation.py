@@ -185,7 +185,7 @@ def _STRU_(fname: str,
 
     return return_str, cell_parameters
 
-def _STRU_ISOLATED_(shape: str,
+def STRU_Molecule(shape: str,
                     pseudopotentials: dict,
                     numerical_orbitals: dict = None,
                     bond_length: float = 0.0,
@@ -247,6 +247,57 @@ def _STRU_ISOLATED_(shape: str,
         raise ValueError("shape must be dimer, trimer or tetramer.")
 
     return return_str, [20.0, 20.0, 20.0]
+
+import apns.module_structure.CifParser_Pymatgen as amcp
+import apns.module_structure.basic as ambs
+def STRU_Pymatgen(fname: str,                                   # cif file name
+                  pseudopotentials: dict,                       # pseudopotentials information
+                  numerical_orbitals: dict = None,              # numerical orbitals information
+                  cell_scaling: float = 0.0,                    # cell scaling factor
+                  starting_magnetization: list|dict = None):    # starting magnetization information
+    
+    """with Pymatgen's CifParser, convert cif file to STRU file."""
+    symbols, xyzs = amcp.structure(fname)
+    a, b, c, alpha, beta, gamma, lattice_vectors = amcp.lattice(fname)
+    if starting_magnetization is None:
+        starting_magnetization = {element: 0.0 for element in pseudopotentials.keys()}
+
+    return_str = "ATOMIC_SPECIES\n"
+    species = ambs.expand_atomic_species(symbols=symbols,
+                                         atomic_positions=xyzs,
+                                         pseudopotentials=pseudopotentials,
+                                         numerical_orbitals=numerical_orbitals,
+                                         starting_magnetization=starting_magnetization)
+    for element in species.keys():
+        return_str += "%s %8.4f %s\n" % (element,
+                                         amdd.element_mass(element),
+                                         species[element]["pseudopotential"])
+    return_str += "\n"
+    if numerical_orbitals is not None:
+        return_str += "NUMERICAL_ORBITAL\n"
+        for element in species.keys():
+            return_str += "%s\n" % (species[element]["numerical_orbital"])
+        return_str += "\n"
+    
+    lattice_constant = 1.889726877 * (1.0 + cell_scaling)
+    return_str += "LATTICE_CONSTANT\n%s\n\n"%(lattice_constant)
+    return_str += "LATTICE_VECTORS\n"
+    for lattice_vector in lattice_vectors:
+        return_str += "%12.8f %12.8f %12.8f\n" %(lattice_vector[0],
+                                                 lattice_vector[1],
+                                                 lattice_vector[2])
+    return_str += "\n"
+    return_str += "ATOMIC_POSITIONS\nDirect\n"
+    for element in species.keys():
+        return_str += "%s\n" % (element)
+        return_str += "%4.2f\n"%(species[element]["starting_magnetization"])
+        return_str += "%d\n"%(len(species[element]["atomic_positions"]))
+        for ia, position in enumerate(species[element]["atomic_positions"]):
+            return_str += "%12.8f %12.8f %12.8f"%(position[0], position[1], position[2])
+            return_str += " m 1 1 1"
+            return_str += "\n"
+    
+    return return_str, [a, b, c, alpha, beta, gamma]
 
 def KPT_generation(mode: str, gamma_centered: bool = True, **kwargs):
     """KPT file generation
@@ -314,15 +365,15 @@ def _KPT_(isolated: bool = False, gamma_centered: bool = True, **kwargs):
         _type_: readily usable string for KPT file.
     """
     if "cell_parameters" in kwargs and not isolated:
-            cell_parameters = kwargs["cell_parameters"]
-            if isinstance(cell_parameters, list):
-                a, b, c = cell_parameters[0], cell_parameters[1], cell_parameters[2]
-            elif isinstance(cell_parameters, dict):
-                a, b, c = cell_parameters["a"], cell_parameters["b"], cell_parameters["c"]
-            else:
-                raise TypeError("Not supported data format of cell parameters, must be list or dict.")
-            _fold = 35 if kwargs.get("metallic", False) else 25
-            return_str = "K_POINTS\n0\n%s\n%d %d %d 0 0 0\n" % ("Gamma" if gamma_centered else "MP", int(_fold/a) + 1, int(_fold/b) + 1, int(_fold/c) + 1)
+        cell_parameters = kwargs["cell_parameters"]
+        if isinstance(cell_parameters, list):
+            a, b, c = cell_parameters[0], cell_parameters[1], cell_parameters[2]
+        elif isinstance(cell_parameters, dict):
+            a, b, c = cell_parameters["a"], cell_parameters["b"], cell_parameters["c"]
+        else:
+            raise TypeError("Not supported data format of cell parameters, must be list or dict.")
+        _fold = 35 if kwargs.get("metallic", False) else 25
+        return_str = "K_POINTS\n0\n%s\n%d %d %d 0 0 0\n" % ("Gamma" if gamma_centered else "MP", int(_fold/a) + 1, int(_fold/b) + 1, int(_fold/c) + 1)
     else:
         return_str = "K_POINTS automatic\n0\nGamma\n1 1 1 0 0 0\n"
         print("Warning: KPT file generation failed, use default KPT file instead.") if not isolated else None
@@ -467,6 +518,8 @@ def INPUT_generation(minimal: bool = True,
         for key in values:
             return_str += "%s %s # %s\n"%(key, values[key], comments[key])
     return return_str
+
+
 
 INPUT_TEMPLATE = """INPUT_PARAMETERS
 #Parameters (1.General)
