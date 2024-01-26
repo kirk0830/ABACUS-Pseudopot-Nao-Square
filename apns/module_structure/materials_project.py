@@ -52,34 +52,94 @@ def check_already_exist(mpid: str) -> bool:
     fname = mpid + ".cif"
     return fname in os.listdir(amwi.TEMPORARY_FOLDER)
 
-def recall_search_memory(formuli: str, n_structure: int) -> list:
-    """If there is a file named materials_project_memory.json, 
+def recall_mpids_memory(formuli: str, n_structure: int) -> list:
+    """If there is a file named formula_mpid.json, 
     and the entry with key `formuli` has more than `n_structure` mpids,
     return the first `n_structure` mpids. Otherwise return a empty list."""
-    if not os.path.exists(amwi.TEMPORARY_FOLDER + "/" + "materials_project_memory.json"):
+    if not os.path.exists(amwi.TEMPORARY_FOLDER + "/" + "formula_mpid.json"):
         return []
     else:
-        with open(amwi.TEMPORARY_FOLDER + "/" + "materials_project_memory.json", "r") as f:
-            memory = json.load(f)
-        if formuli not in memory.keys():
+        with open(amwi.TEMPORARY_FOLDER + "/" + "formula_mpid.json", "r") as f:
+            mpids_memory = json.load(f)
+        if formuli not in mpids_memory.keys():
             return []
-        elif len(memory[formuli]) >= n_structure:
-            return memory[formuli][:n_structure]
+        elif len(mpids_memory[formuli]) >= n_structure:
+            return mpids_memory[formuli][:n_structure]
         else:
             return []
 
-def memorize(formuli: str, mpids: list) -> None:
-    """If there is not a file named materials_project_memory.json, 
+def recall_magmoms_memory(mpids: list) -> list:
+    """with mpids, get magmom information. Only when all mpids have magmom information,
+    return magmom list. Otherwise return a empty list."""
+    if not os.path.exists(amwi.TEMPORARY_FOLDER + "/" + "mpid_magmom.json"):
+        return []
+    else:
+        with open(amwi.TEMPORARY_FOLDER + "/" + "mpid_magmom.json", "r") as f:
+            magmoms_memory = json.load(f)
+        magmoms = []
+        for mpid in mpids:
+            if mpid not in magmoms_memory.keys():
+                return []
+            else:
+                magmoms.append(magmoms_memory[mpid])
+        return magmoms
+
+def recall_memory(formuli: str, n_structure: int, consider_magnetism: bool = False) -> list:
+    """If there is a file named formula_mpid.json, 
+    and the entry with key `formuli` has more than `n_structure` mpids,
+    return the first `n_structure` mpids. Otherwise return a empty list."""
+    mpids = recall_mpids_memory(formuli, n_structure)
+    magmoms = []
+    if len(mpids) == n_structure:
+        if consider_magnetism:
+            magmoms = recall_magmoms_memory(mpids)
+    return mpids, magmoms
+
+def search(mpr: MPRester, 
+           structure_criteria: dict = None,
+           magnetism_criteria: bool = False) -> tuple[list, list]:
+    """with MPRester handle, return all mpids and corresponding magnetism information in lists
+    """
+    docs = mpr.materials.summary.search(formula=structure_criteria["formuli"], 
+                                        theoretical=structure_criteria["theoretical"], 
+                                        is_stable=structure_criteria["is_stable"])
+    mpi_ids = [doc.material_id for doc in docs]
+    if magnetism_criteria is None:
+        return mpi_ids, []
+    
+    docs = mpr.magnetism.search(material_ids=mpi_ids)
+    magmoms = [doc.magmoms for doc in docs]
+    return mpi_ids, magmoms
+
+def memorize(formuli: str, mpids: list, magmoms: list) -> None:
+    """If there is not a file named formula_mpid.json, 
     create one and write the first entry. If there is already a file,
-    overwrite the file with new entry."""    
-    if not os.path.exists(amwi.TEMPORARY_FOLDER + "/" + "materials_project_memory.json"):
-        with open(amwi.TEMPORARY_FOLDER + "/" + "materials_project_memory.json", "w") as f:
+    overwrite the file with new entry."""
+
+    """mpid information"""
+    if not os.path.exists(amwi.TEMPORARY_FOLDER + "/" + "formula_mpid.json"):
+        with open(amwi.TEMPORARY_FOLDER + "/" + "formula_mpid.json", "w") as f:
             json.dump({formuli: mpids}, f, indent=4)
     else:
-        with open(amwi.TEMPORARY_FOLDER + "/" + "materials_project_memory.json", "r") as f:
+        with open(amwi.TEMPORARY_FOLDER + "/" + "formula_mpid.json", "r") as f:
             memory = json.load(f)
         memory[formuli] = mpids
-        with open(amwi.TEMPORARY_FOLDER + "/" + "materials_project_memory.json", "w") as f:
+        with open(amwi.TEMPORARY_FOLDER + "/" + "formula_mpid.json", "w") as f:
+            json.dump(memory, f, indent=4)
+            
+    """magnetism information"""
+    if len(magmoms) == 0:
+        return
+    elif len(mpids) != len(magmoms):
+        raise ValueError("mpids and magmoms must have the same length")
+    if not os.path.exists(amwi.TEMPORARY_FOLDER + "/" + "mpid_magmom.json"):
+        with open(amwi.TEMPORARY_FOLDER + "/" + "mpid_magmom.json", "w") as f:
+            json.dump(dict(zip(mpids, magmoms)), f, indent=4)
+    else:
+        with open(amwi.TEMPORARY_FOLDER + "/" + "mpid_magmom.json", "r") as f:
+            memory = json.load(f)
+        memory.update(dict(zip(mpids, magmoms)))
+        with open(amwi.TEMPORARY_FOLDER + "/" + "mpid_magmom.json", "w") as f:
             json.dump(memory, f, indent=4)
 
 def elemental_substances(api_key: str, element: str, num_cif = 1, theoretical = 0):
@@ -128,8 +188,9 @@ def elemental_substances(api_key: str, element: str, num_cif = 1, theoretical = 
 def composites(api_key: str, 
                formula: list, 
                num_cif: int|list, 
-               theoretical = False, 
-               is_stable = False):
+               theoretical: bool = False, 
+               is_stable: bool = False,
+               consider_magnetism: bool = False):
     """
     down load composites structures from materials project
 
@@ -160,34 +221,36 @@ def composites(api_key: str,
     print("Establishing connection to Materials Project database...")
     with MPRester(api_key) as mpr:
         
+        """for each formula, search mpids and magnetism information"""
         for ifo, formuli in enumerate(formula):
             # first check whether there is a memory file
             mpi_ids = []
 
-            mpids = recall_search_memory(formuli, num_cif[ifo])
-            if len(mpids) == num_cif[ifo]:
+            mpids, magmoms = recall_memory(formuli, num_cif[ifo], consider_magnetism)
+            if len(mpids) == num_cif[ifo] and (len(magmoms) == num_cif[ifo] or not consider_magnetism):
                 mpi_ids = mpids
                 print("Found {} system's Materials Project IDs (mpids) in memory file, skip searching. ".format(num_cif[ifo])
-                     +"If not satisfied with result, delete file materials_project_memory.json and restart.")
+                     +"If not satisfied with result, delete file formula_mpid.json and restart.")
             else:
-                docs = mpr.materials.summary.search(formula=formuli, theoretical=theoretical, is_stable=is_stable)
-                mpi_ids = [doc.material_id for doc in docs]
+                structure_criteria = dict(zip(["formuli", "theoretical", "is_stable"], [formuli, theoretical, is_stable]))
+                mpi_ids, magmoms = search(mpr, structure_criteria, magnetism_criteria=consider_magnetism)
+
                 while len(mpi_ids) == 0 and (is_stable or not theoretical):
                     print("Warning: No structure found for formula %s for filter theoretical = %s and is_stable = %s"%(formuli, theoretical, is_stable))
                     if is_stable:
                         print("Automatically switch to is_stable = False, this operation will include more substable structures.")
-                        docs = mpr.materials.summary.search(formula=formuli, theoretical=theoretical, is_stable=False)
-                        mpi_ids = [doc.material_id for doc in docs]
+                        structure_criteria["is_stable"] = False
+                        mpi_ids, magmoms = search(mpr, structure_criteria, magnetism_criteria=consider_magnetism)
                         is_stable = False
                     elif not theoretical:
                         print("Automatically switch to theoretical = True, this operation will include also not experimentally observed structures.")
-                        docs = mpr.materials.summary.search(formula=formuli, theoretical=True, is_stable=is_stable)
-                        mpi_ids = [doc.material_id for doc in docs]
+                        structure_criteria["theoretical"] = True
+                        mpi_ids, magmoms = search(mpr, structure_criteria, magnetism_criteria=consider_magnetism)
                         theoretical = True
                     else:
                         raise ValueError("No structure found for formula {}".format(formuli))
                     
-                memorize(formuli, mpi_ids)
+                memorize(formuli, mpi_ids, magmoms)
 
             num_cif_downloaded = 0
             
