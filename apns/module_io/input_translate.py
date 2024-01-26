@@ -14,14 +14,30 @@ def check(inp: dict) -> None:
     Raises:
         ValueError: unreasonable parameter will raise this error
     """
+    """basic"""
     if inp["global"]["software"] == "qespresso":
         if inp["calculation"]["basis_type"] == "lcao":
             raise ValueError("Quantum ESPRESSO only supports pw calculation.")
+    
+    """on the Feature Request of band structure calculation"""
     if inp["calculation"]["calculation"] == "scf":
         if inp["extensive"]["nkpoints_in_line"] > 0:
             print("calculation: ", inp["calculation"]["calculation"])
             print("nkpoints_in_line: ", inp["extensive"]["nkpoints_in_line"])
             raise ValueError("confused with calculation requested: for nkpoints > 0 specifies a band calculation, not a scf calculation.")
+    
+    """on the Feature Request of initialization of magnetism"""
+    if "nspin" in inp["calculation"].keys():
+        if inp["calculation"]["nspin"] == 1:
+            if inp["extensive"]["magnetism"] != "nonmagnetic":
+                print("Warning: for nspin = 1, specifying magnetism is meaningless.")
+        else:
+            if inp["extensive"]["magnetism"] == "materials_project":
+                print("Will use magnetism from data reported on materials project website.")
+            elif inp["extensive"]["magnetism"] not in ["nonmagnetic", "ferromagnetic", "antiferromagnetic"]:
+                raise ValueError("for nspin = 2, magnetism must be 'nonmagnetic', 'ferromagnetic' or 'antiferromagnetic', or 'materials_project'.")
+    else:
+        print("nspin not specified, will use nspin = 1 case by default.")
 
 def default(inp: dict) -> dict:
     """set default value for unset keywords for global and calculation sections
@@ -145,11 +161,13 @@ DEFAULT_INPUT = {
         "basis_type": "pw",
         "functionals": ["PBE"],
         "ecutwfc": [100],
-        "calculation": "scf"
+        "calculation": "scf",
+        "nspin": 1
     },
     "extensive": {
         "characteristic_lengths": [0.00],
-        "nkpoints_in_line": 0
+        "nkpoints_in_line": 0,
+        "magnetism": "nonmagnetic"
     },
     "systems": [],
     "pseudopotentials": {

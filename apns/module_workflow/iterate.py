@@ -118,22 +118,24 @@ def iterate(software: str, # which software? abacus or qespresso
                         fnao += valid_numerical_orbitals[_element][_naoid]["file"]
                         os.system("cp {} {}/".format(fnao, folder)) if not test_mode else print("cp {} {}/".format(fnao, folder))
                         numerical_orbitals[_element] = valid_numerical_orbitals[_element][_naoid]["file"]
-                    
-                    nkpoints_in_line = extensive_setting["nkpoints_in_line"]
+
                     for word in _system.split("_")[1]:
                         if word.isalpha():
-                            nkpoints_in_line = -1 # mpid only contains numbers, so if it contains letters, it will be dimer, trimer or tetramer
+                            extensive_setting["nkpoints_in_line"] = -1 # mpid only contains numbers, so if it contains letters, it will be dimer, trimer or tetramer
                             break
-                    characteristic_length = extensive_setting["characteristic_lengths"]
                     if software == "qespresso":
-                        iterate_qespresso(system_with_mpid=_system, target_folder=folder, calculation_setting=calculation_setting,
-                                          pseudopotentials=pseudopotentials, 
-                                          characteristic_length=characteristic_length, nkpoints_in_line=nkpoints_in_line,
+                        iterate_qespresso(system_with_mpid=_system, 
+                                          target_folder=folder, 
+                                          calculation_setting=calculation_setting,
+                                          extensive_setting=extensive_setting,
+                                          pseudopotentials=pseudopotentials,
                                           test_mode=test_mode)
                     elif software == "abacus":
-                        iterate_abacus(system_with_mpid=_system, target_folder=folder, calculation_setting=calculation_setting,
+                        iterate_abacus(system_with_mpid=_system, 
+                                       target_folder=folder, 
+                                       calculation_setting=calculation_setting,
+                                       extensive_setting=extensive_setting,
                                        pseudopotentials=pseudopotentials, numerical_orbitals=numerical_orbitals,
-                                       characteristic_length=characteristic_length, nkpoints_in_line=nkpoints_in_line,
                                        test_mode=test_mode)
     return folders
 
@@ -142,8 +144,7 @@ def iterate_abacus(system_with_mpid: str = "", # on which structure? system with
                    calculation_setting: dict = None, # use what calculation setting?
                    pseudopotentials: dict = None, # which set of pseudopotentials?
                    numerical_orbitals: dict = None, # which set of numerical orbitals?
-                   characteristic_length: float = 0.0, # for crystal, it is cell scaling; for molecule, it is bond length
-                   nkpoints_in_line: int = 0,  # for -1, assume system as isolated, for 0, will sample kpoints automatically, for >0, will generate kpath
+                   extensive_setting: dict = None,
                    test_mode: bool = True # for test
                    ) -> None:
     """iterate over all possible combinations of input parameters and generate folders
@@ -174,29 +175,32 @@ def iterate_abacus(system_with_mpid: str = "", # on which structure? system with
         print("write %s\ncontents:\n%s"%(target_folder + "/INPUT", _input))
     # write STRU
     numerical_orbitals = None if numerical_orbitals is not None and len(numerical_orbitals) == 0 else numerical_orbitals
-    if nkpoints_in_line >= 0:
-        _stru, _cell = amsag._STRU_(
-            fname=amwi.TEMPORARY_FOLDER + "/" + amwi.cif(system_with_mpid), 
-            pseudopotentials=pseudopotentials,
-            numerical_orbitals=numerical_orbitals,
-            cell_scaling=characteristic_length)
+
+    if extensive_setting["nkpoints_in_line"] >= 0:
+        starting_magnetization = amsb.starting_magnetization(amwi.cif(system_with_mpid), magnetism=extensive_setting["magnetism"])
+        _stru, _cell = amsag.STRU_Pymatgen(fname=amwi.TEMPORARY_FOLDER + "/" + amwi.cif(system_with_mpid),
+                                           pseudopotentials=pseudopotentials,
+                                           numerical_orbitals=numerical_orbitals,
+                                           cell_scaling=extensive_setting["characteristic_lengths"],
+                                           starting_magnetization=starting_magnetization)
     else:
-        _stru, _cell = amsag._STRU_ISOLATED_(shape=system_with_mpid.split("_")[1],
-                                             pseudopotentials=pseudopotentials,
-                                             numerical_orbitals=numerical_orbitals,
-                                             bond_length=characteristic_length)
+        starting_magnetization = amsb.starting_magnetization(system_with_mpid.split("_")[1], magnetism=extensive_setting["magnetism"])
+        _stru, _cell = amsag.STRU_Molecule(shape=system_with_mpid.split("_")[1],
+                                           pseudopotentials=pseudopotentials,
+                                           numerical_orbitals=numerical_orbitals,
+                                           bond_length=extensive_setting["characteristic_lengths"])
     if not test_mode:
         with open(target_folder + "/STRU", "w") as f: f.write(_stru)
     else:
         print("write %s\ncontents:\n%s"%(target_folder + "/STRU", _stru))
     # write KPT
-    if nkpoints_in_line < 0:
+    if extensive_setting["nkpoints_in_line"] < 0:
         _kpt = amsag._KPT_(isolated=True, cell_parameters=_cell)
-    elif nkpoints_in_line == 0:
+    elif extensive_setting["nkpoints_in_line"] == 0:
         _kpt = amsag._KPT_(isolated=False, cell_parameters=_cell)
     else:
         _kpt = amsag._KLINE_(fname=amwi.TEMPORARY_FOLDER + "/" + amwi.cif(system_with_mpid),
-                             nkpts_in_line=nkpoints_in_line)
+                             nkpts_in_line=extensive_setting["nkpoints_in_line"])
     if not test_mode:
         with open(target_folder + "/KPT", "w") as f: f.write(_kpt)
     else:
@@ -206,8 +210,7 @@ def iterate_qespresso(system_with_mpid: str = "", # on which structure? system w
                       target_folder: str = "./", # in which folder? target folder
                       calculation_setting: dict = None, # use what calculation setting?
                       pseudopotentials: dict = None, # which set of pseudopotentials?
-                      characteristic_length: float = 0.0, # for non isolated, it is cell scaling; for isolated, it is bond length
-                      nkpoints_in_line: int = 0,  # for -1, assume system as isolated, for 0, will sample kpoints automatically, for >0, will generate kpath
+                      extensive_setting: dict = None,
                       test_mode: bool = True # for test
                       ) -> None:
     """iterate over all possible combinations of input parameters and generate folders
@@ -237,16 +240,17 @@ def iterate_qespresso(system_with_mpid: str = "", # on which structure? system w
     
     _in = ""
     ntype, natom = len(pseudopotentials), 0
-    if nkpoints_in_line < 0:
+    if extensive_setting["nkpoints_in_line"] < 0:
         _in, natom = amsqg._ISOLATED(element=system_with_mpid.split("_")[0], 
                                      shape=system_with_mpid.split("_")[1],
-                                     bond_length=characteristic_length)
+                                     bond_length=extensive_setting["characteristic_lengths"])
     else:
         _in, natom = amsqg._CIF(fname=amwi.TEMPORARY_FOLDER + "/" + amwi.cif(system_with_mpid),
-                                cell_scaling=characteristic_length,
+                                cell_scaling=extensive_setting["characteristic_lengths"],
                                 constraints=[])
         
-    _in = amsqg._K_POINTS(fname=amwi.TEMPORARY_FOLDER + "/" + amwi.cif(system_with_mpid), nkpoints_in_line=nkpoints_in_line) + _in
+    _in = amsqg._K_POINTS(fname=amwi.TEMPORARY_FOLDER + "/" + amwi.cif(system_with_mpid), 
+                          nkpoints_in_line=extensive_setting["nkpoints_in_line"]) + _in
     
     _in = amsqg._ATOMIC_SEPCIES(pseudopotential=pseudopotentials) + _in
 
