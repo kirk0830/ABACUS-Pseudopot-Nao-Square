@@ -397,6 +397,48 @@ smearing_sigma      0.01
                                  orbital_configurations=orbital_configurations,
                                  maxstep=9000
                                  )
-        print(result)
+        reference = """# Refactor version of SIAB_INPUT of PTG_dpsi for generating numerical atomic orbitals of ABACUS
+# from ABACUS-Planewave DFT calculations - For high throughput auto-generation and test of
+# pseudopotentials and numerical atomic orbitals. This is included in project ABACUS Pseudopot-
+# Nao Square (APNS). Visit related Github repos for more information:
+# ABACUS (deepmodeling) Github repo: https://github.com/deepmodeling/abacus-develop
+# PTG_dpsi (abacusmodeling/ABACUS-orbitals) Github repo: https://github.com/abacusmodeling/ABACUS-orbitals
+# APNS Github repo: https://github.com/kirk0830/ABACUS-Pseudopot-Nao-Square
+# APNS Github Pages: https://kirk0830.github.io/ABACUS-Pseudopot-Nao-Square
+# APNS is mainly developed and maintained by ABACUS-AISI developer team
+
+# PROGRAM CONFIGURATION
+#EXE_env                                
+EXE_mpi             mpirun -np 1        
+EXE_pw              abacus              
+
+# ELECTRONIC STRUCTURE CALCULATION
+element             Fe                  
+Ecut                100                 
+Rcut                6 7 8 9 10          
+Pseudo_dir          ./download/pseudopotentials/sg15_oncv_upf_2020-02-06/1.2
+Pseudo_name         Fe_ONCV_PBE-1.2.upf 
+smearing_sigma      0.015               
+
+# REFERENCE SYSTEMS
+# identifier     shape          nbands         lmax           nspin          bond_lengths   
+  STRU1          dimer          8              3              1              1.8 2.0 2.3 2.8 3.8
+  STRU2          trimer         10             3              1              1.9 2.1 2.6    
+
+# SIAB PARAMETERS
+max_steps 9000
+# orb_id         stru_id        nbands_ref     orb_ref        orb_config     
+  Level1         STRU1          4              none           2s1p1d         
+  Level2         STRU1          4              fix            4s2p2d1f       
+  Level3         STRU2          6              fix            6s3p3d2f       
+
+# SAVE
+# save_id        orb_id         zeta_notation  
+  Save1          Level1         SZ             
+  Save2          Level2         DZP            
+  Save3          Level3         TZDP           
+"""
+        self.assertEqual(result, reference)
+        
 if __name__ == "__main__":
     unittest.main()
