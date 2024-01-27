@@ -87,5 +87,19 @@ class TestGeneralParser(unittest.TestCase):
         fname_adc = "./download/pseudopotentials/pslnc_031/Ac.pbe-n-nc.UPF"
         self.assertTrue(ampgp.is_compatible(fname_adc))
 
+    def test_valelec_config(self):
+        fname_oncv = "./download/pseudopotentials/nc-fr-04_pbe_standard/Ag.upf"
+        result = ampgp.valelec_config(fname_oncv)
+        reference = [['5S', '4S'], ['4P'], ['4D']]
+        self.assertListEqual(result, reference)
+        fname_oncv = "./download/pseudopotentials/NCPP-PD04-PBE/3+_f--core-icmod1/Er3+_f--core-icmod1.PD04.PBE.UPF"
+        result = ampgp.valelec_config(fname_oncv)
+        reference = [['6S', '5S'], ['5P'], ['5D']]
+        self.assertListEqual(result, reference)
+        fname_oncv = "./download/pseudopotentials/NCPP-PD04-PBE/sp/Er-sp.PD04.PBE.UPF"
+        result = ampgp.valelec_config(fname_oncv)
+        reference = [['6S', '5S'], ['5P'], ['5D'], ['4F']]
+        self.assertListEqual(result, reference)
+
 if __name__ == "__main__":
     unittest.main(buffer=False)
