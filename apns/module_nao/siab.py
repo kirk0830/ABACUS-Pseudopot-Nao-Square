@@ -333,6 +333,34 @@ def zeta_notation_toorbitalconfig(zeta_notation: str, minimal_basis: list = None
     return result
 
 import apns.module_pseudo.general_parser as ampgp
+def autoset(fpseudo: str,
+            pseudo_dir: str,
+            minimal_basis: list,
+            reference_systems: list,
+            orbital_configurations: list):
+    fpseudo = pseudo_dir + "/" + fpseudo
+    if minimal_basis is None:
+        minimal_basis = ampgp.valelec_config(fpseudo)
+        minimal_basis = [len(item) for item in minimal_basis]
+    
+    z_val = -1
+    natom = {"dimer": 2, "trimer": 3, "tetramer": 4}
+    for reference_system in reference_systems:
+        if "nbands" not in reference_system.keys():
+            reference_system["nbands"] = "auto"
+        if reference_system["nbands"] in ["auto", "default", "pseudopotential"]:
+            if z_val == -1:
+                z_val = ampgp.parse(fpseudo)["PP_HEADER"]["attrib"]["z_valence"]
+            reference_system["nbands"] = int(z_val*natom[reference_system["shape"]]/2 * 2) # nLUMO = nHOMO
+    for orbital_configuration in orbital_configurations:
+        if "nbands_ref" not in orbital_configuration.keys():
+            orbital_configuration["nbands_ref"] = "auto"
+        if orbital_configuration["nbands_ref"] in ["auto", "default", "pseudopotential"]:
+            """what is the strategy of determing nbands_ref?"""
+            orbital_configuration["nbands_ref"] = "auto" # for all ground states
+            pass
+    return minimal_basis, reference_systems, orbital_configurations
+
 def SIAB_INPUT(element: str,                            # element name
                ecutwfc: float,                          # kinetic energy cutoff of planewave basis
                nspin: int,                              # number of spin channels
@@ -431,6 +459,13 @@ def SIAB_INPUT(element: str,                            # element name
     result += "# APNS Github repo: https://github.com/kirk0830/ABACUS-Pseudopot-Nao-Square\n"
     result += "# APNS Github Pages: https://kirk0830.github.io/ABACUS-Pseudopot-Nao-Square\n"
     result += "# APNS is mainly developed and maintained by ABACUS-AISI developer team\n\n"
+
+    minimal_basis, reference_systems, orbital_configurations = autoset(fpseudo=fpseudo,
+                                                                       pseudo_dir=pseudo_dir,
+                                                                       minimal_basis=minimal_basis,
+                                                                       reference_systems=reference_systems,
+                                                                       orbital_configurations=orbital_configurations)
+
     result += "# PROGRAM CONFIGURATION\n"
     result += siab_program_section(hpc_environment_settings=hpc_environment_settings,
                                    mpi_command=mpi_command,
@@ -445,9 +480,6 @@ def SIAB_INPUT(element: str,                            # element name
                                           smearing_sigma=smearing_sigma)
     result += "\n"
     result += "# REFERENCE SYSTEMS\n"
-    if minimal_basis is None:
-        minimal_basis = ampgp.valelec_config(pseudo_dir + "/" + fpseudo)
-        minimal_basis = [len(item) for item in minimal_basis]
     result += siab_reference_system(reference_systems=reference_systems,
                                     nspin=nspin,
                                     lmax=len(minimal_basis)-1,
@@ -464,3 +496,41 @@ def SIAB_INPUT(element: str,                            # element name
 
     return result
 
+if __name__ == "__main__":
+
+    reference_systems = [
+        {
+            "shape": "dimer",
+            "bond_lengths": [1.8, 2.0, 2.3, 2.8, 3.8],
+        },
+        {
+            "shape": "trimer",
+            "bond_lengths": [1.9, 2.1, 2.6],
+        }
+    ]
+    orbital_configurations = [
+        {
+            "reference_structure": "dimer",
+            "from_to": [None, "SZ"]
+        },
+        {
+            "reference_structure": "dimer",
+            "from_to": ["SZ", "DZP"]
+        },
+        {
+            "reference_structure": "trimer",
+            "from_to": ["DZP", "TZDP"]
+        }
+    ]
+    print(SIAB_INPUT(element="Fe",
+                     ecutwfc=100,
+                     nspin=1,
+                     rcut=[6, 7, 8, 9, 10],
+                     fpseudo="Fe_ONCV_PBE-1.2.upf",
+                     pseudo_dir="./download/pseudopotentials/sg15_oncv_upf_2020-02-06/1.2",
+                     minimal_basis=None,
+                     smearing_sigma=0.015,
+                     reference_systems=reference_systems,
+                     orbital_configurations=orbital_configurations,
+                     maxstep=9000)
+          )
