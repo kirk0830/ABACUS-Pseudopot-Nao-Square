@@ -19,7 +19,7 @@ def KPOINTS(fname: str = "", nkpoints_in_line: int = 0):
         for element in cif["atomic_positions"].keys():
             for line in cif["atomic_positions"][element]:
                 positions.append(line)
-                numbers.append(amdd.get_element_index(element))
+                numbers.append(amdd.element_label_toindex(element))
         
         _skps_result = skps.get_path(structure=(cell_vectors, positions, numbers))
         result = _skps_result
