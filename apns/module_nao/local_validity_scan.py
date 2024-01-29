@@ -126,7 +126,7 @@ def scan_valid_numerical_orbitals(work_status: dict, valid_pseudopotentials: dic
         for pseudopotential in valid_pseudopotentials[element].keys(): # for all valid pseudopotentials of present element
             if os.path.isdir(pseudopotential):
                 os.chdir(pseudopotential)
-                folder_header = str(ai.get_element_index(element)) + "_" + element
+                folder_header = str(ai.element_label_toindex(element)) + "_" + element
                 for nao_type in work_status["numerical_orbitals"]["types"][element]:
                     folder = folder_header + "_" + nao_type
                     if os.path.isdir(folder):

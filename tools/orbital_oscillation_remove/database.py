@@ -1,4 +1,4 @@
-def get_element_label(label: int) -> str:
+def element_index_tolabel(label: int) -> str:
 
     element = {
         1: "H", 2: "He", 3: "Li", 4: "Be", 5: "B", 6: "C", 7: "N",
@@ -24,7 +24,7 @@ def get_element_label(label: int) -> str:
     }
     return str(label) + "_" + element[label]
 
-def sublayer_to_l(label: str):
+def symbol_tol(label: str):
 
     if label == 's':
         return 0
@@ -39,7 +39,7 @@ def sublayer_to_l(label: str):
     else:
         raise RuntimeError("too high angular momentum")
 
-def l_to_sublayer(l: int) -> str:
+def l_tosymbol(l: int) -> str:
 
     if l == 0:
         return "s"

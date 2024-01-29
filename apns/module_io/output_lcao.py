@@ -80,7 +80,7 @@ def abacus(test_status: dict, functionals: list = ["pbe"], cell_scalings: list =
                         nao_path += id.numerical_orbital(type = ninfo_element["type"],
                                                         rcut = ninfo_element["rcut"],
                                                         appendix = ninfo_element["appendix"])
-                        nao_et = str(ai.get_element_index(element)) + "_" + element + "_"
+                        nao_et = str(ai.element_label_toindex(element)) + "_" + element + "_"
                         nao_et += ninfo_element["type"]
                         nao_path += nao_et + "/"
                         nao_file = n_file[element]
