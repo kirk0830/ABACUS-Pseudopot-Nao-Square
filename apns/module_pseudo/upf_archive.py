@@ -326,9 +326,10 @@ def description(upf_path: str):
     os.chdir(path_backup)
     return description
 
-def load(pseudo_dir: str) -> dict:
+def load(pseudo_dir: str = "./download/pseudopotentials/",
+         pspot_identifier: str = "") -> dict:
     """load pseudopotential folders architecture from description.json
-    
+    if identifier is given, return the path of the pseudopotential folder
     Returns:
     >>> {
     ...    "identifier_1": "path_1",
@@ -341,7 +342,12 @@ def load(pseudo_dir: str) -> dict:
         pseudo_dir = pseudo_dir[:-1]
     with open(pseudo_dir + "/" + "description.json") as json_f:
         pseudopot_folders_arch = json.load(json_f)
-    return pseudopot_folders_arch
+    if pspot_identifier == "":
+        return pseudopot_folders_arch
+    elif pspot_identifier in pseudopot_folders_arch.keys():
+        return pseudopot_folders_arch[pspot_identifier]
+    else:
+        raise ValueError("pseudopotential identifier not found.")
 
 if __name__ == "__main__":
 

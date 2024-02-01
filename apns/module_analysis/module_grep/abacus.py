@@ -85,6 +85,111 @@ def grep_ecutwfc(fname: str) -> float|bool:
     
     return False
 
+def AssertListEqual(list1: list, list2: list, nplaces: int = 7):
+    """Assert two lists are equal"""
+    if len(list1) != len(list2):
+        raise AssertionError("Two lists have different lengths.")
+    for i in range(len(list1)):
+        if abs(list1[i] - list2[i]) > 10**(-nplaces):
+            print("Two lists are not equal: ", list1, list2)
+            raise AssertionError("Two lists are not equal.")
+
+import re
 def grep_band(fname: str) -> list|bool:
     """grep band energies from running_scf.log"""
-    pass
+
+    float_pattern = r"([0-9\-]+\.[0-9\-]+[eEdD][\+\-][0-9]+)|([0-9\-]+\.[0-9\-]+)"
+    
+    kpt_pattern = r"^(\s*)([0-9]+)(\s*)(%s)(\s+)(%s)(\s*)(%s)(\s*)(%s)(\s*)$"%(float_pattern, float_pattern, float_pattern, float_pattern)
+    band_pattern = r"^(\s*)([0-9]+)(\s*)(%s)(\s+)(%s)(\s*)$"%(float_pattern, float_pattern)
+    band_header_pattern = r"^(.*)(\=\s*)(%s)(\s+)(%s)(\s+)(%s)(.*)$"%(float_pattern, float_pattern, float_pattern)
+
+    kpoints, kpt_wts, bands, occupations = [], [], [], []
+    nelectrons, efermi = 0, 0
+    with open(fname, "r") as f:
+        read_band, read_kpoint, nkpts, nbands = False, False, 0, 0
+        for line in f:
+            line = line.strip()
+            # not converged
+            if line.startswith("TIME STATISTICS"):
+                print("warning: scf calculation not converged in " + fname)
+                return False
+            
+            if line.startswith("k-point number in this process"):
+                nkpts = int(line.split()[-1])
+                continue
+
+            if line.startswith("NBANDS"):
+                nbands = int(line.split()[-1])
+                continue
+
+            if line.startswith("K-POINTS CARTESIAN COORDINATES"):
+                read_kpoint = True
+                continue
+
+            if line.startswith("EFERMI"):
+                efermi = float(line.split()[-2])
+                continue
+
+            if line.startswith("AUTOSET number of electrons"):
+                nelectrons = int(line.split()[-1])
+                continue
+
+            if read_kpoint:
+                _match = re.match(kpt_pattern, line)
+                if _match:
+                    nkpts -= 1
+                    kpoints.append([float(_match.group(4)), float(_match.group(6)), float(_match.group(8))])
+                    kpt_wts.append(float(_match.group(16)))
+                    continue
+                else:
+                    if nkpts > 0:
+                        continue
+                    else:
+                        read_kpoint = False
+                        #print("Read kpoints done: ", tuple(zip(kpoints, kpt_wts)))
+                        nkpts = len(kpoints)
+                        continue
+
+            if line.startswith("STATE ENERGY(eV) AND OCCUPATIONS"):
+                read_band = True
+                if nbands == 0:
+                    print("warning: nbands is 0 in " + fname)
+                    return False
+                else:
+                    continue
+
+            if read_band:
+                if re.match(band_header_pattern, line):
+                    _match = re.match(band_header_pattern, line)
+                    #print(line)
+                    index = int(line.split("/")[0]) - 1
+                    AssertListEqual(
+                        [float(_match.group(3)), float(_match.group(5)), float(_match.group(7))],
+                        kpoints[index],
+                        nplaces = 4
+                    )
+                    bands.append([])
+                    occupations.append([])
+                elif re.match(band_pattern, line):
+                    _match = re.match(band_pattern, line)
+                    bands[-1].append(float(_match.group(4)))
+                    occupations[-1].append(float(_match.group(6)))
+                else:
+                    if len(bands) == nkpts:
+                        read_band = False
+                        #print("Read bands done.")
+                        band_energies = []
+                        for ik, band in enumerate(bands):
+                            band_energies.extend(list(zip(band, [kpt_wts[ik]]*nbands)))
+                        print(band_energies)
+                        return band_energies, nelectrons, nbands, efermi
+                    elif len(bands[-1]) == nbands:
+                        #print("Read bands done for kpoint: ", kpoints[len(bands)-1], " with ", len(bands[-1]), " bands.")
+                        continue
+                    else:
+                        #print("Unexpected error: len(bands[-1]) != nbands. Present line: ", line)
+                        return False
+                    
+    return False
+

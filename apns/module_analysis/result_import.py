@@ -104,7 +104,7 @@ def collect_result_by_test(path_to_work: str = "./",
                            labels: list = ["energy"]):
     """new version of this function will scan all the folders under current folder, and collect the result of each test"""
 
-    test_pattern = r"([\w]+_[0-9]+_[\w\-\.\+]+)((_([A-Z][0-9])?)?)(_[\w]+)(.*)"
+    test_pattern = r"^(([A-Za-z]+)_([0-9]+)_([A-Za-z0-9\-\+\.]+))_(.*)$"
     """regulation: only use / to split path, not \\"""
     
     fname_setting_fn = fname_setting(software = software)
