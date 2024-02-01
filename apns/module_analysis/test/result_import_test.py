@@ -1,6 +1,6 @@
 import unittest
 import apns.module_analysis.result_import as amawg
-
+import re
 class WalkGatherTest(unittest.TestCase):
 
     def test_wash_pseudopot_name(self):
@@ -33,5 +33,11 @@ class WalkGatherTest(unittest.TestCase):
         self.assertListEqual(list(result["test2"]["energy"]), [50, 30, 10, 40, 20])
         self.assertListEqual(list(result["test2"]["pressure"]), [500, 300, 100, 400, 200])
 
+    def test_test_pattern(self):
+        test_pattern = r"^(([A-Za-z]+)_([0-9]+)_([A-Za-z0-9\-\+\.]+))_(.*)$"
+        self.assertTrue(re.match(test_pattern, "Mn_35_dojo03_XcPBEEcw100BstyppwClfs1Clstrs1Sfnx500Nsp2scf_Chlen0.0"))
+        print(re.match(test_pattern, "Mn_35_dojo03_XcPBEEcw100BstyppwClfs1Clstrs1Sfnx500Nsp2scf_Chlen0.0").group(1))
+        self.assertTrue(re.match(test_pattern, "Lu_973571_dojo04_PBEecw100pwclfs1clstrs1sfnx500scf"))
+        print(re.match(test_pattern, "Lu_973571_dojo04_PBEecw100pwclfs1clstrs1sfnx500scf").group(1))
 if __name__ == '__main__':
     unittest.main()

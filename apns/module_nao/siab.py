@@ -1,4 +1,4 @@
-"""Generate SIAB_INPUT file for PTG_dpsi program
+"""Generate SIAB_INPUT file for PTG_dpsi version 0.1.0 program
 
 Main function: SIAB_INPUT
 Parameters:
@@ -187,8 +187,8 @@ def siab_electronic_calculation(element: str,
                       len_placeholder=20)
 
 def siab_reference_system(reference_systems: list, 
-                          nspin: int = 1, 
                           lmax: int = 2,
+                          nspin: int = 1,
                           orbital_configurations: list = None):
     """reference_systems: list of dict, has structure like:
     
@@ -196,15 +196,21 @@ def siab_reference_system(reference_systems: list,
         {
             "shape": "dimer",
             "nbands": 8,
+            "nspin": 1,
             "bond_lengths": [1.8, 2.0, 2.3, 2.8, 3.8],
         },
         {
             "shape": "trimer",
             "nbands": 10,
+            "nspin": 1,
             "bond_lengths": [1.9, 2.1, 2.6],
         }
     ]
+    if nspin is not supplied, it will be set to the default value 1. nspin in param list
+    is the default value for all reference systems, if nspin is supplied in reference_systems,
+    it will override the default value.
     """
+
     """statistic lmax for different reference systems from orbital_configurations"""
     shapes = [item["shape"] for item in reference_systems]
     lmaxs = [lmax]*len(shapes)
@@ -217,7 +223,7 @@ def siab_reference_system(reference_systems: list,
     for irs, reference_system in enumerate(reference_systems):
         reference_system["identifier"] = "STRU" + str(irs+1)
         reference_system["lmax"] = lmaxs[irs]
-        reference_system["nspin"] = nspin
+        reference_system["nspin"] = nspin if "nspin" not in reference_system.keys() else reference_system["nspin"]
         reference_system["bond_lengths"] = " ".join([str(item) for item in reference_system["bond_lengths"]])
     return dicts_tostr(source=reference_systems,
                        key_sequence=key_sequence,
@@ -363,7 +369,7 @@ def autoset(fpseudo: str,
 
 def SIAB_INPUT(element: str,                            # element name
                ecutwfc: float,                          # kinetic energy cutoff of planewave basis
-               nspin: int,                              # number of spin channels
+               nspin: int,                              # default number of spin channels for nspin not specified in reference_systems
                rcut: float|list,                        # realspace cutoff for numerical atomic orbitals
                fpseudo: str,                            # pseudopotential file name
                pseudo_dir: str,                         # directory of pseudopotential file
@@ -496,6 +502,101 @@ def SIAB_INPUT(element: str,                            # element name
 
     return result
 
+def siab_input_parse(fname: str):
+    """parse SIAB_INPUT file"""
+    keyvalue_pattern = r"^(\w+)(\s+)([^#]*)(#.*)?"
+    float_pattern = r"^\d+\.\d*$"
+    int_pattern = r"^\d+$"
+    scalar_keywords = ["Ecut", "sigma", "element"]
+    result = {}
+    if fname == "":
+        raise ValueError("No filename provided")
+    with open(fname, "r") as f:
+        lines = f.readlines()
+    for line in lines:
+        line = line.strip()
+        _match = re.match(keyvalue_pattern, line)
+        if _match:
+            key = _match.group(1).strip()
+            value = _match.group(3).strip().split()
+            value = [float(v) if re.match(float_pattern, v) else int(v) if re.match(int_pattern, v) else v for v in value]
+            result[key] = value if key not in scalar_keywords else value[0]
+    
+    return result
+
+def set_bond_length_fromfile(fname: str,
+                             reference_systems: list):
+    """set bond length from file"""
+    parsed = siab_input_parse(fname)
+    indices = {rs["shape"]: index for index, rs in enumerate(reference_systems)}
+    for key, value in parsed.items():
+        if key.startswith("STRU"):
+            shape = value[0]
+            bond_lengths = value[4:]
+            reference_systems[indices[shape]]["bond_lengths"] = bond_lengths
+    return reference_systems
+
+"""should grep converged ecutwfc for each element for each pseudopotential (if pseudopotential
+is available for each element)"""
+import os
+import json
+import apns.module_workflow.identifier as amwid
+import apns.module_pseudo.upf_archive as amupfa
+def generator(elements: list = None,
+              pspot_identifier: str = None,
+              reference: str = "./"):
+    """walk in a directory contains SIAB_INPUTs for generate numerical atomic orbitals of
+    pseudopotentials required
+    
+    Args:
+        elements (list, optional): elements to generate. Defaults to None.
+        pspot_identifier (str, optional): identifier of pseudopotential. Defaults to None.
+        ecutwfcs (dict, optional): ecutwfc for each element. Defaults to None.
+        reference (str, optional): directory to walk in. Defaults to "./".
+    """
+    if elements is None:
+        raise ValueError("elements must be provided")
+    if pspot_identifier is None:
+        raise ValueError("pspot_identifier must be provided")
+    if not os.path.exists(reference):
+        raise ValueError("reference directory does not exist")
+    if not os.path.isdir(reference):
+        raise ValueError("reference is not a directory")
+    if reference[-1] != "/":
+        reference += "/"
+    visited = [False]*len(elements)
+    folders_pseudo = amupfa.load()
+    with open(amwid.TEMPORARY_FOLDER + "/ecutwfc_convergence.json", "r+") as f:
+        ecutwfcs = json.load(f)
+    for root, dirs, files in os.walk(reference):
+        for file in files:
+            if file == "SIAB_INPUT":
+                fname = root + "/" + file
+                parsed = siab_input_parse(fname)
+                element = parsed["element"]
+                if element not in elements or element not in ecutwfcs.keys():
+                    print("element " + element + " is not in elements or ecutwfcs")
+                    continue
+                key = "invalid"
+                for key in ecutwfcs[element].keys():
+                    if key.replace("_", "") == pspot_identifier:
+                        break
+                if key == "invalid":
+                    print("pspot_identifier " + pspot_identifier + " is not in ecutwfcs")
+                    continue
+                folder = folders_pseudo[key]
+                fpseudo = [file for file in os.listdir(folder) if file.startswith(element) or file.startswith(element.capitalize())][0]
+                fpseudo = folder + "/" + fpseudo
+                result = SIAB_INPUT(element=element,
+                                    ecutwfc=ecutwfcs[element][key],
+                                    nspin=1,
+                                    rcut=[6, 7, 8, 9, 10],
+                                    fpseudo=fpseudo,
+                                    pseudo_dir="arbitrary",
+                                    minimal_basis=None,
+                                    smearing_sigma=0.015,
+                                    reference_systems=[],)
+
 if __name__ == "__main__":
 
     reference_systems = [
@@ -505,6 +606,7 @@ if __name__ == "__main__":
         },
         {
             "shape": "trimer",
+            "nspin": 2,
             "bond_lengths": [1.9, 2.1, 2.6],
         }
     ]

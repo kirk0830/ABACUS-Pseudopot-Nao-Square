@@ -440,5 +440,16 @@ max_steps 9000
 """
         self.assertEqual(result, reference)
         
+    def test_siab_input_parse(self):
+        result = siab.siab_input_parse("./apns/module_nao/test/support/SIAB_INPUT")
+    
+    def test_set_bond_length_fromfile(self):
+        result = siab.set_bond_length_fromfile("./apns/module_nao/test/support/SIAB_INPUT", [
+            {"shape": "dimer", "nbands": 8},
+            {"shape": "trimer", "nbands": 10}
+        ])
+        reference = [1.8, 2.0, 2.3, 2.8, 3.8]
+        self.assertEqual(result[0]["bond_lengths"], reference)
+
 if __name__ == "__main__":
     unittest.main()
