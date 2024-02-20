@@ -62,10 +62,32 @@ class TestAbacus(unittest.TestCase):
         self.assertEqual(nelec, 8)
         self.assertEqual(nbands, 14)
         self.assertAlmostEqual(efermi, 1.6277681258, 10)
-        print("bands = ", bands)
-        print("nelec = ", nelec)
-        print("nbands = ", nbands)
-        print("efermi = ", efermi)
+        #print("bands = ", bands)
+        #print("nelec = ", nelec)
+        #print("nbands = ", nbands)
+        #print("efermi = ", efermi)
+
+    def test_fromkpoints(self):
+        fname = "./apns/module_analysis/module_grep/test/support/kpoints"
+        with open(fname, "r") as f:
+            lines = f.readlines()
+        reduced_kpoints = amaa.fromkpoints(lines)
+        self.assertEqual(len(reduced_kpoints), 164)
+    
+    def test_fromistate(self):
+        fname = "./apns/module_analysis/module_grep/test/support/istate.info"
+        with open(fname, "r") as f:
+            lines = f.readlines()
+        energies, occupations = amaa.fromistate(lines)
+        self.assertEqual(len(energies), 164)
+        self.assertEqual(len(occupations), 164)
+
+    def test_band_structure(self):
+        out_dir = "./apns/module_analysis/module_grep/test/support/"
+        kpoints, energies, occupations = amaa.band_structure(out_dir)
+        self.assertEqual(len(kpoints), 164)
+        self.assertEqual(len(energies), len(kpoints))
+        self.assertEqual(len(occupations), len(kpoints))
 
 if __name__ == "__main__":
     unittest.main()

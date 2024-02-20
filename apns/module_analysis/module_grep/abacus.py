@@ -182,7 +182,7 @@ def grep_band(fname: str) -> list|bool:
                         band_energies = []
                         for ik, band in enumerate(bands):
                             band_energies.extend(list(zip(band, [kpt_wts[ik]]*nbands)))
-                        print(band_energies)
+                        #print(band_energies)
                         return band_energies, nelectrons, nbands, efermi
                     elif len(bands[-1]) == nbands:
                         #print("Read bands done for kpoint: ", kpoints[len(bands)-1], " with ", len(bands[-1]), " bands.")
@@ -193,3 +193,77 @@ def grep_band(fname: str) -> list|bool:
                     
     return False
 
+def fromkpoints(kpoint_rawlines: list[str]):
+    """from with... f.readlines, return kpoints with weight after and before
+    symmetry reduction"""
+    fltp = r"([0-9\-]+\.[0-9\-]+[eEdD][\+\-][0-9]+)|([0-9\-]+\.[0-9\-]+)"
+    rdsp = r"^(\s*)([0-9]+)(\s*)(%s)(\s+)(%s)(\s*)(%s)(\s*)(%s)(\s*)$"%(fltp, fltp, fltp, fltp)
+    reduced_kpoints = []
+    for line in kpoint_rawlines:
+        _rmatch = re.match(rdsp, line, re.IGNORECASE)
+        if _rmatch:
+            reduced_kpoints.append([float(_rmatch.group(4)), float(_rmatch.group(6)), float(_rmatch.group(8)), float(_rmatch.group(16))])
+    return reduced_kpoints
+
+def fromistate(band_rawlines: list[str]):
+    bndpspin1 = r"^(\s*)([0-9]+)(\s*)(^\s+)(\s+)(^\s+)(\s*)$"
+    bndpspin2 = r"^(\s*)([0-9]+)(\s*)(^\s+)(\s+)(^\s+)(\s+)(^\s+)(\s*)(^\s+)(\s*)$"
+    tpnspin1 = r"^(\s*)(BAND)(\s*)(Energy\(eV\))(\s*)(Occupation)(\s*)(Kpoint\s*=\s*)([0-9]+)(\s*)(.*)$"
+    tpnspin2 = r"BAND\s+Spin\s+up\s+Energy\(eV\)\s+Occupation\s+Spin\s+down\s+Energy\(eV\)\s+Occupation\s+Kpoint\s*=\s*([0-9]+)\s*(.*)$"
+
+    e, occ = [], []
+    ek, occk = [], []
+
+    nspin = 1
+    for line in band_rawlines:
+        
+        _t1match = re.match(tpnspin1, line, re.IGNORECASE)
+        _t2match = re.match(tpnspin2, line, re.IGNORECASE)
+        _b1match = re.match(bndpspin1, line, re.IGNORECASE)
+        _b2match = re.match(bndpspin2, line, re.IGNORECASE)
+        if _b1match:
+            if nspin != 1:
+                raise ValueError("nspin != 1")
+            else:
+                print(_b1match.groups())
+                ek.append([float(_b1match.group(4))])
+                occk.append([float(_b1match.group(6))])
+        elif _b2match:
+            if nspin != 2:
+                raise ValueError("nspin != 2")
+            else:
+                print(_b2match.groups())
+                ek.append([float(_b2match.group(4)), float(_b2match.group(8))])
+                occk.append([float(_b2match.group(6)), float(_b2match.group(10))])
+        elif _t1match:
+            nspin = 1
+            e.append(ek)
+            occ.append(occk)
+            ek, occk = [], []
+        elif _t2match:
+            nspin = 2
+            e.append(ek)
+            occ.append(occk)
+            ek, occk = [], []
+    print("e = ", e)
+    print("occ = ", occ)
+    return e, occ
+
+import os
+def band_structure(out_dir: str):
+    """read band structure from kpoints, istate.info files"""
+    print("Grep band structure from " + os.path.abspath(out_dir))
+    # check if kpoints and istate.info files exist
+    if not os.path.exists(out_dir+"/kpoints"):
+        print("kpoints file not found in " + os.path.abspath(out_dir))
+        return False
+    if not os.path.exists(out_dir+"/istate.info"):
+        print("istate.info file not found in " + os.path.abspath(out_dir))
+        return False
+    with open(out_dir+"/kpoints", "r") as f:
+        kpoint_rawlines = f.readlines()
+        kpoints = fromkpoints(kpoint_rawlines)
+    with open(out_dir+"/istate.info", "r") as f:
+        band_rawlines = f.readlines()
+        energies, occupations = fromistate(band_rawlines)
+    return kpoints, energies, occupations
