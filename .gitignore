@@ -1,12 +1,9 @@
-*.upf
-*.UPF
 *.cif
 work_status_*.json
 test_status_*.json
 input.json
 description.json
 formula_mpid.json
-*.orb
 *.pyc
 __pycache__
 *egg-info
@@ -14,5 +11,4 @@ __pycache__
 apns_cache
 t_*_*_*_*
 *.zip
-*.log
 build/

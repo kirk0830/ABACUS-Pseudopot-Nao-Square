@@ -1,5 +1,5 @@
 import unittest
-import apns.module_pseudo.general_parser as ampgp
+import apns.module_pseudo.parse as ampgp
 
 class TestGeneralParser(unittest.TestCase):
 
@@ -62,21 +62,21 @@ class TestGeneralParser(unittest.TestCase):
         parsed_hgh = ampgp.parse(fname_hgh)
         self.assertEqual(parsed_hgh["PP_HEADER"]["attrib"]["pseudo_type"], "NC")
 
-    def test_determine_type_1(self):
+    def test_determine_code_1(self):
 
         fname_oncv = "./download/pseudopotentials/nc-fr-04_pbe_standard/Ag.upf"
         oncv = ampgp.parse(fname_oncv)
-        self.assertEqual(ampgp.determine_type(oncv), "ONCVPSP")
+        self.assertEqual(ampgp.determine_code(oncv), "ONCVPSP")
     
-    def test_determine_type_2(self):
+    def test_determine_code_2(self):
         fname_hgh = "./download/pseudopotentials/hgh/Al.pbe-hgh.UPF"
         hgh = ampgp.parse(fname_hgh)
-        self.assertEqual(ampgp.determine_type(hgh), "GTH")
+        self.assertEqual(ampgp.determine_code(hgh), "GTH")
     
-    def test_determine_type_3(self):
+    def test_determine_code_3(self):
         fname_adc = "./download/pseudopotentials/pslnc_031/Ac.pbe-n-nc.UPF"
         adc = ampgp.parse(fname_adc)
-        self.assertEqual(ampgp.determine_type(adc), "ADC")
+        self.assertEqual(ampgp.determine_code(adc), "ADC")
 
     def test_is_compatible(self):
 
@@ -86,6 +86,20 @@ class TestGeneralParser(unittest.TestCase):
         self.assertFalse(ampgp.is_compatible(fname_hgh))
         fname_adc = "./download/pseudopotentials/pslnc_031/Ac.pbe-n-nc.UPF"
         self.assertTrue(ampgp.is_compatible(fname_adc))
+
+    def test_valence_configuration(self):
+        fname_oncv = "./download/pseudopotentials/nc-fr-04_pbe_standard/Ag.upf"
+        result = ampgp.valence_configuration(fname_oncv)
+        reference = [['5S', '4S'], ['4P'], ['4D']]
+        self.assertListEqual(result, reference)
+        fname_oncv = "./download/pseudopotentials/NCPP-PD04-PBE/3+_f--core-icmod1/Er3+_f--core-icmod1.PD04.PBE.UPF"
+        result = ampgp.valence_configuration(fname_oncv)
+        reference = [['6S', '5S'], ['5P'], ['5D']]
+        self.assertListEqual(result, reference)
+        fname_oncv = "./download/pseudopotentials/NCPP-PD04-PBE/sp/Er-sp.PD04.PBE.UPF"
+        result = ampgp.valence_configuration(fname_oncv)
+        reference = [['6S', '5S'], ['5P'], ['5D'], ['4F']]
+        self.assertListEqual(result, reference)
 
 if __name__ == "__main__":
     unittest.main(buffer=False)

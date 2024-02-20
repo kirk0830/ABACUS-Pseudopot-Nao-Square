@@ -1,4 +1,4 @@
-from tools.orbital_oscillation_remove.database import sublayer_to_l
+from tools.orbital_oscillation_remove.database import symbol_tol
 
 def orb_to_dict(filename):
     """Reads an ABACUS .orb file and returns a dictionary with the data."""
@@ -145,7 +145,7 @@ def dict_to_orb(filename: str,
         if key == 'r':
             continue
         else:
-            lmax = max(lmax, sublayer_to_l(key))
+            lmax = max(lmax, symbol_tol(key))
     with open(filename, 'w') as f:
         f.writelines('-'*75+'\n')
         f.writelines('Element'+ ' '*21 +'{}\n'.format(element))
@@ -182,7 +182,7 @@ def dict_to_orb(filename: str,
             else:
                 for izeta in range(len(numerical_orbitals[key])):
                     f.writelines('%20s%20s%20s\n'%('Type', 'L', 'N'))
-                    f.writelines('%20i%20i%20i\n'%(0, sublayer_to_l(key), izeta))
+                    f.writelines('%20i%20i%20i\n'%(0, symbol_tol(key), izeta))
                     for ir in range(len(numerical_orbitals[key][izeta])):
                         f.writelines('%15.14e  '%numerical_orbitals[key][izeta][ir])
                         if (ir+1)%4 == 0:
@@ -252,7 +252,7 @@ Left spillage = 2.6553225276e-02
             total_number_of_radial_orbitals += len(coefficients[key])
         f.writelines('    %2i Total number of radial orbitals.\n'%total_number_of_radial_orbitals)
         for key in coefficients.keys(): # keys are s, p, d, ...
-            l = sublayer_to_l(key)
+            l = symbol_tol(key)
             for inao in range(len(coefficients[key])):
                 f.writelines('%8s%8s%16s\n'%('Type', 'L', 'Zeta-Orbital'))
                 f.writelines('%8s%8i%9i\n'%(str(element), l, inao+1))

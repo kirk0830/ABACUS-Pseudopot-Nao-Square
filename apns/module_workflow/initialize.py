@@ -1,7 +1,7 @@
 """initialize is the module should be called everytime will the program starts"""
 
 import apns.module_io.input_translate as amiit
-import apns.module_pseudo.upf_archive as ampua
+import apns.module_pseudo.archive as ampua
 # import apns.module_nao.nao_archive as amna
 def initialize(finp: str, test_mode: bool = False) -> tuple[dict, dict, dict, dict, dict]:
     """initialize the program
@@ -161,7 +161,7 @@ def scan_valid_pseudopot_nao(finp: str|dict) -> tuple[dict, dict]:
     
     return valid_pseudopotentials, valid_numerical_orbitals
 
-import apns.module_pseudo.general_parser as ampgp
+import apns.module_pseudo.parse as ampgp
 def pspot_software_availability(inp: dict, valid_pseudopotentials: dict, pseudopot_arch: dict) -> bool:
     """check if the input file is compatible with the software
     

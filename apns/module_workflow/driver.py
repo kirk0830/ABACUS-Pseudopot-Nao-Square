@@ -72,7 +72,7 @@ def configure(input_file: str):
     import json
     with open(input_file, "r") as f:
         inp = json.load(f)
-    import apns.module_pseudo.upf_archive as ampua
+    import apns.module_pseudo.archive as ampua
     ampua.archive(pseudo_dir=inp["global"]["pseudo_dir"], only_scan=False)
 
 if __name__ == "__main__":
