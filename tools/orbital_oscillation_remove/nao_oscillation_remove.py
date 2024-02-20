@@ -1,6 +1,6 @@
 from tools.orbital_oscillation_remove.orb_parser import data_import, filename_parse, plot_orb_json
 from tools.orbital_oscillation_remove.ovlp_jjtilde_calculator import generate_truncated_spherical_bessel
-from tools.orbital_oscillation_remove.database import sublayer_to_l, l_to_sublayer
+from tools.orbital_oscillation_remove.database import symbol_tol, l_tosymbol
 from orb_io import dict_to_orb, dict_to_c4
 import numpy as np
 from scipy.integrate import simps
@@ -32,7 +32,7 @@ def oscillation_remove(path: str, orbital_file: str, n_jtilde_remove: list, lina
         if key == 'r':
             _out['r'] = numerical_orbitals['r']
         else:
-            l = sublayer_to_l(key)
+            l = symbol_tol(key)
             # initialize _c_in and _c_out
             _c_in[key] = []
             _c_out[key] = []
@@ -243,7 +243,7 @@ def interactive_solve_coefficients(path: str, orbital_file: str, linalg_solver =
         if key == 'r':
             interactive_information["r"] = np.array(numerical_orbitals['r'])
         else:
-            l = sublayer_to_l(key)
+            l = symbol_tol(key)
             # initialize _c_in and _c_out
             interactive_information["coefficients"][key] = []
             # generate q of spherical bessel functions for current l
@@ -311,7 +311,7 @@ def interactive_main(path: str, orbital_file: str) -> None:
     for i in range(len(n_jtilde_remove)):
         # equally spaced
         ax = plt.axes([0.1 + 0.8*i/len(n_jtilde_remove), 0.05, 0.6/len(n_jtilde_remove), 0.03])
-        slider = Slider(ax, l_to_sublayer(i), 0, len(interactive_information["qs"]['s'])-1, valinit=n_jtilde_remove[i], valstep=1)
+        slider = Slider(ax, l_tosymbol(i), 0, len(interactive_information["qs"]['s'])-1, valinit=n_jtilde_remove[i], valstep=1)
 
         sliders.append(slider)
 
@@ -335,9 +335,9 @@ def interactive_main(path: str, orbital_file: str) -> None:
                     old_orb.append(0)
                     new_orb.append(0)
                     for iq in range(len(qs_l)):
-                        old_orb[-1] += interactive_information["coefficients"][key][inao][iq] * jn(sublayer_to_l(key), qs_l[iq]*r[ir])
-                    for iq in range(len(qs_l) - n_jtilde_remove[sublayer_to_l(key)]):
-                        new_orb[-1] += interactive_information["coefficients"][key][inao][iq] * jn(sublayer_to_l(key), qs_l[iq]*r[ir])
+                        old_orb[-1] += interactive_information["coefficients"][key][inao][iq] * jn(symbol_tol(key), qs_l[iq]*r[ir])
+                    for iq in range(len(qs_l) - n_jtilde_remove[symbol_tol(key)]):
+                        new_orb[-1] += interactive_information["coefficients"][key][inao][iq] * jn(symbol_tol(key), qs_l[iq]*r[ir])
                 old_orbs[key].append(old_orb)
                 new_orbs[key].append(new_orb)
                 

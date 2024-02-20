@@ -44,7 +44,7 @@ class TestCifParserPymatgen(unittest.TestCase):
     def test_lattice(self):
         fname = "./apns/module_structure/test/support/mp-8.cif"
         a, b, c, alpha, beta, gamma, lattice_vectors = amscp.lattice(fname)
-        self.assertAlmostEqual(a, 2.76533582, places=4)
+        self.assertAlmostEqual(a, 2.76533582, places=8)
         self.assertAlmostEqual(b, 2.76533582, places=4)
         self.assertAlmostEqual(c, 4.47357663, places=4)
         self.assertAlmostEqual(alpha, 90.0, places=4)

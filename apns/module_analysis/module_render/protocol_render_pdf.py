@@ -10,7 +10,7 @@ def title(c: canvas.Canvas) -> int:
     c.setFont("Helvetica", 20)
     c.drawCentredString(300, 700, "ABACUS Pseudopotential Square")
     # add image "logo_basic.png" in current folder at (50, 600) and scale to (100, 100)
-    c.drawInlineImage("logo_basic.png", 100, 700, 50, 50)
+    c.drawInlineImage("./docs/assets/images/apns.svg", 100, 700, 50, 50)
     # add text "Generated automatically based on ReportLab", italic, gray, at bottom right corner of title
     c.setFont("Helvetica-Oblique", 10)
     c.setFillColorRGB(0.5, 0.5, 0.5)

@@ -83,7 +83,7 @@ def _ATOMIC_SEPCIES(pseudopotential: dict, **kwargs) -> str:
         str: section string
     """
     result = "ATOMIC_SPECIES\n"
-    mass = kwargs.get("mass", {key: amdd.element_mass(key) for key in pseudopotential.keys()})
+    mass = kwargs.get("mass", {key: amdd.element_label_tomass(key) for key in pseudopotential.keys()})
     for element in pseudopotential.keys():
         result += "{} {} {}\n".format(element, mass[element], pseudopotential[element])
     result += "\n"
@@ -112,7 +112,7 @@ def _K_POINTS(fname: str = "", nkpoints_in_line: int = 0) -> str:
         for element in cif["atomic_positions"].keys():
             for line in cif["atomic_positions"][element]:
                 positions.append(line)
-                numbers.append(amdd.get_element_index(element))
+                numbers.append(amdd.element_label_toindex(element))
         
         _skps_result = skps.get_path(structure=(cell_vectors, positions, numbers))
 
@@ -421,7 +421,7 @@ def cif_to_qespresso(
     }
     for element in atoms.keys():
         atomic_species["elements"].append(element)
-        atomic_species["mass"].append(amdd.element_mass(element))
+        atomic_species["mass"].append(amdd.element_label_tomass(element))
         atomic_species["pseudopotentials"].append(element + "_pseudopot")
     
     return_str = ""
@@ -507,7 +507,7 @@ def reference_structure_from_quantum_espresso(reference_structure = "dimer", sym
     return_str += section_cell({})
     return_str += section_atomic_species({
         "elements": [symbol],
-        "mass": [amdd.element_mass(symbol)],
+        "mass": [amdd.element_label_tomass(symbol)],
         "pseudopotentials": [symbol + "_pseudopot"],
     })
     return_str += section_cell_parameters({}, "nao")

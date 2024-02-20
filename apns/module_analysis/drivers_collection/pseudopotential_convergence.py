@@ -4,7 +4,7 @@ import numpy as np
 
 if __name__ == "__main__":
     
-    root_path = "../11548850/"
+    root_path = "../11668634/"
     axis_label = "ecutwfc"
     labels = ["energy", "pressure"]
     
@@ -12,6 +12,14 @@ if __name__ == "__main__":
     result = amari.sort(result=result, axis_label=axis_label)
     result_system = amari.distribute_result_to_system(result=result, labels=labels, to_markdown=True)
 
+    # load json of result
+    import json
+    import apns.module_workflow.identifier as amwid
+    folder = amwid.TEMPORARY_FOLDER
+    fname = "/ecutwfc_convergence.json"
+    with open(folder + fname, "r+") as f:
+        ecutwfc_convergence = json.load(f)
+    
     import matplotlib.pyplot as plt
     for system in result_system:
         # subplot for each pseudopotential
@@ -22,6 +30,7 @@ if __name__ == "__main__":
         fig, axs = plt.subplots(npseudo, 1, figsize=(20, 10))
         # set font as Arial
         plt.rcParams["font.family"] = "Arial"
+        convergence_result = {}
         for i, pseudopotential in enumerate(result_system[system]):
 
             natom = result_system[system][pseudopotential]["natom"]
@@ -98,7 +107,7 @@ if __name__ == "__main__":
                 #                 horizontalalignment='left', verticalalignment='bottom',
                 #                 backgroundcolor="#FFFFFF",
                 #                 zorder=9)
-
+            
             # add vertical and horizontal grid lines
             energy_axis.grid(True, color="#c6c6c6")
             #pressure_axis.grid(True, color="#c6c6c6")
@@ -116,6 +125,7 @@ if __name__ == "__main__":
                 labels = [l.get_label() for l in lines]
                 axs[i].legend(lines, labels, loc='upper center', bbox_to_anchor=(0.95, -0.3), ncol=1, fontsize=10, fancybox=True, shadow=True)
 
+            convergence_result[pseudopotential] = ecutwfc[i_highlight]
         # add title
         fig.suptitle(system+" basic energy convergence test", fontsize = 16)
         # add one x title
@@ -138,12 +148,20 @@ if __name__ == "__main__":
                  horizontalalignment='left', verticalalignment='bottom')
 
         # save svg
-        plt.savefig(system + ".svg")
-        plt.savefig(system + ".png")
+        #plt.savefig(system + ".svg")
+        #plt.savefig(system + ".png")
         plt.close()
 
         # generate html
-        fmarkdown = system + ".md"
-        with open(fmarkdown, "w") as f:
-            f.writelines(amaphg.generate_result_page(element=system))
+        #fmarkdown = system + ".md"
+        #with open(fmarkdown, "w") as f:
+        #    f.writelines(amaphg.generate_result_page(element=system))
+        
+        # record convergence result
+        ecutwfc_convergence[system] = convergence_result
+
+    # update convergence result
+    with open(folder + fname, "w") as f:
+        json.dump(ecutwfc_convergence, f, indent=4)
+
  

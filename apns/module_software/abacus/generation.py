@@ -140,7 +140,7 @@ def _STRU_(fname: str,
     cif = amscif.read_1(fname)
     return_str = "ATOMIC_SPECIES\n"
     for _element in pseudopotentials:
-        mass = kwargs.get("mass", {}).get(_element, amdd.element_mass(_element))
+        mass = kwargs.get("mass", {}).get(_element, amdd.element_label_tomass(_element))
         pseudopotential = pseudopotentials[_element]
         return_str += "%s %8.4f %s\n" % (_element, mass, pseudopotential)
     return_str += "\n"
@@ -203,7 +203,7 @@ def STRU_Molecule(shape: str,
     
     return_str = "ATOMIC_SPECIES\n"
     for _element in pseudopotentials:
-        mass = kwargs.get("mass", {}).get(_element, amdd.element_mass(_element))
+        mass = kwargs.get("mass", {}).get(_element, amdd.element_label_tomass(_element))
         pseudopotential = pseudopotentials[_element]
         return_str += "%s %8.4f %s\n" % (_element, mass, pseudopotential)
     return_str += "\n"
@@ -270,7 +270,7 @@ def STRU_Pymatgen(fname: str,                                   # cif file name
                                          starting_magnetization=starting_magnetization)
     for element in species.keys():
         return_str += "%s %8.4f %s\n" % (element,
-                                         amdd.element_mass(element),
+                                         amdd.element_label_tomass(element),
                                          species[element]["pseudopotential"])
     return_str += "\n"
     if numerical_orbitals is not None:
@@ -391,7 +391,7 @@ def _KLINE_(fname: str, nkpts_in_line: int = 10):
     for element in result['atomic_positions']:
         for line in result['atomic_positions'][element]:
             positions.append(line)
-            numbers.append(amdd.get_element_index(element))
+            numbers.append(amdd.element_label_toindex(element))
 
     result = skps.get_path(structure=(cell_vectors, positions, numbers))
 

@@ -1,5 +1,5 @@
 """at very first, configure pseudopotentials, sort them and archive, create description.json in each folder"""
-import apns.module_pseudo.upf_archive as arch
+import apns.module_pseudo.archive as arch
 import json
 
 def _pseudopotential_download_(pseudo_dir: str = "./download/pseudopotentials"):
