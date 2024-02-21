@@ -187,7 +187,7 @@ def op_SG15_(path: str):
     for file in files:
         _match = re.match(r"^(.*)(-)([0-9]\.[0-9])(.upf)$", file, re.IGNORECASE)
         if _match:
-            element = _match.group(1)
+            element = _match.group(1).split("_")[0]
             folder = _match.group(3)
             folder += "" if "FR" not in _match.group(1) else "_fr"
             folder_and_files.setdefault(folder, []).append([element, file])
