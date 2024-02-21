@@ -1,5 +1,5 @@
 <p align="center">
-    <img src="../../docs/apns.svg">
+    <img src="../../docs/assets/images/apns.svg">
 </p>  
 
 # ABACUS Pseudopot-Nao Square  
@@ -13,12 +13,10 @@ Following the rule in `sources/module_workflow/README.md`, the nomenclature of p
 where:  
 - `<kind>` is the kind of pseudopotential, like `sg15`, `pd`, `dojo`, etc.  
 - `<version>` is the version of pseudopotential, like `10`, `04`, `05`, etc.  
-- `<appendix>` is the appendix of pseudopotential, like `fr`, `nc`, etc.  
-## Download links
-- SG15  
-http://www.quantum-simulation.org/potentials/sg15_oncv/sg15_oncv_upf_2020-02-06.tar.gz
-- PD03  
-http://www.pwmat.com/pwmat-resource/pseduo-download/NCPP-PD03-PBE.zip
-- PD04  
-http://www.pwmat.com/pwmat-resource/pseduo-download/NCPP-PD04-PBE.zip
-- DOJO  
+- `<appendix>` is the appendix of pseudopotential, like `fr`, `alt`, etc.  
+## To update
+To update the pseudopotentials, please follow the steps below:
+1. Download the pseudopotentials from the official website or other sources.
+2. Store the downloaded pseudopotentials in this folder.
+3. Extend functions in `apns/module_pseudo/archive.py`, especially function `determine_kind` and `archive`. If necessary, write a new function whose name startswith `op_` to handle the new kind of pseudopotential, for more details, refer to already implemented functions like `op_SG15_`, `op_PD03_`, `op_PD04_`, etc.
+4. Delete the `description.json` in this folder and run `apns/module_pseudo/archive.py` to generate a new `description.json`.
