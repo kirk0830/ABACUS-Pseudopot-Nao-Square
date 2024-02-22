@@ -185,46 +185,32 @@ def is_complete(setting: dict) -> bool:
             return False
     return True
 
-import json
-def generate(element: str,
-             pseudopot_id: str,
+def generate(rcuts: list,
              ecutwfc: str,
-             fpseudo_archive: str,
+             pseudo_name: str,
+             pseudo_dir: str,
+             other_settings: dict,
              fref: str) -> dict:
-    if not os.path.exists(fpseudo_archive):
-        raise FileNotFoundError("The pseudopotential archive does not exist")
-    with open(fpseudo_archive, "r") as f:
-        pseudopot_archive = json.load(f)
-    pseudo_dir = pseudopot_archive[pseudopot_id]
-    if not os.path.exists(pseudo_dir):
-        raise FileNotFoundError("The pseudopotential directory does not exist")
-    files = os.listdir(pseudo_dir)
-    for file in files:
-        if element in file:
-            fpseudo = file
-            break
-        elif element.capitalize() in file:
-            fpseudo = file
-            break
-        elif element.lower() in file:
-            fpseudo = file
-            break
-        elif element.upper() in file:
-            fpseudo = file
-            break
-        else:
-            continue
-    else:
-        raise FileNotFoundError("The pseudopotential file does not exist")
 
     if not os.path.exists(fref):
         raise FileNotFoundError("The reference file does not exist")
     ref = parse_reference(fref)
 
-    ecutwfc = max(ecutwfc, ref["ecutwfc"])
-    
+    if ecutwfc < ref["ecutwfc"]:
+        print("""Warning: ecutwfc is smaller than the reference, turn to use the reference value
+However, you can also select to use the value from ecutwfc convergence test if
+result is available.""")
+        ecutwfc = ref["ecutwfc"]
+
+    ref["bessel_nao_rcut"] = rcuts    
     ref["ecutwfc"] = ecutwfc
     ref["pseudo_dir"] = pseudo_dir
-    ref["pseudo_name"] = fpseudo
+    ref["pseudo_name"] = pseudo_name
+
+    # overwritten manner to update the ref
+    if not other_settings and isinstance(other_settings, dict):
+        for key in other_settings.keys():
+            if key in ref.keys():
+                ref[key] = other_settings[key]
 
     return ref

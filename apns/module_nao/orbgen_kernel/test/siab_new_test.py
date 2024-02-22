@@ -5,7 +5,7 @@ class TestSIABNew(unittest.TestCase):
 
     def test_parse_reference(self):
 
-        result = amnsn.parse_reference("apns/module_nao/generation/test/support/SIAB_INPUT")
+        result = amnsn.parse_reference("apns/module_nao/orbgen_kernel/test/support/SIAB_INPUT")
         self.assertDictEqual(result, 
                              {'environment': '', 
                               'mpi_command': 'mpirun -np 1', 
@@ -29,12 +29,16 @@ class TestSIABNew(unittest.TestCase):
                                ]
                             })
     def test_generate(self):
-        result = amnsn.generate(element="Si",
-                                pseudopot_id="pd_04",
-                                fecutwfc="./apns_cache/ecutwfc_convergence.json",
-                                fpseudo_archive="./download/pseudopotentials/description.json",
-                                fref="./apns/module_nao/generation/test/support/SIAB_INPUT")
-        self.assertEqual(result["pseudo_name"], "Si.PD04.PBE.UPF")
+        result = amnsn.generate(rcuts=[6, 7, 8, 9, 10],
+                                ecutwfc=10086,
+                                pseudo_name="Fe_ONCV_PBE-1.2.upf",
+                                pseudo_dir="./download/pseudopotentials/sg15_oncv_upf_2020-02-06/1.2",
+                                fref="./apns/module_nao/orbgen_kernel/data/Fe.SIAB_INPUT")
+        self.assertEqual(result["pseudo_name"], "Fe_ONCV_PBE-1.2.upf")
+        self.assertEqual(result["pseudo_dir"], "./download/pseudopotentials/sg15_oncv_upf_2020-02-06/1.2")
+        self.assertEqual(result["ecutwfc"], 10086)
+        self.assertListEqual(result["bessel_nao_rcut"], [6, 7, 8, 9, 10])
+              
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,5 +1,5 @@
 import unittest
-import apns.module_workflow.apns_itertools as amwai
+import apns.module_workflow.workflow_test.apns_itertools as amwai
 
 class TestApnsItertools(unittest.TestCase):
 

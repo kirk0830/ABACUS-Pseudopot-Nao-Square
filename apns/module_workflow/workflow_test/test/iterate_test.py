@@ -1,5 +1,5 @@
 import unittest
-import apns.module_workflow.iterate as amwi
+import apns.module_workflow.workflow_test.iterate as amwi
 
 class TestIterate(unittest.TestCase):
 
