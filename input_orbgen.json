@@ -5,7 +5,8 @@
         "orbital_dir": "./download/numerical_orbitals"
     },
     "orbgen": {
-        "generator": "./SIAB/SIAB_nouvelle.py",
+        "generator": "./apns/module_workflow/workflow_orbgen/test/support/mock_siab.py",
+        "generate_mode": "in-situ",
         "environment": "",
         "mpi_command": "mpirun -np 8",
         "abacus_command": "abacus"
