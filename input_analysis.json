@@ -1,0 +1,11 @@
+{
+    "global": {
+        "test_mode": "orbgen",
+        "pseudo_dir": "./download/pseudopotentials",
+        "orbital_dir": "./download/numerical_orbitals"
+    },
+    "analysis": {
+        "search_domain": "[the root folder to os.walk in]",
+        "items": ["dos", "ecutwfc_convergence"]
+    }
+}

@@ -1,79 +1,57 @@
-"""version 1 driver is more well-designed, it seperate the whole workflow in a different way from version 0
+"""APNS has three main functionalities: test, analysis and orbital generation. Each functionality has its own driver."""
 
-version 1 considers more about "ITERATE" rather than "FLOW" in version 0.
-Therefore version 1 will first do Cartesian direct product on calculation_settings and pseudopotential-
-numerical atomic orbital settings. The first iteration layer is caculation_settings, the second iteration-
-layer is pseudopotential-numerical atomic orbital settings. The third iteration layer is systems.
-
-Therefore 
-"""
-def driver_v1(input_file: str):
-    """new version of driver"""
-
-    """initialize"""
-    import apns.module_workflow.initialize as amwinit
-    inp, vpspot, vnao, pspot_arch, nao_arch = amwinit.initialize(input_file)
-    """software-related availability check"""
-    """iteratively generation"""
-    import apns.module_workflow.apns_itertools as amwai
-    pseudopot_nao_settings, calculation_settings, extensive_settings = amwai.setup_iterables(system_list=inp["systems"],
-                                                                                             pseudopotentials=vpspot,
-                                                                                             numerical_orbitals=vnao,
-                                                                                             calculation_settings=inp["calculation"],
-                                                                                             extensive_settings=inp["extensive"])
-    import apns.module_workflow.iterate as amwi
-    folders = amwi.iterate(software=inp["global"]["software"].lower(),
-                           systems=inp["systems"],
-                           pseudopot_nao_settings=pseudopot_nao_settings,
-                           calculation_settings=calculation_settings,
-                           extensive_settings=extensive_settings,
-                           valid_pseudopotentials=vpspot,
-                           valid_numerical_orbitals=vnao,
-                           pspot_archive=pspot_arch,
-                           nao_archive=nao_arch,
-                           test_mode=False)
-    """compress"""
-    import time
-    import os
-    import apns.module_io.compress as amic
-    amic.pack(folders, "apns_{}.zip".format(time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime())))
-    for folder in folders:
+class apns_driver:
+    """APNS driver abstract class, unifying workflow drivers.
+    For each kind of driver, must setup first, then run."""
+    def __init__(self, finp: str):
+        self.finp = finp
+    def setup(self):
+        """setup the driver"""
         pass
-        os.system("rm -rf {}".format(folder))
-    """submit?"""
-    import apns.module_io.abacustest as amia
-    amia.image_information(software=inp["global"]["software"].lower())
-    # sorry I don't connect with abacustest yet
-    """citation"""
-    import apns.module_io.citation as amicite
-    amicite.citation(software=inp["global"]["software"].lower())
+    def run(self):
+        """run the driver"""
+        pass
 
-def driver_v0(input_file: str):
-    """old version of driver"""
-    # Step 0: initialize
-    import apns.module_workflow.initialize as init
-    init.initialize_cache()
-    # Step 1: input -> work_status
-    import apns.module_workflow.to_work_status as tws
-    work_status = tws.to(fname=input_file)
-    # Step 2: work_status -> test_status
-    import apns.module_workflow.to_test_status as tts
-    test_status = tts.to(work_status=work_status)
-    # Step 3: test_status -> test
-    import apns.module_workflow.to_test as tt
-    tt.to(test_status=test_status,
-          software=work_status["global"]["software"],
-          basis_type=work_status["calculation"]["basis_type"],
-          functionals=work_status["calculation"]["functionals"],
-          cell_scalings=work_status["calculation"]["characteristic_lengths"])
+import apns.module_workflow.workflow_test.driver as amwtd
+class test_driver(apns_driver):
+    """test driver, for testing pseudopotentials and numerical orbitals"""
+    def setup(self):
+        """setup the driver"""
+        pass
+    def run(self):
+        amwtd.driver_v1(self.finp)
 
-def configure(input_file: str):
-    """configure the apns storing files, only run this at the first time"""
-    import json
-    with open(input_file, "r") as f:
+import apns.module_workflow.workflow_analysis.driver as amwad
+class analysis_driver(apns_driver):
+    """analysis driver, for analyzing test results"""
+    def setup(self):
+        """setup the driver"""
+        pass
+    def run(self):
+        pass
+
+import apns.module_workflow.workflow_orbgen.driver as amwod
+class orbgen_driver(apns_driver):
+    """orbgen driver, for generating numerical orbitals"""
+    def setup(self):
+        """setup the driver"""
+        pass
+    def run(self):
+        amwod.run(self.finp)
+
+import json
+def spawn_driver(finp: str) -> apns_driver:
+    """return corresponding driver according to detailed user settings"""
+    with open(finp, "r") as f:
         inp = json.load(f)
-    import apns.module_pseudo.archive as ampua
-    ampua.archive(pseudo_dir=inp["global"]["pseudo_dir"], only_scan=False)
-
-if __name__ == "__main__":
-    driver_v1("input.json")
+    if inp["global"]["test_mode"] == "pseudopotential" or inp["global"]["test_mode"] == "numerical_orbital":
+        print("Activate test mode: ", inp["global"]["test_mode"])
+        return test_driver(finp)
+    elif inp["global"]["test_mode"] == "analysis":
+        print("Analysis mode activated.")
+        return analysis_driver(finp)
+    elif inp["global"]["test_mode"] == "orbgen":
+        print("Orbgen mode activated.")
+        return orbgen_driver(finp)
+    else:
+        raise ValueError("Invalid test mode.")
