@@ -66,16 +66,14 @@ def find_fpseudo(element: str,
         pseudo_db = json.load(f)
         keys = list(pseudo_db.keys())
         for key in keys:
-            if key.replace("_", "") == pspot_id:
+            if key.replace("_", "") == pspot_id or key == pspot_id:
                 pseudo_dir = pseudo_db[key]
                 break
     pseudo_dir = pseudo_dir.replace("\\", "/")
     if not pseudo_dir.endswith("/"):
         pseudo_dir += "/"
     with open(pseudo_dir + "description.json", "r") as f:
-        pseudo_db = json.load(f)
-        print(list(pseudo_db["files"].keys()))
-        pseudo_name = pseudo_db["files"][element]
+        pseudo_name = json.load(f)["files"][element]
     return pseudo_dir, pseudo_name
 
 import apns.module_nao.orbgen_kernel.siab_new as amnoksn
@@ -83,16 +81,21 @@ def siab_generator(element: str,
                    rcuts: list = [6, 7, 8, 9, 10],
                    ecutwfc: float|list = None,
                    pspot_id: str|list = None,
-                   pseudo_dir: str = "./download/pseudopotentials/"):
+                   pseudo_dir: str = "./download/pseudopotentials/",
+                   other_settings: dict = None):
     
     # list   list, with the same length, one-to-one correspondence
     ecutwfc, pspot_id = find_ecutwfc(element, ecutwfc, pspot_id)
     # list[tuple[str, str]], the first is pseudo_dir, the second is pseudo_name
     pspot_pack = [find_fpseudo(element, pspot_id[i], pseudo_dir) for i in range(len(pspot_id))]
-
+    if len(pspot_pack) == 0:
+        print(f"No pseudopotential found for the given element {element} and pspot_id(s): {pspot_id}")
+    else:
+        print(f"Find pseudopotential files for the given element {element} and pspot_id(s): {pspot_id}\n{pspot_pack}")
     for i in range(len(pspot_id)):
         yield amnoksn.generate(rcuts=rcuts,
                                ecutwfc=ecutwfc[i],
                                pseudo_name=pspot_pack[i][1],
                                pseudo_dir=pspot_pack[i][0],
+                               other_settings=other_settings,
                                fref="./apns/module_nao/orbgen_kernel/data/"+element+".SIAB_INPUT")

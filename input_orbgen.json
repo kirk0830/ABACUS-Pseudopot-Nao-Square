@@ -1,0 +1,28 @@
+{
+    "global": {
+        "test_mode": "orbgen",
+        "pseudo_dir": "./download/pseudopotentials",
+        "orbital_dir": "./download/numerical_orbitals"
+    },
+    "orbgen": {
+        "generator": "./SIAB/SIAB_nouvelle.py",
+        "environment": "",
+        "mpi_command": "mpirun -np 8",
+        "abacus_command": "abacus"
+    },
+    "abacus": {
+        "functionals": "PBE",
+        "ecutwfc": 100,
+        "scf_nmax": 500
+    },
+    "systems": ["Cu"],
+    "pseudopotentials": {
+        "kinds": ["sg15", "pd", "dojo"],
+        "versions": ["all"],
+        "appendices": ["all"]
+    },
+    "numerical_orbitals": {
+        "rcuts": [7, 8, 9, 10],
+        "types": ["DZP"]
+    }
+}
