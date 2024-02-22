@@ -208,7 +208,7 @@ result is available.""")
     ref["pseudo_name"] = pseudo_name
 
     # overwritten manner to update the ref
-    if not other_settings and isinstance(other_settings, dict):
+    if isinstance(other_settings, dict):
         for key in other_settings.keys():
             if key in ref.keys():
                 ref[key] = other_settings[key]

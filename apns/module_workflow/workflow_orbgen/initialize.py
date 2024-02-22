@@ -7,6 +7,7 @@ def read(finp: str):
 import os
 def check(inp: dict):
     """check correctness and completeness of input file"""
+    print("Checking input file...")
     # global section
     if "global" not in inp:
         raise ValueError("global section not found in input file")
@@ -24,15 +25,29 @@ def check(inp: dict):
     # orbgen section
     if "orbgen" not in inp:
         raise ValueError("orbgen section not found in input file")
-    if "generator" not in inp["orbgen"]:
-        raise ValueError("generator not found in orbgen section")
-    if not os.path.exists(inp["orbgen"]["generator"]):
-        raise ValueError("orbgen generator not found")
+    if "generate_mode" not in inp["orbgen"]:
+        raise ValueError("generate_mode not found in orbgen section")
+    if inp["orbgen"]["generate_mode"] not in ["in-situ", "ex-situ"]:
+        raise ValueError("generate_mode should be in-situ or ex-situ")
+    if inp["orbgen"]["generate_mode"] == "in-situ":
+        print("To run orbgen workflow in-situ, additional check proceed...")
+        if "generator" not in inp["orbgen"]:
+            raise ValueError("generator not found in orbgen section")
+        if not os.path.exists(inp["orbgen"]["generator"]):
+            raise ValueError(f"orbgen generator not found: {inp['orbgen']['generator']}")
+        print("orbgen generator found.")
+    else:
+        if "generator" not in inp["orbgen"]:
+            print("Warning: generator not found in orbgen section")
+        elif not os.path.exists(inp["orbgen"]["generator"]):
+            print(f"Warning: orbgen generator not found: {inp['orbgen']['generator']}")
+        else:
+            print("orbgen generator found.")
     if "environment" not in inp["orbgen"]:
         raise ValueError("environment not found in orbgen section")
-    if "mpi_command" not in inp["orbgen"]["environment"]:
+    if "mpi_command" not in inp["orbgen"]:
         raise ValueError("mpi_command not found in orbgen environment")
-    if "abacus_command" not in inp["orbgen"]["environment"]:
+    if "abacus_command" not in inp["orbgen"]:
         raise ValueError("abacus_command not found in orbgen environment")
     # abacus section
     if "abacus" not in inp:
