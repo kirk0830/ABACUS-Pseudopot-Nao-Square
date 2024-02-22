@@ -22,7 +22,6 @@ class TestOrbgen(unittest.TestCase):
                                  'pd04', 'pd04sp', 'sg1510', 'sg1510fr', 'sg1512']))
         
     def test_find_fpseudo(self):
-        print("test_find_fpseudo")
         result = amno.find_fpseudo(element="Fe",
                                    pspot_id="sg15_10")
         self.assertTupleEqual(result, 

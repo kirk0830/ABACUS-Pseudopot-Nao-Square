@@ -1,5 +1,5 @@
 import unittest
-import apns.module_workflow.initialize as amwinit
+import apns.module_workflow.workflow_test.initialize as amwinit
 
 class TestInitialize(unittest.TestCase):
 

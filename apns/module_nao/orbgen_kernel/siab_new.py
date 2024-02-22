@@ -189,6 +189,7 @@ def generate(rcuts: list,
              ecutwfc: str,
              pseudo_name: str,
              pseudo_dir: str,
+             other_settings: dict,
              fref: str) -> dict:
 
     if not os.path.exists(fref):
@@ -205,5 +206,11 @@ result is available.""")
     ref["ecutwfc"] = ecutwfc
     ref["pseudo_dir"] = pseudo_dir
     ref["pseudo_name"] = pseudo_name
+
+    # overwritten manner to update the ref
+    if not other_settings and isinstance(other_settings, dict):
+        for key in other_settings.keys():
+            if key in ref.keys():
+                ref[key] = other_settings[key]
 
     return ref
