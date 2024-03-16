@@ -3,8 +3,8 @@ published: false
 ---
 
 <p align="center">
-    <img src="../docs/apns.svg">
-</p>
+    <img src="../docs/assets/images/apns.svg">
+</p>  
 
 # ABACUS-Pseudopot-Nao-Square
 ## In brief
