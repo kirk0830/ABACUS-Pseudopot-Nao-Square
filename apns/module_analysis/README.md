@@ -28,7 +28,7 @@ In corresponding `input.json` input script, specify target folder where results 
 ```json
 {
     "global": {
-        "test_mode": "orbgen",
+        "test_mode": "analysis",
         "pseudo_dir": "./download/pseudopotentials",
         "orbital_dir": "./download/numerical_orbitals"
     },
