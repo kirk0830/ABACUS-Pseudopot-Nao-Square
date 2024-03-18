@@ -1,10 +1,10 @@
 import apns.module_analysis.result_import as amari
-import apns.module_analysis.module_render.pseudopotential_html_generator as amaphg
+import apns.module_analysis.external_frender.pseudopotential_html_generator as amaphg
 import numpy as np
 
 if __name__ == "__main__":
     
-    root_path = "../11668634/"
+    root_path = "../11548850/"
     axis_label = "ecutwfc"
     labels = ["energy", "pressure"]
     
@@ -148,14 +148,14 @@ if __name__ == "__main__":
                  horizontalalignment='left', verticalalignment='bottom')
 
         # save svg
-        #plt.savefig(system + ".svg")
-        #plt.savefig(system + ".png")
+        plt.savefig(system + ".svg")
+        plt.savefig(system + ".png")
         plt.close()
 
         # generate html
-        #fmarkdown = system + ".md"
-        #with open(fmarkdown, "w") as f:
-        #    f.writelines(amaphg.generate_result_page(element=system))
+        fmarkdown = system + ".md"
+        with open(fmarkdown, "w") as f:
+            f.writelines(amaphg.generate_result_page(element=system))
         
         # record convergence result
         ecutwfc_convergence[system] = convergence_result

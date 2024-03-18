@@ -31,8 +31,8 @@ def initialize_test_result(labels: list):
         result[label] = _datatypes[label](0)
     return result
 
-import apns.module_analysis.module_grep.abacus as amaa
-import apns.module_analysis.module_grep.qespresso as amaq
+import apns.module_analysis.__deprecated__.abacus as amaa
+import apns.module_analysis.__deprecated__.qespresso as amaq
 
 def initialize_greps(software: str = "abacus", labels: list = None):
     """gather grep methods for specific software

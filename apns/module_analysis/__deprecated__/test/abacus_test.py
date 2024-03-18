@@ -1,5 +1,5 @@
 import unittest
-import apns.module_analysis.module_grep.abacus as amaa
+import apns.module_analysis.__deprecated__.abacus as amaa
 import os
 import re
 class TestAbacus(unittest.TestCase):
@@ -88,6 +88,9 @@ class TestAbacus(unittest.TestCase):
         self.assertEqual(len(kpoints), 164)
         self.assertEqual(len(energies), len(kpoints))
         self.assertEqual(len(occupations), len(kpoints))
+        print("kpoints = ", kpoints)
+        print("energies = ", energies)
+        print("occupations = ", occupations)
 
 if __name__ == "__main__":
     unittest.main()

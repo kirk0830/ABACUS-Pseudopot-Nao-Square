@@ -5,7 +5,7 @@ def generate_result_page(test: str = "Pseudopotential",
                          software: str = "ABACUS",
                          eos: bool = False,
                          cohesive_energy: bool = False,
-                         dos: bool = False) -> str:
+                         dos: bool = True) -> str:
     """Generate result page for a given test.
     
     Args:
