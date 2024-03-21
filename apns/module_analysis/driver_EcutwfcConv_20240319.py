@@ -68,23 +68,21 @@ def run(path: str, ethr: float = 1e-3, pthr: float = 0.1):
 import matplotlib.pyplot as plt
 import numpy as np
 def stack_lineplots(xs: list, ys: list,         # compulsory
-                    logy: bool = False,         # optional
-                    ncols: int = 1,
-                    subtitles: list = None,     # optional,
-                    labels: list = None,        # optional
-                    colors: list = None,        # optional
-                    markers: list = None,       # optional
-                    markersizes: list = None,   # optional
-                    linestyles: list = None,    # optional
-                    linewidths: list = None,    # optional
-                    alpha: float = 1.0,         # optional
-                    grid: bool = True,          # optional
-                    xtitle: str = None,         # optional
-                    ytitle: str = None,         # optional
-                    fontsize: int = 12,         # optional
+                    ncols: int = 1,             # optional, number of columns
+                    subtitles: list = None,     # optional, subtitles for each subplot
+                    labels: list = None,        # optional, labels for each line
+                    colors: list = None,        # optional, colors for each line
+                    markers: list = None,       # optional, markers for each line
+                    markersizes: list = None,   # optional, markersizes for each line
+                    linestyles: list = None,    # optional, linestyles for each line
+                    linewidths: list = None,    # optional, linewidths for each line
+                    alpha: float = 1.0,         # optional, alpha for each line
+                    grid: bool = True,          # optional, grid for each subplot
+                    xtitle: str = None,         # optional, xtitle for the whole figure
+                    ytitle: str|list = None,    # optional, ytitle for the whole figure
+                    suptitle: str = None,       # optional, suptitle for the whole figure
+                    fontsize: int = 12,         # optional, fontsize for the whole figure
                     ):
-    """xs is list of x, ys is list of list of y, 
-    allowing plot x with multiple y for each subplot"""
     # force xs and ys to match
     nsubplt = len(xs)
     assert nsubplt == len(ys)
@@ -163,10 +161,8 @@ def stack_lineplots(xs: list, ys: list,         # compulsory
         row, col = i // ncols, i % ncols
         twinxs.append([])
         for j in range(len(ys[i])):
-            if j == 0:
-                twinxs[i].append(ax[row, col])
-            else:
-                twinxs[i].append(ax[row, col].twinx())
+            ys[i][j] = np.array(ys[i][j])
+            twinxs[i].append(ax[row, col] if j == 0 else ax[row, col].twinx())
             twinxs[i][j].plot(xs[i], ys[i][j], 
                               label=labels[j], 
                               color=colors[j], 
@@ -177,8 +173,10 @@ def stack_lineplots(xs: list, ys: list,         # compulsory
                               alpha=alpha[j])
             # add yticks for each line
             ylim = np.max(np.abs(ys[i][j]))
-            twinxs[i][j].set_yticks([-ylim*0.75, 0, ylim*0.75])
-            twinxs[i][j].set_ylim(-ylim*1.25, ylim*1.25)
+            yticks = [-ylim*0.75, 0, ylim*0.75]
+            ylims = [-ylim*1.25, ylim*1.25]
+            twinxs[i][j].set_yticks(yticks)
+            twinxs[i][j].set_ylim(ylims[0], ylims[1])
             
         # add grid
         twinxs[i][0].grid(grid)
@@ -213,8 +211,23 @@ def stack_lineplots(xs: list, ys: list,         # compulsory
                      rotation="vertical",
                      transform=fig.transFigure,
                      fontsize=fontsize)
-
+    # suptitle
+    if suptitle is not None:
+        plt.suptitle(suptitle, fontsize=fontsize*1.5)
     return fig, ax
+
+def log_plots(xs: list, ys: list,         # compulsory
+              ):
+    # has the same format of input as function stack_lineplots, where y has
+    # nsubplot * nlines of data to plot, x has nsubplot of data to plot
+    
+    # what is different is the actuall number of subplots is nline, therefore
+    # for each line, all "nsubplot" data will be plotted in a single subplot,
+    # and y in log scale
+
+    # first to rearrange data
+    
+    
 
 if __name__ == "__main__":
     #print(testname_pspotid("pd04"))
@@ -231,9 +244,7 @@ if __name__ == "__main__":
     prs_y = prs_y[0]  # only get the 1st element to test
     ys = [[eks_y[i], prs_y[i]] for i in range(len(ecutwfc))]
 
-    fig, ax = stack_lineplots(xs=ecutwfc, 
-                              ys=ys,
-                              logy=False,
+    fig, ax = stack_lineplots(xs=ecutwfc, ys=ys,
                               ncols=1,
                               subtitles=pspotid,
                               markers=["s", "o"],
@@ -244,5 +255,6 @@ if __name__ == "__main__":
                               grid=True,
                               xtitle="ecutwfc (Ry)",
                               ytitle=["DeltaE(KS, Kohn-Sham) (eV/atom)", "Pressure (kbar)"],
+                              suptitle=element,
                               fontsize=12)
     plt.show()
