@@ -1,4 +1,4 @@
-import apns.module_analysis.read_abacus_out as amarao
+import apns.module_analysis.postprocess.read_abacus_out as amarao
 import numpy as np
 import os
 

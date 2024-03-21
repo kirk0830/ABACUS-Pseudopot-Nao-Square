@@ -1,4 +1,5 @@
 import numpy as np
+import scipy as sp
 
 def zero_padding(xmin: float, xmax: float, dx: float, x: np.ndarray, y: np.ndarray):
     """Zero padding for the x and y data, so that the x data is within the range [xmin, xmax] with a step of dx.
@@ -32,26 +33,24 @@ def zero_padding(xmin: float, xmax: float, dx: float, x: np.ndarray, y: np.ndarr
             ynew[i] = y[_i]
     return xnew, ynew
 
-def Gauss_smoothing(x, y, sigma, normalize = True, normalize_to = 1.0):
-    """Gaussian smoothing of the data y(x) with a standard deviation sigma.
+def Gaussian_filter(x, y, sigma, normalize = True, normalize_to = 1.0):
+    """Use convolution to smooth the data y(x) with a standard deviation sigma."""
+    # check if uniform grid of x, otherwise raise an error
+    dx = x[1] - x[0]
+    if not np.allclose(np.diff(x), dx):
+        raise ValueError("The x data is not uniformly spaced.")
+    assert len(x) == len(y)
+    # if full of y < 0, first reflect the data
+    reflected = False
+    if np.all(y <= 0):
+        y = -y
+        reflected = True
 
-    Args:
-        x (np.ndarray): x-axis values.
-        y (np.ndarray): y-axis values.
-        sigma (float): standard deviation of the Gaussian.
-
-    Returns:
-        np.ndarray: smoothed y-axis values.
-    """
-    n = len(x)
-    m = len(y)
-    assert n == m
-    y_smoothed = np.zeros(n)
-    for i in range(n):
-        for j in range(n):
-            y_smoothed[i] += y[j]*np.exp(-(x[i] - x[j])**2/(2*sigma**2))
+    y_smoothed = sp.ndimage.filters.gaussian_filter1d(y, sigma/dx)
     if normalize:
-        norm = np.trapz(y_smoothed, x)
+        norm = sp.integrate.simps(y_smoothed, x)
         y_smoothed = y_smoothed * normalize_to / norm
-            
+
+    y_smoothed = y_smoothed if not reflected else -y_smoothed
+
     return y_smoothed
