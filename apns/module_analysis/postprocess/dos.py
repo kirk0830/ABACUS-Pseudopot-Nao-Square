@@ -1,4 +1,4 @@
-import apns.module_analysis.read_abacus_out as amarao
+import apns.module_analysis.postprocess.read_abacus_out as amarao
 import apns.module_analysis.postprocess.utils as amapu
 import numpy as np
 
@@ -34,13 +34,16 @@ def calculate_bandgap(x: np.ndarray, y: np.ndarray):
     else:
         # -x search
         negind = ind
-        while negind > 0 and y[negind] < 1e-6:
+        while negind > 0 and abs(y[negind]) < 1e-6: # -x search for the first non-zero value
             negind -= 1
         # +x search
         posind = ind
-        while posind < len(x) and y[posind] < 1e-6:
+        while posind < len(x) and abs(y[posind]) < 1e-6: # +x search for the first non-zero value
             posind += 1
-        return x[posind] - x[negind]
+        if negind == 0 or posind == len(x):
+            return 0.0
+        else:
+            return x[posind] - x[negind]
 
 def run(fistate, flog, de = 0.02):
     xs, ys, bandgaps = [], [], []
@@ -59,20 +62,28 @@ def run(fistate, flog, de = 0.02):
 def draw(fistate, flog, de = 0.02):
     colors = ["blue", "red"]
     xs, ys, _ = run(fistate, flog, de)
+    xmin = xs[0][0]
     import matplotlib.pyplot as plt
     for i in range(len(xs)):
-        y = amapu.Gauss_smoothing(xs[i], ys[i], sigma=de*20)
+        y = amapu.Gaussian_filter(xs[i], ys[i], sigma=de*10)
+        #y = ys[i]
         plt.plot(xs[i], y, color=colors[i], label="spin channel " + str(i))
         # fill x < 0
         plt.fill_between(xs[i], y, where=xs[i] < 0, color=colors[i], alpha=0.2)
+        if xmin > xs[i][0]:
+            xmin = xs[i][0]
     plt.axhline(0, color="black", linestyle="-")
     plt.axvline(0, linestyle="--")
-    plt.show()
+    plt.xlim(xmin, 10)
+    plt.xlabel("Energy (eV)")
+    plt.ylabel("DOS")
+    plt.legend()
     
-
+    return plt
+    
 if __name__ == "__main__":
-    import matplotlib.pyplot as plt
+
     root = "apns/module_analysis/postprocess/test/support"
-    #xs, ys, bandgaps = run(root + "/istate.info", root + "/running_scf.log")
-    
-    draw(root + "/istate.info", root + "/running_scf.log")
+    #xs, ys, bandgaps = run(root + "/cobalt_istate.info", root + "/cobalt_running_scf.log")
+    #print(bandgaps)
+    draw(root + "/cobalt_istate.info", root + "/cobalt_running_scf.log").show()

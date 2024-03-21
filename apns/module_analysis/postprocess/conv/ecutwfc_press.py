@@ -1,8 +1,8 @@
 """Driver for get converged ecutwfc with respect to pressure"""
 # tool collection for reading ABACUS output files,
 # make sure the out dir is complete
-import apns.module_analysis.read_abacus_out as amarao
-import apns.module_analysis.conv.kernel as amack
+import apns.module_analysis.postprocess.read_abacus_out as amarao
+import apns.module_analysis.postprocess.conv.kernel as amack
 import numpy as np
 import os
 
@@ -18,10 +18,10 @@ def search_pressure(search_domain: str):
                     pressures.append(press)
     return path, np.array(pressures)
 
-def run(search_domain: str):
+def run(search_domain: str, thr: float = 1e-1):
     first, second = amack.search(search_domain=search_domain,
                                 searcher=search_pressure)
-    conv = amack.calculate(first, second, thr=1e-1)
+    conv = amack.calculate(first, second, thr=thr)
     return conv, second
 
 if __name__ == "__main__":
