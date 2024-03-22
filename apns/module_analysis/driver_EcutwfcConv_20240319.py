@@ -83,23 +83,31 @@ def stack_lineplots(xs: list, ys: list,         # compulsory
                     suptitle: str = None,       # optional, suptitle for the whole figure
                     fontsize: int = 12,         # optional, fontsize for the whole figure
                     ):
+    # xs provide a flexible way to plot multiple subplots, each subplot has its own x
+    # although for pseudopotential ecutwfc convergence test this is not necessary, 
+    # for all pseudopotential for one element will be identical
     # force xs and ys to match
-    nsubplt = len(xs)
-    assert nsubplt == len(ys)
+    nsubplts = len(xs)
+    # for ys, the flexibility is that each subplot can have not only one lines, but
+    # should all subplots have the same number of lines. Say for each pseudopotential
+    #, not only energies but also pressure and/or other properties can be plotted
+    # together. Therefore, ys is a 3-dimensional list, where the first dimension is
+    # about subplot, the second is about line, the third is about data.
+    assert nsubplts == len(ys)
     # force all subplots to have same number of lines
     nlines = len(ys[0])
-    for i in range(1, nsubplt):
+    for i in range(1, nsubplts):
         assert len(ys[i]) == nlines
-    print("Number of subplots:", nsubplt)
+    print("Number of subplots:", nsubplts)
     print("Number of lines to draw in each subplot:", nlines)
     assert ncols > 0
-    assert nsubplt >= ncols
+    assert nsubplts >= ncols
     assert nlines > 0
-    assert nsubplt <= 20
+    assert nsubplts <= 20
 
     # subtitles
-    subtitles = ["subplot " + str(i) for i in range(nsubplt)] if subtitles is None else subtitles
-    assert len(subtitles) == nsubplt
+    subtitles = ["subplot " + str(i) for i in range(nsubplts)] if subtitles is None else subtitles
+    assert len(subtitles) == nsubplts
     # labels
     labels = ["data " + str(i) for i in range(len(ys[0]))] if labels is None else labels
     assert len(labels) == len(ys[0])
@@ -152,12 +160,12 @@ def stack_lineplots(xs: list, ys: list,         # compulsory
         assert len(alpha) == nlines
 
     # create figure and axes
-    nrows = nsubplt // ncols + (nsubplt % ncols > 0)
-    fig, ax = plt.subplots(nrows, ncols, figsize=(60 * ncols, 10 * nrows), squeeze=False)
+    nrows = nsubplts // ncols + (nsubplts % ncols > 0)
+    fig, ax = plt.subplots(nrows, ncols, figsize=(20*ncols, nrows), squeeze=False)
     
     twinxs = []
     # plot
-    for i in range(nsubplt):
+    for i in range(nsubplts):
         row, col = i // ncols, i % ncols
         twinxs.append([])
         for j in range(len(ys[i])):
@@ -217,17 +225,132 @@ def stack_lineplots(xs: list, ys: list,         # compulsory
     return fig, ax
 
 def log_plots(xs: list, ys: list,         # compulsory
+              nrows: int = 1,             # optional, number of rows
+              subtitles: list = None,     # optional, subtitles for each subplot
+              labels: list = None,        # optional, labels for each line
+              colors: list = None,        # optional, colors for each line
+              markers: list = None,       # optional, markers for each line
+              markersizes: list = None,   # optional, markersizes for each line
+              linestyles: list = None,    # optional, linestyles for each line
+              linewidths: list = None,    # optional, linewidths for each line
+              alpha: float = 1.0,         # optional, alpha for each line
+              grid: bool = True,          # optional, grid for each subplot
+              xtitle: str = None,         # optional, xtitle for the whole figure
+              ytitle: str|list = None,    # optional, ytitle for the whole figure
+              suptitle: str = None,       # optional, suptitle for the whole figure
+              fontsize: int = 12,         # optional, fontsize for the whole figure
               ):
     # has the same format of input as function stack_lineplots, where y has
     # nsubplot * nlines of data to plot, x has nsubplot of data to plot
     
-    # what is different is the actuall number of subplots is nline, therefore
-    # for each line, all "nsubplot" data will be plotted in a single subplot,
-    # and y in log scale
+    # what is different is the actuall number of subplots is nline, say the
+    # number of kinds of data. Therefore, for each line, all "nsubplot" data 
+    # will be plotted in a single subplot, and y in log scale
 
     # first to rearrange data
+    nsubplts = len(xs) # the nsubplts-dimensional data is originally designed for
+    # plot like n pseudopotentials in one shot. Therefore, the first dimension is
+    # about pseudopotential, the second is about element, the third is about ecutwfc
+    # for present Log plot, for one element, number of suplots dependes on number
+    # of lines saved in ys
+    nlines = len(ys[0])
+    # nlines is the real number of subplots. Should be careful about the ys dimension
+    #, the first is about subplot, the second is about line, the third is about data.
+    # Therefore, for one certain property, the ydata should be ys[i][j] and should go
+    # over all i for each j.
+    for i in range(1, nsubplts):
+        assert len(ys[i]) == nlines
+    print("Number of subplots:", nlines)
+    print("Number of lines to draw in each subplot:", nsubplts)
+    # labels, this variable is designed for each pseudopotential, therefore, its
+    # length should be nsubplts
+    labels = ["data " + str(i) for i in range(nsubplts)] if labels is None else labels
+    assert len(labels) == nsubplts
+    # subtitles, this variable is designed for each line, therefore, its length should
+    # be nlines. Each subtitle corresponds to one property to test for convergence
+    subtitles = ["subplot " + str(i) for i in range(nlines)] if subtitles is None else subtitles
+    assert len(subtitles) == nlines
+    # ytitle
+    ytitle = ["subplot " + str(i) for i in range(nlines)] if ytitle is None else ytitle
+    if isinstance(ytitle, str):
+        ytitle = [ytitle] * nlines
+    assert len(ytitle) == nlines
+    # styles
+    # colors
+    _colorpool = ["#2A306A", "#24B5A5", "#1DB8A8", "#015BBC", "#EACE4F"]
+    if colors is not None:
+        assert len(colors) == nsubplts or len(colors) == 1
+        if len(colors) == 1:
+            colors = colors * nsubplts
+    else:
+        colors = [_colorpool[i % len(_colorpool)] for i in range(nsubplts)]
+    # markers
+    _markerpool = ["o", "s", "D", "v", "^", "<", ">", "p", "P", "*", "h", "H", "+", "x", "X", "|", "_"]
+    if markers is not None:
+        assert len(markers) == nsubplts or len(markers) == 1
+        if len(markers) == 1:
+            markers = markers * nsubplts
+    else:
+        markers = [_markerpool[i % len(_markerpool)] for i in range(nsubplts)]
+    # markersizes
+    if markersizes is not None:
+        assert len(markersizes) == nsubplts or len(markersizes) == 1
+        if len(markersizes) == 1:
+            markersizes = markersizes * nsubplts
+    else:
+        markersizes = [5] * nsubplts
+    # linestyles
+    _linestylepool = ["-", "--", "-.", ":"]
+    if linestyles is not None:
+        assert len(linestyles) == nsubplts or len(linestyles) == 1
+        if len(linestyles) == 1:
+            linestyles = linestyles * nsubplts
+    else:
+        linestyles = [_linestylepool[i % len(_linestylepool)] for i in range(nsubplts)]
+    # linewidths
+    if linewidths is not None:
+        assert len(linewidths) == nsubplts or len(linewidths) == 1
+        if len(linewidths) == 1:
+            linewidths = linewidths * nsubplts
+    else:
+        linewidths = [1] * nsubplts
+    # alpha
+    if isinstance(alpha, float):
+        alpha = [alpha] * nsubplts
+    else:
+        assert len(alpha) == nsubplts
+
+    # create figure and axes
+    fig, ax = plt.subplots(1, nlines, figsize=(10 * nlines, 10), squeeze=False)
+
+    # plot
+    for i in range(nlines):
+        for j in range(nsubplts):
+            ys[j][i] = np.array(ys[j][i])
+            y = np.abs(ys[j][i])
+            # y = np.log10(np.abs(ys[j][i]) + 1e-10)
+            ax[0, i].plot(xs[j], y, 
+                          label=labels[j], 
+                          color=colors[j], 
+                          marker=markers[j], 
+                          markersize=markersizes[j], 
+                          linestyle=linestyles[j], 
+                          linewidth=linewidths[j], 
+                          alpha=alpha[j])
+            ax[0, i].set_yscale("log")
+            ax[0, i].grid(grid)
+            ax[0, i].legend(fontsize=fontsize)
+            # set xtitle
+            ax[0, i].set_xlabel(xtitle, fontsize=fontsize)
+            ax[0, i].set_ylabel(ytitle[i], fontsize=fontsize)
+    # suptitle
+    if suptitle is not None:
+        plt.suptitle(suptitle, fontsize=fontsize*1.5)
     
-    
+    # set overall fontstyle
+    plt.rcParams["font.family"] = "Arial"
+
+    return fig, ax
 
 if __name__ == "__main__":
     #print(testname_pspotid("pd04"))
@@ -235,6 +358,9 @@ if __name__ == "__main__":
     elements, pspotids, eks_x, eks_y = categorize_byelement(result[0], result[1])
     elements, pspotids, prs_x, prs_y = categorize_byelement(result[2], result[3])
 
+    conv_eks = result[0]
+    conv_prs = result[2]
+    
     ncols = len(elements)
     element = elements[0] # only get the 1st element to test
     pspotid = pspotids[0] # only get the 1st element to test
@@ -244,17 +370,31 @@ if __name__ == "__main__":
     prs_y = prs_y[0]  # only get the 1st element to test
     ys = [[eks_y[i], prs_y[i]] for i in range(len(ecutwfc))]
 
+    fig, ax = log_plots(xs=ecutwfc, ys=ys, 
+                        nrows=1,
+                        subtitles=["Absolute DeltaE(KS, Kohn-Sham) (eV/atom)", "Absolute DeltaP (kbar)"],
+                        labels=pspotid,
+                        suptitle=element,
+                        xtitle="ecutwfc (Ry)",
+                        ytitle=["Absolute DeltaE(KS, Kohn-Sham) (eV/atom)", "Absolute DeltaP (kbar)"],
+                        fontsize=12)
+    plt.savefig(f"{element}_logplot.svg")
+
+
     fig, ax = stack_lineplots(xs=ecutwfc, ys=ys,
                               ncols=1,
                               subtitles=pspotid,
-                              markers=["s", "o"],
-                              markersizes=[7],
-                              linestyles=["--", "-"],
-                              linewidths=[1],
-                              alpha=0.8,
                               grid=True,
                               xtitle="ecutwfc (Ry)",
                               ytitle=["DeltaE(KS, Kohn-Sham) (eV/atom)", "Pressure (kbar)"],
                               suptitle=element,
                               fontsize=12)
-    plt.show()
+    plt.savefig(f"{element}.svg")
+    import apns.module_analysis.external_frender.htmls as amaeh
+    import apns.module_analysis.external_frender.markdown as amaem
+    html = amaeh.pseudopotentials(element=element, 
+                                 xc_functional="PBE", 
+                                 software="ABACUS",
+                                 fconv=f"{element}.svg")
+    with open("index.html", "w") as f:
+        f.write(html)
