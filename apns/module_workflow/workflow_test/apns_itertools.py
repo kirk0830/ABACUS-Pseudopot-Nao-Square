@@ -70,17 +70,10 @@ def pseudopot_nao(pseudopotentials: list, numerical_orbitals: list = None) -> li
         {'pseudopotential': 'pd_04', 'numerical_orbital': 'TZDP_10'}
     ]
     """
-    if len(numerical_orbitals) == 0:
-        return [
-            { "pseudopotential": pseudopotential } for pseudopotential in pseudopotentials
-            ]
-    else:
-        return [
-            {
-                "pseudopotential": numerical_orbital.split("@")[1],
-                "numerical_orbital": numerical_orbital.split("@")[0]
-            } for numerical_orbital in numerical_orbitals
-            ]
+
+    return [{"pseudopotential": pseudopotential} for pseudopotential in pseudopotentials] if numerical_orbitals is None else \
+           [{"pseudopotential":   numerical_orbital.split("@")[1],
+             "numerical_orbital": numerical_orbital.split("@")[0]} for numerical_orbital in numerical_orbitals]
 
 """This function provides element-wise combination of pseudopotential-nao combination yielded by
 function pseudopot_nao. Elements' pseudopotential-nao combination should be stored in a list.
@@ -130,16 +123,13 @@ def system(elements: list) -> list:
         {'pseudopotential': ['pd_04_spd', 'pd_03'], 'numerical_orbital': ['TZDP_6', 'SZ_10']}
     ]
     """
-    indices = [
-        list(range(len(element))) for element in elements
-    ]
+    indices = [list(range(len(element))) for element in elements]
     combinations = list(it.product(*indices))
-    result = []
-    for combination in combinations:
-        result.append(
-            { key: [elements[i][combination[i]][key] for i in range(len(elements))] for key in elements[0][0].keys() }
-        )
-    return result
+    return [{key: [elements[i][combination[i]][key]\
+                    for i in range(len(elements))] \
+                    for key in elements[0][0].keys()}\
+                    for combination in combinations]
+
 
 import apns.module_structure.basic as amsb
 def systems(system_list: list, valid_pseudopotentials: dict, valid_numerical_orbitals: dict = None) -> list:
@@ -157,18 +147,15 @@ def systems(system_list: list, valid_pseudopotentials: dict, valid_numerical_orb
     """
     if valid_numerical_orbitals is None:
         valid_numerical_orbitals = {}
-    pseudopot_nao_settings = []
+    upforb_settings = []
     for _system in system_list:
         elements = amsb.scan_elements(_system)
-        elements = [
-            pseudopot_nao(
-                pseudopotentials=list(valid_pseudopotentials[element].keys()),
-                numerical_orbitals=list(valid_numerical_orbitals[element].keys())
-                ) for element in elements
-                ]
-        pseudopot_nao_settings.append(system(elements=elements))
-    
-    return pseudopot_nao_settings
+        elements = [pseudopot_nao(pseudopotentials=list(valid_pseudopotentials[element].keys()),
+                                  numerical_orbitals=list(valid_numerical_orbitals[element].keys()))\
+                    for element in elements]
+        upforb_settings.append(system(elements=elements))
+    return upforb_settings
+
 """calculation parameters combination for global """
 
 """This function provides Cartesian direct product of calculation parameters.
@@ -180,7 +167,7 @@ otherwise will be a scalar and its value will be copied to all param suites.
 Methodologically, a loop over the returned list will quickly adjust the template file, especially for
 ABACUS the INPUT file. There is a parameter not in INPUT, it is, the characteristic_lengths, is used to scale
 LATTICE_CONSTANT in STRU file."""
-def calculation(work_status_calculation_section: dict) -> list:
+def calculation(calculation_settings: dict) -> list:
 
     """Gnerate all possible combination of parameters whose values specified as list to enumerate in 
     work_status/input.json calculation section
@@ -206,29 +193,25 @@ def calculation(work_status_calculation_section: dict) -> list:
         {'kpoints': 2, 'kpoints_type': 'gamma', 'basis_type': 'pw'}
     ]
     """
-
-    wscs = work_status_calculation_section
-    lists_to_combine = []
-    lists_names = []
-    scalar_names = []
-    for key in wscs.keys():
-        if isinstance(wscs[key], list):
-            lists_to_combine.append(wscs[key])
-            lists_names.append(key)
-        else:
-            scalar_names.append(key)
-
-    result = []
-    for combination in list(it.product(*lists_to_combine)):
-        result.append(dict(zip(lists_names, combination)))
+    # separate list and scalar parameters, for any variable which is given as list, it will be
+    # expanded to a list of dictionaries, each dictionary contains all scalar parameters and one
+    # list parameter
+    lists_names = [key for key in calculation_settings.keys() if isinstance(calculation_settings[key], list)]
+    lists_tocombine = [calculation_settings[key] for key in lists_names]
+    scalar_names = [key for key in calculation_settings.keys() if key not in lists_names]
+    # make Cartesian direct product
+    result = [dict(zip(lists_names, combination)) for combination in it.product(*lists_tocombine)]
+    # add scalar parameters to each dictionary
     for scalar_name in scalar_names:
         for i in range(len(result)):
-            result[i][scalar_name] = wscs[scalar_name]
-
+            result[i][scalar_name] = calculation_settings[scalar_name]
     return result
 
 def extensive(extensive_settings: dict) -> list:
-    """generate all possible combination of extensive settings
+    """generate all possible combinations of extensive settings set in
+    `extensive` section of input.json. Extensive setting may actually
+    affect STRU (for example the cell scaling), KPT (for example the
+    kpoints grid)
     
     Args:
         extensive_settings (dict): extensive settings in input.json

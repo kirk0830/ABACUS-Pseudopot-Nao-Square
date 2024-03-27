@@ -13,4 +13,5 @@ def decompose_data(data):
     elif re.match(r"^\s*[+-]?\d+(\s+[+-]?\d+)*\s*$", data):
         return [int(x) for x in data.split()] if " " in data else int(data.strip())
     else:
+        print(data)
         raise ValueError("data is not numeric")

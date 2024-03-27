@@ -19,6 +19,10 @@ def check(inp: dict) -> None:
         if inp["calculation"]["basis_type"] == "lcao":
             raise ValueError("Quantum ESPRESSO only supports pw calculation.")
     
+    """on the Feature Request of EOS calculation"""
+    # for EOS calculation, force user must specify ecutwfc for each system. But can also give
+    # value null (None) to indicate that result from convergence test will be used.
+
     """on the Feature Request of band structure calculation"""
     if inp["calculation"]["calculation"] == "scf":
         if inp["extensive"]["nkpoints_in_line"] > 0:
@@ -83,7 +87,7 @@ def expand(inp: dict, elements: list) -> dict:
 
     return inp
 
-def convert_to_absolute_path(relative_path: str) -> str:
+def toabspath(relative_path: str) -> str:
     """convert one path to absolute one, possible to raise NonExistError
 
     Args:
@@ -140,9 +144,9 @@ def inp_translate(fname: str, **kwargs) -> dict:
     # for unset attributes, use default values
     inp = default(inp)
     # convert ralative path to absolute path
-    inp["global"]["work_dir"] = convert_to_absolute_path(inp["global"]["work_dir"])
-    inp["global"]["pseudo_dir"] = convert_to_absolute_path(inp["global"]["pseudo_dir"])
-    inp["global"]["orbital_dir"] = convert_to_absolute_path(inp["global"]["orbital_dir"])
+    inp["global"]["work_dir"] = toabspath(inp["global"]["work_dir"])
+    inp["global"]["pseudo_dir"] = toabspath(inp["global"]["pseudo_dir"])
+    inp["global"]["orbital_dir"] = toabspath(inp["global"]["orbital_dir"])
     # check rationality of input
     check(inp)
 
