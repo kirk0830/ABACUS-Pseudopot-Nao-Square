@@ -152,7 +152,7 @@ def parse_reference(fname: str) -> dict:
     keyvalue_pattern = r"^(\w+)(\s+)([^#]*)(#.*)?"
     float_pattern = r"^\d+\.\d*$"
     int_pattern = r"^\d+$"
-    scalar_keywords = ["Ecut", "sigma", "element"]
+    scalar_keywords = ["Ecut", "sigma", "element", "max_steps"]
     result = {}
     if fname == "":
         raise ValueError("No filename provided")

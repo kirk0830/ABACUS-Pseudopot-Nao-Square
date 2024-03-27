@@ -22,7 +22,7 @@ class TestLocalValidityScan(unittest.TestCase):
                 "O": ["all"]
             }
         }
-        valid_pseudopotentials = amplvs._svp_(elements, pseudopotentials)
+        valid_pseudopotentials = amplvs.scan_orbs(elements, pseudopotentials)
         self.assertEqual(len(valid_pseudopotentials), 3)
 
 if __name__ == "__main__":

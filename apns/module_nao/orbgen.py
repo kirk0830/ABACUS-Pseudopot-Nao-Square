@@ -6,12 +6,15 @@ def find_ecutwfc(element: str,
                  pspot_id: str|list = None) -> tuple[list[float], list[str]]:
     
     """preset the ecutwfc and pspot_id for the given element for different cases"""
+    print(f"Find the ecutwfc and pspot_id for the given element {element}")
+    print(f"ecutwfc = {ecutwfc}, pspot_id = {pspot_id}")
+    # import ecutwfc database
     fecutwfc = amwi.TEMPORARY_FOLDER + "/ecutwfc_convergence.json"
     with open(fecutwfc, "r") as f:
         ecutwfc_db = json.load(f)[element]
+
     if ecutwfc is None and pspot_id is None:
         print("Use all values for one element record in the ecutwfc_convergence.json file")
-
         ecutwfc = list(ecutwfc_db.values())
         pspot_id = list(ecutwfc_db.keys())
     elif ecutwfc is None and not pspot_id is None:
@@ -53,8 +56,11 @@ def find_ecutwfc(element: str,
     elif (isinstance(ecutwfc, float) or isinstance(ecutwfc, int)) and isinstance(pspot_id, list):
         print("Use uniform ecutwfc for all pspot_id")
         pspot_id = [pspot.replace("_", "") for pspot in pspot_id]
-        pspot_id = [pspot for pspot in pspot_id if pspot in ecutwfc_db.keys()]
+        pspot_id_fromdb = [pspot for pspot in pspot_id if pspot in ecutwfc_db.keys()]
+        if len(pspot_id) != len(pspot_id_fromdb):
+            print("WARNING WARNING WARNING!\nWARNING: some pspot_id(s) not found in the ecutwfc_convergence.json file")
         ecutwfc = [ecutwfc] * len(pspot_id)
+
     else:
         raise ValueError(f"Confusing input: ecutwfc = {ecutwfc}, pspot_id = {pspot_id}")
 
@@ -94,7 +100,7 @@ def siab_generator(element: str,
                    pseudo_dir: str = "./download/pseudopotentials/",
                    other_settings: dict = None):
     
-    # list   list, with the same length, one-to-one correspondence
+    # list    list, with the same length, one-to-one correspondence
     ecutwfc, pspot_id = find_ecutwfc(element, ecutwfc, pspot_id)
     if ecutwfc is None and pspot_id is None:
         yield None

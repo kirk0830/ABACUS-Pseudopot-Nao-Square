@@ -77,5 +77,15 @@ if __name__ == "__main__":
 
    return fscript
 
+import unittest
+class TestDriver(unittest.TestCase):
+
+    def test_exsitu_siab(self):
+        
+        fscript = exsitu_siab("./SIAB/SIAB_nouvelle.py", [
+            "SIAB_INPUT_20210101000000.json", "SIAB_INPUT_20210101000001.json"])
+        self.assertTrue(os.path.exists(fscript))
+        #os.remove(fscript)
+
 if __name__ == "__main__":
-   run("input_orbgen.json")
+    unittest.main()

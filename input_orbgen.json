@@ -5,25 +5,25 @@
         "orbital_dir": "./download/numerical_orbitals"
     },
     "orbgen": {
-        "generator": "./apns/module_workflow/workflow_orbgen/test/support/mock_siab.py",
-        "generate_mode": "in-situ",
+        "generator": "./apns/module_workflow/workflow_orbgen/mock_siab.py",
+        "generate_mode": "ex-situ",
         "environment": "",
-        "mpi_command": "mpirun -np 8",
+        "mpi_command": "mpirun -np 16",
         "abacus_command": "abacus"
     },
     "abacus": {
         "functionals": "PBE",
-        "ecutwfc": 100,
-        "scf_nmax": 500
+        "ecutwfc": null,
+        "scf_nmax": 9000
     },
-    "systems": ["Cu"],
+    "systems": ["Co"],
     "pseudopotentials": {
-        "kinds": ["sg15", "pd", "dojo"],
+        "kinds": ["dojo", "pd"],
         "versions": ["all"],
         "appendices": ["all"]
     },
     "numerical_orbitals": {
-        "rcuts": [7, 8, 9, 10],
+        "rcuts": [6, 7, 8, 10],
         "types": ["DZP"]
     }
 }

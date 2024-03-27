@@ -28,7 +28,7 @@ class analysis_driver(apns_driver):
         """setup the driver"""
         pass
     def run(self):
-        pass
+        amwad.run(self.finp)
 
 import apns.module_workflow.workflow_orbgen.driver as amwod
 class orbgen_driver(apns_driver):
