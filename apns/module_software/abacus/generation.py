@@ -278,8 +278,9 @@ def STRU_Pymatgen(fname: str,                                   # cif file name
         for element in species.keys():
             return_str += "%s\n" % (species[element]["numerical_orbital"])
         return_str += "\n"
+    # scaling lattice volume by cell_scaling
+    lattice_constant = 1.889726877 * (1.0 + cell_scaling)**(1/3)
     
-    lattice_constant = 1.889726877 * (1.0 + cell_scaling)
     return_str += "LATTICE_CONSTANT\n%s\n\n"%(lattice_constant)
     return_str += "LATTICE_VECTORS\n"
     for lattice_vector in lattice_vectors:
@@ -543,7 +544,7 @@ min_dist_coef                  0.2 #factor related to the allowed minimum distan
 nbands                         10 #number of bands
 nbands_sto                     256 #number of stochastic bands
 nbands_istate                  5 #number of bands around Fermi level for get_pchg calulation
-symmetry                       1 #the control of symmetry
+symmetry                       0 #the control of symmetry
 init_vel                       0 #read velocity from STRU or not
 symmetry_prec                  1e-06 #accuracy for symmetry
 symmetry_autoclose             1 #whether to close symmetry automatically when error occurs in symmetry analysis

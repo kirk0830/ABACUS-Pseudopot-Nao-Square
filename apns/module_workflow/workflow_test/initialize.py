@@ -4,7 +4,7 @@ import apns.module_io.input_translate as amiit
 import apns.module_pseudo.archive as ampua
 # import apns.module_nao.nao_archive as amna
 def initialize(finp: str, test_mode: bool = False) -> tuple[dict, dict, dict, dict, dict]:
-    """initialize the program
+    """initialize the program, return runtime information can be determined before running the workflow
     
     Args:
         finp (str): input file
@@ -33,18 +33,28 @@ def initialize(finp: str, test_mode: bool = False) -> tuple[dict, dict, dict, di
         nao_arch: numerical orbital archive, a dict whose keys are "numerical orbital identifier", stored in
                   `nao_dir`, values are folders' absolute path.
     """
-    initialize_cache() # initialize cache directory
-    system_with_mpids = download_structure(finp) # download structure from Materials Project to cache directory, the cif named as mp-xxx.cif
-    _inp = amiit.inp_translate(fname=finp, system_with_mpids=system_with_mpids) # translate input file to json and modify it
-    valid_pseudopotentials, valid_numerical_orbitals = scan_valid_pseudopot_nao(_inp) # scan valid pseudopotentials and numerical orbitals according to input file
+    # 1. program file I/O initialization: initialize cache directory, by either creating or checking
+    # IS IT FOR PREPARING RUNTIME INFORMATION? yes
+    initialize_cache()
+    # 2. prepare structure: download structure from remote server or generate by user setting, and return a dict whose keys are system
+    #    (1) download structure from Materials Project to cache directory, the cif named as mp-xxx.cif
+    #    (2) 
+    # IS IT FOR PREPARING RUNTIME INFORMATION? yes, structure, download to cache directory
+    system_with_mpids = download_structure(finp)
+    # 3. translate input file to json and modify it
+    # IS IT FOR PREPARING RUNTIME INFORMATION? yes
+    runtime_settings = amiit.inp_translate(fname=finp, system_with_mpids=system_with_mpids)
+    # 4. scan valid pseudopotentials and numerical orbitals according to newly generated runtime settings
+    # IS IT FOR PREPARING RUNTIME INFORMATION? yes, available pseudopotentials and numerical orbitals can be used in tests
+    valid_upfs, valid_orbs = scan_upforb(runtime_settings)
 
-    pseudopot_arch = ampua.load(_inp["global"]["pseudo_dir"]) # load pseudopotential archive
-    # nao_arch = amna.load(_inp["global"]["nao_dir"]) # load numerical orbital archive, not implemented yet
+    upf_arch = ampua.load(runtime_settings["global"]["pseudo_dir"]) # load pseudopotential archive
+    # nao_arch = amna.load(runtime_settings["global"]["nao_dir"]) # load numerical orbital archive, not implemented yet
 
-    if not pspot_software_availability(_inp, valid_pseudopotentials, pseudopot_arch):
+    if not pspot_software_availability(runtime_settings, valid_upfs, upf_arch):
         raise ValueError("All valid pseudopotentials are not compatible with the software.")
 
-    return _inp, valid_pseudopotentials, valid_numerical_orbitals, pseudopot_arch, None
+    return runtime_settings, valid_upfs, valid_orbs, upf_arch, None
 
 import os
 import apns.module_workflow.identifier as amwi
@@ -79,34 +89,26 @@ def download_structure(finp: str) -> dict:
     Returns:
         dict: a dict whose keys are system formula and values are lists of corresponding system_mpids
     """
-
+    # open 
     with open(finp, "r") as f:
         inp = json.load(f)
 
-    _isolated = []
-    _crystal = []
-    for system in inp["systems"]:
-        if system.endswith("_dimer") or system.endswith("_trimer") or system.endswith("_tetramer"):
-            _isolated.append(system)
-        else:
-            _crystal.append(system)
-    if len(_isolated)*len(_crystal) != 0:
+    isolated = [s for s in inp["systems"] if s.endswith("_dimer") or s.endswith("_trimer") or s.endswith("_tetramer")]
+    crystal = [s for s in inp["systems"] if s not in isolated]
+    if len(isolated)*len(crystal) != 0:
         raise ValueError("Severe error: isolated molecule and crystal cannot be mixed.")
 
     system_with_mpids = {}
-
-    if len(_crystal):
-        consider_magnetism = False
-        if inp["calculation"]["nspin"] == 2 and inp["extensive"]["magnetism"] == "materials_project":
-            consider_magnetism = True
+    if len(crystal) > 0:
+        consider_magnetism = True if inp["calculation"]["nspin"] == 2 and inp["extensive"]["magnetism"] == "materials_project" else False
         system_with_mpids = amsmp.composites(api_key=inp["materials_project"]["api_key"],
-                                             formula=_crystal,
+                                             formula=crystal,
                                              num_cif=inp["materials_project"]["n_structures"],
                                              theoretical=inp["materials_project"]["theoretical"],
                                              is_stable=inp["materials_project"]["most_stable"],
                                              consider_magnetism=consider_magnetism)
-    elif len(_isolated):
-        for system in _isolated:
+    elif len(isolated) > 0:
+        for system in isolated:
             element = system.split("_")[0]
             system_with_mpids.setdefault(element, []).append(system)
     else:
@@ -117,7 +119,7 @@ def download_structure(finp: str) -> dict:
 import apns.module_structure.basic as amsb
 import apns.module_pseudo.local_validity_scan as amplvs
 import apns.module_nao.local_validity_scan as amnlvs
-def scan_valid_pseudopot_nao(finp: str|dict) -> tuple[dict, dict]:
+def scan_upforb(finp: str|dict) -> tuple[dict, dict]:
     """scan valid pseudopotential for all elements in input file
     
     Args:
@@ -143,7 +145,7 @@ def scan_valid_pseudopot_nao(finp: str|dict) -> tuple[dict, dict]:
     elements = amsb.scan_elements(inp["systems"])
 
     """from elements, get all valid pseudopotentials"""
-    valid_pseudopotentials = amplvs._svp_(elements, inp["pseudopotentials"])
+    valid_pseudopotentials = amplvs.scan_orbs(elements, inp["pseudopotentials"])
     for element in elements:
         if element not in valid_pseudopotentials.keys():
             raise ValueError("No valid pseudopotential for element {}.".format(element))

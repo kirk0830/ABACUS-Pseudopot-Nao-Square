@@ -115,6 +115,11 @@ def is_compatible(pseudopotential: str|dict, software: str = "abacus"):
     else:
         raise ValueError("Software not recognized")
 
+def z_valence(pseudopotential: str|dict):
+    """extract valence electron number from pseudopotential file"""
+    parsed = as_dict(pseudopotential)
+    return parsed["PP_HEADER"]["attrib"]["z_valence"]
+
 #######################################
 #auxiliary functions for compatibility#
 #######################################

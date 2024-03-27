@@ -28,6 +28,11 @@ executed. Currently available workflows are:
 """
 import argparse
 def initialize():
+    """initialize the workflow by getting input file and version of the workflow
+    Returns:
+        input_file (str): input file specifying the workflow
+        version (str): version of the workflow
+    """
     parser = argparse.ArgumentParser(description="APNS")
     parser.add_argument("-v", "--version", help="Version of the workflow", default="v1")
     parser.add_argument("-i", "--input", help="input file specifying the workflow", default="input.json")
@@ -46,8 +51,8 @@ def main():
         """I use polymorphism here, because seems each task can really have similar interface
         But it might be heavy..."""
         driver = amwd.spawn_driver(input_file)
-        driver.setup()
-        driver.run()
+        driver.setup() # no matter which driver, run setup
+        driver.run()   # no matter which driver, run the workflow
     else:
         """version 0 would be fully deprecated in the future"""
         amwtd.driver_v0(input_file)

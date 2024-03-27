@@ -42,6 +42,7 @@ def expand_atomic_species(symbols: list,
     """
     find the real number of atom types for the case magnetization is given.
     return a dict like
+    ```python
     {
         "ATOMTYPE1": {
             "pseudopotential": ...
@@ -49,7 +50,9 @@ def expand_atomic_species(symbols: list,
             "starting_magnetization": ...
             "atomic_positions": [...]
         }
-    }"""
+    }
+    ```
+    """
     if len(symbols) != len(atomic_positions):
         raise ValueError("symbols and atomic_positions must have the same length")
     

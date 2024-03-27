@@ -5,27 +5,50 @@ def liquid_header(layout: str, test: str, title: str):
     """Liquid header, a jekyll header for liquid layout"""
     return f"---\nlayout: {layout}\ntest: {test}\ntitle: {title}\n---\n\n"
 
-def banner_frame(title: str, content: str):
+def banner_frame(title: str, content: str|list):
     """Banner frame"""
-    return f"""<table class="banner-frame">
+    content = [content] if isinstance(content, str) else content
+    content = [f"<p align=\"center\">{c}</p>" for c in content]
+    result =  f"""<table class="banner-frame">
     <tr>
         <td class="banner-header">{title}</td>
     </tr>
     <tr>
         <td class="banner-body">
-            <p align="center">
-                {content}
-            </p>
+"""
+    result += "\n".join(content)
+    result += """
         </td>
     </tr>
 </table>"""
+    return result
+
+def header(title: str, level: int = 1):
+    """Header"""
+    return f"<h{level}>{title}</h{level}>"
+
+def unordered_list(content: list):
+    """Unordered list"""
+    content = [f"<li>{c}</li>" for c in content]
+    result = "<ul>"
+    result += "\n".join(content)
+    result += "</ul>"
+    return result
+
+def ordered_list(content: list):
+    """Ordered list"""
+    content = [f"<li>{c}</li>" for c in content]
+    result = "<ol>"
+    result += "\n".join(content)
+    result += "</ol>"
+    return result
 
 """Pseudopotentials - [ELEMENT]
 This is a html-string-like template for pseudopotential tests,
 presently this page is designed for presenting following tests:
 
 1. Convergence test
-Convergence test of `ecutwfc` set for ABACUS plainwave calculation. For more example please
+Convergence test of `ecutwfc` set for ABACUS planewave calculation. For more example please
 refer to Standard Solid State Pseudopotential (SSSP) library. The convergence of `ecutwfc` is
 crucial for the accuracy of the calculation. If not enough `ecutwfc` is used, the calculation
 actually uses a far less complete basis set, and the results are not reliable.
@@ -72,59 +95,48 @@ converged calculation, only the converged `ecutwfc` is used.
 About plotting
 Line plot, with shaded area under fermi level
 """
-def pseudopotentials(element: str, xc_functional: str = "PBE", software: str = "ABACUS",
-                     fconv: str = None, fdos: str = None, feos: str = None, fecoh: str = None):
+def pseudopotentials(element: str, 
+                     xc_functional: str = "PBE", 
+                     software: str = "ABACUS",
+                     commit: str = "latest commit",
+                     fconv: str = None, 
+                     fconvlog: str = None, 
+                     fdos: str = None, 
+                     feos: str = None, 
+                     fecoh: str = None):
     """Pseudopotential test"""
     # Liquid header
     html = liquid_header(layout="result", test=f"Pseudopotential tests for {element}", title=element)
     # Test information
-    html += "<h1>Pseudopotential tests</h1>\n"
-    html += "<h2>Test information</h2>\n"
-    html += f"<ul>\n"
-    html += f"    <li>element: {element}</li>\n"
-    html += f"    <li>pseudopotential type: {element}</li>\n"
-    html += f"    <li>DFT XC (exchange-correlation) functional: {xc_functional}</li>\n"
-    html += f"    <li>software: {software} (version: latest commit)</li>\n"
-    html += f"</ul>\n"
+    html += header("Pseudopotential tests", level=1) + "\n"
+    html += header("Test information", level=2) + "\n"
+    content = [f"element: {element}", f"pseudopotential type: {element}", f"DFT XC (exchange-correlation) functional: {xc_functional}", f"software: {software} (version: {commit})"]
+    html += unordered_list(content)
     # Test results
-    html += "<h2>Test results</h2>\n"
+    html += header("Test results", level=2) + "\n"
     html += "<table>\n"
     # BLOCK: Convergence test
     html += "<tr><td>\n"
-    if fconv is not None:
-        html += banner_frame(title="Convergence test", 
-                             content=f"<img src=\"{fconv}\" class=\"plain-figure\">")
-    else:
-        html += banner_frame(title="Convergence test", 
-                             content="Plainwave ecutwfc convergence test data will be available soon.")
+    content = [f for f in [fconv, fconvlog] if f is not None]
+    content = [f"<img src=\"{f}\" class=\"plain-figure\">" for f in content]
+    content = "Planewave ecutwfc convergence test data will be available soon." if len(content) == 0 else content
+    html += banner_frame(title="Convergence test", content=content)
     html += "</td></tr>\n"
     # BLOCK: Equation of States (EOS)
     # EOS data can be presented with javascript plotly, for user to interact with
     html += "<tr><td>\n"
-    if feos is not None:
-        html += banner_frame(title="Equation of States (EOS)", 
-                             content=f"<img src=\"{feos}\" class=\"plain-figure\">")
-    else:
-        html += banner_frame(title="Equation of States (EOS)", 
-                             content="Equation of States (EOS) data will be available soon.")
+    content = f"<img src=\"{feos}\" class=\"plain-figure\">" if feos is not None else "Equation of States (EOS) data will be available soon."
+    html += banner_frame(title="Equation of States (EOS)", content=content)
     html += "</td></tr>\n"
     # BLOCK: Cohesive energy
     html += "<tr><td>\n"
-    if fecoh is not None:
-        html += banner_frame(title="Cohesive energy", 
-                             content=f"<img src=\"{fecoh}\" class=\"plain-figure\">")
-    else:
-        html += banner_frame(title="Cohesive energy", 
-                             content="Cohesive energy data will be available soon.")
+    content = f"<img src=\"{fecoh}\" class=\"plain-figure\">" if fecoh is not None else "Cohesive energy data will be available soon."
+    html += banner_frame(title="Cohesive energy", content=content)
     html += "</td></tr>\n"
     # BLOCK: DOS
     html += "<tr><td>\n"
-    if fdos is not None:
-        html += banner_frame(title="Density of States (DOS)", 
-                             content=f"<img src=\"{fdos}\" class=\"plain-figure\">")
-    else:
-        html += banner_frame(title="Density of States (DOS)", 
-                             content="Density of States (DOS) data will be available soon.")
+    content = f"<img src=\"{fdos}\" class=\"plain-figure\">" if fdos is not None else "Density of States (DOS) data will be available soon."
+    html += banner_frame(title="Density of States (DOS)", content=content)
     html += "</td></tr>\n"
     # End of table
     html += "</table>\n"

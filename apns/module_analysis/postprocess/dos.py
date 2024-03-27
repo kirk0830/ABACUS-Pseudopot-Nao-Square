@@ -74,7 +74,7 @@ def draw(fistate, flog, de = 0.02):
             xmin = xs[i][0]
     plt.axhline(0, color="black", linestyle="-")
     plt.axvline(0, linestyle="--")
-    plt.xlim(xmin, 10)
+    plt.xlim(-40, 40)
     plt.xlabel("Energy (eV)")
     plt.ylabel("DOS")
     plt.legend()

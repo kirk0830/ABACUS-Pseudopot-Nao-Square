@@ -166,24 +166,24 @@ def shorten_keywords(keyword: str) -> str:
     Returns:
         str: shortened version of keyword
     """
-    if keyword in ABBR.keys():
-        return ABBR[keyword]
+    if keyword in KEYWORD_ABBR.keys():
+        return KEYWORD_ABBR[keyword]
     
     if keyword.count("_") == 0:
         _longest = ""
-        for key in ABBR.keys():
+        for key in KEYWORD_ABBR.keys():
             if key in keyword:
                 if len(key) > len(_longest):
                     _longest = key
         if _longest == "":
             # means no abbreviation found, in this case, return the first and last letter combination
-            if keyword not in IRREDUCIBLE:
+            if keyword not in KEYWORD_IRREDUCIBLE:
                 return keyword[0] + keyword[-1] if len(keyword) > 1 else keyword
             else:
                 return keyword
         else:
             fragments = keyword.replace(_longest, "_")
-            return ABBR[_longest].join([shorten_keywords(fragment) for fragment in fragments.split("_")])
+            return KEYWORD_ABBR[_longest].join([shorten_keywords(fragment) for fragment in fragments.split("_")])
     else:
         return "".join([shorten_keywords(fragment) for fragment in keyword.split("_")])
 
@@ -229,11 +229,11 @@ def cif(system_with_mpid: str) -> str:
 def folder_reduce(folder: str) -> str:
     """Remove some redundant words in folder name to make it shorter,
     but keep it clear enough to identify the calculation."""
-    for key in FOLDER_REDUICE.keys():
-        folder = folder.replace(key, FOLDER_REDUICE[key])
+    for key in FOLDER_ABBR.keys():
+        folder = folder.replace(key, FOLDER_ABBR[key])
     return folder
 
-ABBR = {"basis": "bs", "cal": "cl", "ecut": "ec", "force": "fs", "stress": "strs", "cell": "c", "scaling": "scal", "kspacing": "kspc",
+KEYWORD_ABBR = {"basis": "bs", "cal": "cl", "ecut": "ec", "force": "fs", "stress": "strs", "cell": "c", "scaling": "scal", "kspacing": "kspc",
         "kpoint": "kpt", "gamma": "gm", "centered": "cen", "pw": "pw", "pbe": "pbe", "pbesol": "pbesol", "lda": "lda", "gga": "gga",
         "noncolin": "nc", "spin": "sp", "relativistic": "fr", "pseudo": "ps", "potential": "pot",
         "band": "bnd", "type": "typ", "function": "fn", "mixing": "mix", "efield": "efield", "block": "blk",
@@ -248,10 +248,69 @@ ABBR = {"basis": "bs", "cal": "cl", "ecut": "ec", "force": "fs", "stress": "strs
         "up": "up", "charge": "chg", "damping": "dmp", "alpha": "a", "beta": "b", "gamma_only": "k000",
         "file": "f", "nnkp": "nnkp", "lambda": "lmbd", "tolerance": "tol", "step": "stp", "switch": "", 
         "calculation": "", "characteristic_lengths": "chlen"}
-IRREDUCIBLE = ["bs", "cl", "ec", "fs", "strs", "c", "scal", "kspc", "kpt", "gm", "cen", "pw", "pbe", "pbesol", "lda", "gga", "nc", "sp", "fr", "ps", "pot"
-               "bnd", "typ", "fn", "mix", "efield", "blk", "msd", "hyb", "thr", "kin", "wt", "ht", "smr", "bsl", "dscrptr", "wnr", "grd", "thmst", "fac", "dpks", "rlx", "nloc",
-               "x", "orb", "rc", "msh", "sp", "soc", "bndp", "symm", "temp", "vol", "prs", "spl", "frq", "wf",
-               "ro", "ecw", "ecro", "extrp", "prj", "rst", "sid", "dip", "corr", "nlcc", "fnl",
-               "xc", "lb", "mdl", "flg", "gate", "dw", "up", "chg", "dmp", "a", "b", "k000",
-               "f", "nnkp", "lmbd", "tol", "stp", "exx"]
-FOLDER_REDUICE = {"xc": "", "bstyp": "", "cscal": "cell"}
+KEYWORD_IRREDUCIBLE = ["bs", "cl", "ec", "fs", "strs", "c", "scal", "kspc", "kpt", "gm", "cen", "pw", "pbe", "pbesol", "lda", "gga", "nc", "sp", "fr", "ps", "pot"
+                       "bnd", "typ", "fn", "mix", "efield", "blk", "msd", "hyb", "thr", "kin", "wt", "ht", "smr", "bsl", "dscrptr", "wnr", "grd", "thmst", "fac", "dpks", "rlx", "nloc",
+                       "x", "orb", "rc", "msh", "sp", "soc", "bndp", "symm", "temp", "vol", "prs", "spl", "frq", "wf",
+                       "ro", "ecw", "ecro", "extrp", "prj", "rst", "sid", "dip", "corr", "nlcc", "fnl",
+                       "xc", "lb", "mdl", "flg", "gate", "dw", "up", "chg", "dmp", "a", "b", "k000",
+                       "f", "nnkp", "lmbd", "tol", "stp", "exx"]
+FOLDER_ABBR = {"xc": "", "bstyp": "", "cscal": "cell"}
+FOLDER_IRREDUCIBLE = ["sp-exc"] # exc is not allowed to be abbreviated due to PD04.sp-exc functional
+
+import unittest
+class IdentifierTest(unittest.TestCase):
+    """Test the identifier module
+    """
+    def test_pseudopotential(self):
+
+        self.assertEqual(id.pseudopotential(kind="GGA", version="PBE", appendix=""), "GGA_PBE")
+        self.assertEqual(id.pseudopotential(kind="GGA", version="", appendix=""), "GGA")
+        self.assertEqual(id.pseudopotential(kind="GGA", version="PBE", appendix="nc"), "GGA_PBE_nc")
+        self.assertEqual(id.pseudopotential(kind="GGA", version="", appendix="nc"), "GGA_nc")
+
+    def test_numerical_orbital(self):
+
+        self.assertEqual(id.numerical_orbital(type="DZP", rcut=0, appendix=""), "DZP_0")
+        self.assertEqual(id.numerical_orbital(type="DZP", rcut=0, appendix="nc"), "DZP_0_nc")
+        self.assertEqual(id.numerical_orbital(type="DZP", rcut=3, appendix="nc"), "DZP_3_nc")
+        self.assertEqual(id.numerical_orbital(type="DZP", rcut=3, appendix=""), "DZP_3")
+    """
+    def test__pseudopotential(self):
+
+        self.assertEqual(id._pseudopotential(identifier="GGA_PBE"), ("GGA", "PBE", ""))
+        self.assertEqual(id._pseudopotential(identifier="GGA"), ("GGA", "", ""))
+        self.assertEqual(id._pseudopotential(identifier="GGA_PBE_nc"), ("GGA", "PBE", "nc"))
+        
+    def test__numerical_orbital(self):
+            
+        self.assertEqual(id._numerical_orbital(identifier="DZP"), ("DZP", "", ""))
+        self.assertEqual(id._numerical_orbital(identifier="DZP_3_nc"), ("DZP", "3", "nc"))
+        self.assertEqual(id._numerical_orbital(identifier="DZP_3"), ("DZP", "3", ""))
+    """
+    def test_folder(self):
+
+        self.assertEqual(id.folder(functional="PBE", system="mp-1", specific_test=""), "t_pbe_mp-1_")
+        self.assertEqual(id.folder(functional="PBE", system="mp-1", specific_test="test"), "t_pbe_mp-1_test")
+        self.assertEqual(id.folder(functional="PBE", system="mp-1", specific_test="test_1"), "t_pbe_mp-1_test_1")
+
+    def test__folder(self):
+        pass
+
+    def test_calculation(self):
+        self.assertEqual(id.calculation(
+            param_suite={
+                "functional": "PBE",
+                "system": "mp-1",
+                "specific_test": "test"
+            }
+        ), "FnlPBESmmp-1Sctttest")
+    
+    def test_extensive(self):
+        self.assertEqual(id.extensive(param_suite={
+            "characteristic_lengths": 2.5,
+            "nkpoints_in_line": 10,
+            "magnetism": "ferromagnetic"
+        }), "Chlen2.5")
+
+if __name__ == "__main__":
+    unittest.main()
