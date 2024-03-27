@@ -14,7 +14,7 @@ def control_to_INPUT(qe: dict) -> dict:
         "calculation": "scf",
         "pseudo_dir": "./",
         "orbitals_dir": "./",
-        "symmetry": 1,
+        "symmetry": 0,
         "ecutwfc": 100,
         "scf_thr": 1e-6,
         "scf_nmax": 100,

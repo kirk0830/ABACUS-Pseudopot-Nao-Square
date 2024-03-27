@@ -38,8 +38,16 @@ def driver_v1(input_file: str):
     5. nao_arch: numerical orbital archive, a dict whose keys are "numerical orbital identifier", stored in
                 `nao_dir`, values are folders' absolute path.
     """
+    # ---------------------------------------------------------------------------------------------
+    # initialize, to get program running environment information, the "environment" includes
+    # available pseudopotentials and numerical orbitals (but if return, it seems not good...)
+    # does initialize really need to return in principle?
+    # An initialization of the whole code, if want to return, should return the runtime information
+    # , say all information needed for the code to run.
+    # DESIGN: INITIALIZE CAN RETURN RUNTIME INFORMATION
     import apns.module_workflow.workflow_test.initialize as amwinit
-    inp, vpspot, vnao, pspot_arch, nao_arch = amwinit.initialize(input_file)
+    runtime_settings, vupfs, vorbs, upf_arch, orb_arch = amwinit.initialize(input_file)
+    # ---------------------------------------------------------------------------------------------
     """iterate
     1. setup_iterables
         - create cross product of system on pseudopotential-numerical atomic orbital settings
@@ -47,21 +55,23 @@ def driver_v1(input_file: str):
         - on extensive settings
     2. iterate"""
     import apns.module_workflow.workflow_test.apns_itertools as amwai
-    pseudopot_nao_settings, calculation_settings, extensive_settings = amwai.setup_iterables(system_list=inp["systems"],
-                                                                                             pseudopotentials=vpspot,
-                                                                                             numerical_orbitals=vnao,
-                                                                                             calculation_settings=inp["calculation"],
-                                                                                             extensive_settings=inp["extensive"])
+    # calculation_settings is about INPUT
+    # extensive_settings is about "outer" loop, "outer" loop usually is about different systems
+    # upforb_settings is about "inner" loop
+    inner_iter, abacus_inputs, outer_iter = \
+        amwai.setup_iterables(system_list=runtime_settings["systems"],
+                              pseudopotentials=vupfs,                               # always available
+                              numerical_orbitals=vorbs,                             # not always available
+                              calculation_settings=runtime_settings["calculation"], # INPUT
+                              extensive_settings=runtime_settings["extensive"])     # outer loop
     import apns.module_workflow.workflow_test.iterate as amwi
-    folders = amwi.iterate(software=inp["global"]["software"].lower(),
-                           systems=inp["systems"],
-                           pseudopot_nao_settings=pseudopot_nao_settings,
-                           calculation_settings=calculation_settings,
-                           extensive_settings=extensive_settings,
-                           valid_pseudopotentials=vpspot,
-                           valid_numerical_orbitals=vnao,
-                           pspot_archive=pspot_arch,
-                           nao_archive=nao_arch,
+    folders = amwi.iterate(software=runtime_settings["global"]["software"].lower(),         # with software
+                           systems=runtime_settings["systems"],                             # on systems
+                           pseudopot_nao_settings=inner_iter,
+                           calculation_settings=abacus_inputs,
+                           extensive_settings=outer_iter,
+                           valid_pseudopotentials=vupfs, valid_numerical_orbitals=vorbs,
+                           pspot_archive=upf_arch,       nao_archive=orb_arch,
                            test_mode=False)
     """compress"""
     import time
@@ -73,11 +83,11 @@ def driver_v1(input_file: str):
         os.system("rm -rf {}".format(folder))
     """submit?"""
     import apns.module_io.abacustest as amia
-    amia.image_information(software=inp["global"]["software"].lower())
+    amia.image_information(software=runtime_settings["global"]["software"].lower())
     # sorry I don't connect with abacustest yet
     """citation"""
     import apns.module_io.citation as amicite
-    amicite.citation(software=inp["global"]["software"].lower())
+    amicite.citation(software=runtime_settings["global"]["software"].lower())
 
 def driver_v0(input_file: str):
     """old version of driver"""

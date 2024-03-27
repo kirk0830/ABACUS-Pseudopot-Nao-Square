@@ -13,9 +13,10 @@ def search_eks(search_domain: str):
             if file.startswith("running_") and file.endswith(".log"):
                 # get the energy trajectory
                 eks_traj = amarao.read_etraj_fromlog(os.path.join(root, file), unit="eV", term="EKS")
+                natom = amarao.read_natom_fromlog(os.path.join(root, file))
                 if eks_traj is not None and len(eks_traj) > 0:
                     paths.append(root)
-                    eks.append(eks_traj[-1])
+                    eks.append(eks_traj[-1]/natom)
     return paths, np.array(eks)
 
 def run(search_domain: str, thr: float = 1e-3):
