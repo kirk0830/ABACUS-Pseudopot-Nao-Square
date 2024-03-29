@@ -1,6 +1,6 @@
 ---
 layout: result
-test: Pseudopotential tests for Cl
+test: Pseudopotential
 title: Cl
 ---
 

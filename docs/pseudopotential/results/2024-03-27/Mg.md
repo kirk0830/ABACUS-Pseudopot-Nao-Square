@@ -1,6 +1,6 @@
 ---
 layout: result
-test: Pseudopotential tests for Mg
+test: Pseudopotential
 title: Mg
 ---
 

@@ -1,6 +1,6 @@
 ---
 layout: result
-test: Pseudopotential tests for Cu
+test: Pseudopotential
 title: Cu
 ---
 

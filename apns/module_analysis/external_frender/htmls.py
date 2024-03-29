@@ -106,7 +106,7 @@ def pseudopotentials(element: str,
                      fecoh: str = None):
     """Pseudopotential test"""
     # Liquid header
-    html = liquid_header(layout="result", test=f"Pseudopotential tests for {element}", title=element)
+    html = liquid_header(layout="result", test="Pseudopotential", title=element)
     # Test information
     html += header("Pseudopotential tests", level=1) + "\n"
     html += header("Test information", level=2) + "\n"
