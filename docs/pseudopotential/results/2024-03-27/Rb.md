@@ -1,6 +1,6 @@
 ---
 layout: result
-test: Pseudopotential tests for Rb
+test: Pseudopotential
 title: Rb
 ---
 

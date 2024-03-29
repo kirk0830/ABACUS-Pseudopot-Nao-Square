@@ -1,6 +1,6 @@
 ---
 layout: result
-test: Pseudopotential tests for Sb
+test: Pseudopotential
 title: Sb
 ---
 

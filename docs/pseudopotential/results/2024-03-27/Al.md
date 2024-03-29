@@ -1,6 +1,6 @@
 ---
 layout: result
-test: Pseudopotential tests for Al
+test: Pseudopotential
 title: Al
 ---
 

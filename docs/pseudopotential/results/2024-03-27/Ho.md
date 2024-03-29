@@ -1,6 +1,6 @@
 ---
 layout: result
-test: Pseudopotential tests for Ho
+test: Pseudopotential
 title: Ho
 ---
 

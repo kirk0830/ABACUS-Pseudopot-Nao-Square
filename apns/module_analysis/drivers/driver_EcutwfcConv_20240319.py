@@ -212,7 +212,7 @@ def run():
                          "xtitle": "Kinetic energy cutoff for planewave basis (ecutwfc, in Ry)", 
                          "ytitle": ["Absolute Kohn-Sham energy difference per atom (eV)", 
                                     "Absolute pressure difference (kbar)",
-                                    "Band structure difference, $\eta_{all, 00}$ (eV)"], 
+                                    "Band structure difference (eV)"], 
                          "ysymbols": ["$|\Delta E_{KS}|$", "$|\Delta P|$", "$|\eta_{all, 00}|$"],
                          "suptitle": element, 
                          "supcomment": "NOTE: Semitransparent lines correspond to red circles in the lineplot, \
@@ -239,21 +239,21 @@ def run():
                           "xtitle": "Kinetic energy cutoff for planewave basis (ecutwfc, in Ry)", 
                           "ytitle": ["Kohn-Sham energy difference per atom (eV)", 
                                      "Pressure difference (kbar)",
-                                     "Band structure difference, $\eta_{all, 00}$ (eV)"],
+                                     "Band structure difference (eV)"],
                           "suptitle": element, 
                           "supcomment": "NOTE: The red circle indicates the converged ecutwfc wrt. ecutwfc$_{max}$\
  with precision threshold (1.0 meV/atom, 0.1 kbar, 10 meV) respectively.\n \
 Absence of data points result from SCF convergence failure or walltime limit.",
-                          "fontsize": 15, "alpha": 0.8}
+                          "fontsize": 13, "alpha": 0.8}
         fig, ax = stack_lineplots(xs=xs, ys=ys, **lineplot_style)
-        plt.savefig(f"{element}.svg")
+        plt.savefig(f"{element}_stack.svg")
         plt.close()
 
-        shift_style = {"shifts": [5, 500, 5], "ld": "pseudopotential",
+        shift_style = {"shifts": [5, 500, 10], "ld": "pseudopotential",
                        "ysymbols": ["$\Delta E_{KS}$", "$\Delta P$", "$\eta_{all, 00}$"],
                       }
         fig, ax = shift_lineplots(xs=xs, ys=ys, **shift_style, **lineplot_style)
-        plt.savefig(f"{element}_shift.svg")
+        plt.savefig(f"{element}.svg")
         plt.close()
 
         import apns.module_analysis.external_frender.htmls as amaeh
@@ -442,21 +442,15 @@ def discrete_logplots(xs: list, ys: list, **kwargs):
         assert len(xs[i]) == nlines
         assert len(ys[i]) == nlines
     
-    xtitle = kwargs.get("xtitle", None)
-    ytitle = kwargs.get("ytitle", None)
-    ysymbols = kwargs.get("ysymbols", None)
-    labels = kwargs.get("labels", None)
+    xtitle, ytitle = kwargs.get("xtitle", None), kwargs.get("ytitle", None)
+    ysymbols, labels = kwargs.get("ysymbols", None), kwargs.get("labels", None)
     colors = kwargs.get("colors", None)
-    markers = kwargs.get("markers", None)
-    markersizes = kwargs.get("markersizes", None)
-    linestyles = kwargs.get("linestyles", None)
-    linewidths = kwargs.get("linewidths", None)
+    markers, markersizes = kwargs.get("markers", None), kwargs.get("markersizes", None)
+    linestyles, linewidths = kwargs.get("linestyles", None), kwargs.get("linewidths", None)
     alpha = kwargs.get("alpha", 1.0)
     grid = kwargs.get("grid", True)
     fontsize = kwargs.get("fontsize", 12)
-    subplotsize = kwargs.get("subplotsize", (10, 10))
-    nrows = kwargs.get("nrows", 1)
-
+    nrows, subplotsize = kwargs.get("nrows", 1), kwargs.get("subplotsize", (10, 10))
     highlight_ys = kwargs.get("highlight_ys", None)
 
     npspots = nlines
@@ -500,12 +494,12 @@ def discrete_logplots(xs: list, ys: list, **kwargs):
 
         ax[0, i].set_yscale("log")
         ax[0, i].grid(grid)
-
+        # add two legends, the first is normal legend, the second is threshold legend
         lns = ax[0, i].get_lines()[:-1] if highlight_ys is not None else ax[0, i].get_lines()
-        ax[0, i].legend(handles=lns, fontsize=fontsize, shadow=True)
+        ax[0, i].legend(handles=lns, fontsize=fontsize, shadow=True, loc="upper right")
         if highlight_ys is not None:
             thr_legend = Legend(ax[0, i], [ax[0, i].get_lines()[-1]], [ax[0, i].get_lines()[-1].get_label()], 
-                                fontsize=fontsize, frameon=True, shadow=False, loc="best")
+                                fontsize=fontsize, frameon=True, shadow=False, loc="lower left")
             ax[0, i].add_artist(thr_legend)
         # set x/y title
         ax[0, i].set_xlabel(xtitle, fontsize=fontsize * 1.2)
@@ -599,6 +593,10 @@ def shift_lineplots(xs: list, ys: list, **kwargs):
     # create figure and axes
     fig, ax = plt.subplots(1, 1, figsize=(20, 10))
     twinxs = [[None for _ in range(nprptys)] for _ in range(npspots)]
+    # record xticks, the basic one is [20, 30, 40, 50, 60, 70, 80, 90, 100, 150, 200]
+    # but if the maximum ecutwfc is larger than 200, then add it to the list
+    # then the xticklabels should be the same length as xticks
+    xticks = [20, 30, 40, 50, 60, 70, 80, 90, 100, 150, 200]
     for i in range(nprptys):
         for j in range(npspots):
             # create a new twinx for each pseudopotential
@@ -620,6 +618,8 @@ def shift_lineplots(xs: list, ys: list, **kwargs):
 
             # prepare data and make shift
             x, y = np.array(xs[j][i]), np.array(ys[j][i]) + shifts[i] * j
+            # check if xticks should be updated
+            xticks = np.unique(np.concatenate((xticks, x)))
             # all properties of the same pseudopotential share the same color
             # but with different marker and linestyle
             style = {"color": colors[j], "marker": markers[i], "linestyle": linestyles[i],
@@ -636,7 +636,18 @@ def shift_lineplots(xs: list, ys: list, **kwargs):
         twinxs[0][i].spines["right"].set_position(("axes", 1 + i*0.04))
         # set thickness of yaxis to 2
         twinxs[0][i].spines["right"].set_linewidth(2)
- 
+    # set xlims to be xmin - 10, xmax + 10
+    xmin, xmax = np.min(xticks), np.max(xticks)
+    for i in range(npspots):
+        for j in range(nprptys):
+            twinxs[i][j].set_xlim(xmin - 10, xmax + 10)
+    # set xticklabels
+    xticklabels = []
+    for ecutwfc in xticks:
+        xticklabels.append(str(ecutwfc)) if ecutwfc in xticks else xticklabels.append("")
+    twinxs[-1][0].set_xticks(xticks)
+    twinxs[-1][0].set_xticklabels(xticklabels, fontsize=fontsize)
+    
     # only add legends for the first pseudopotential for all properties
     lns = [twinxs[0][i].get_lines()[-1] for i in range(nprptys)]
     labels = [ysymbols[i] for i in range(nprptys)]
@@ -646,12 +657,12 @@ def shift_lineplots(xs: list, ys: list, **kwargs):
 
     # add one "y = 0" for reference for each pseudopotential
     for j in range(npspots):
-        ax.axhline(0 + shifts[0] * j, color="black", linewidth=1, alpha=0.1)
+        twinxs[j][0].axhline(0 + shifts[0] * j, color="black", linewidth=1, alpha=0.1)
     # turn on xgrid
-    ax.grid(True)
+    ax.grid(True, alpha=0.1)
     # and another line to seperate different pseudopotentials
     for j in range(npspots - 1):
-        ax.axhline(shifts[0] * (j + 1 - 1/2), color="black", linewidth=1, alpha=0.8)
+        twinxs[j][0].axhline(shifts[0] * (j + 1 - 1/2), color="black", linewidth=1, alpha=0.8)
     # turn off yticks
     ax.set_yticks([])
     # turn off yticklabels
@@ -664,15 +675,15 @@ def shift_lineplots(xs: list, ys: list, **kwargs):
     ytitles = kwargs.get("ytitle", None)
     if ytitles is not None:
         style = {"ha": "center", "va": "bottom", "transform": fig.transFigure, 
-                 "fontsize": fontsize, "backgroundcolor": "white"}
+                 "fontsize": fontsize}
         ytitles = [ytitles] if isinstance(ytitles, str) else ytitles
         for i in range(len(ytitles)):
-            xpos, ypos = 0.915 + i*0.03, 0.875
+            xpos, ypos = 0.91 + i*0.03, 0.90
             plt.text(xpos, ypos, ysymbols[i], **style)
     # set suptitle
     suptitle = kwargs.get("suptitle", None)
     if suptitle is not None:
-        plt.suptitle(suptitle, fontsize=fontsize)
+        plt.suptitle(suptitle, fontsize=fontsize * 1.5)
     # set supcomment
     supcomment = kwargs.get("supcomment", None)
     if supcomment is not None:
@@ -684,7 +695,6 @@ def shift_lineplots(xs: list, ys: list, **kwargs):
 
     return fig, ax
             
-
 if __name__ == "__main__":
     # this should not be changed no matter what kind of postprocess is!
     run()

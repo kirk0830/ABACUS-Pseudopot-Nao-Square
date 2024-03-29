@@ -1,6 +1,6 @@
 ---
 layout: result
-test: Pseudopotential tests for Re
+test: Pseudopotential
 title: Re
 ---
 
