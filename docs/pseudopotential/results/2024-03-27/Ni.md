@@ -1,6 +1,6 @@
 ---
 layout: result
-test: Pseudopotential tests for Ni
+test: Pseudopotential
 title: Ni
 ---
 

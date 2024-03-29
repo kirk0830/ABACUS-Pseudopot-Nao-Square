@@ -1,6 +1,6 @@
 ---
 layout: result
-test: Pseudopotential tests for Tl
+test: Pseudopotential
 title: Tl
 ---
 
