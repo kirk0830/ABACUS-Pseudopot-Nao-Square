@@ -1,6 +1,6 @@
 ---
 layout: result
-test: Pseudopotential tests for Bi
+test: Pseudopotential
 title: Bi
 ---
 

@@ -1,6 +1,6 @@
 ---
 layout: result
-test: Pseudopotential tests for Ge
+test: Pseudopotential
 title: Ge
 ---
 

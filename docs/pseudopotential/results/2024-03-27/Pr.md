@@ -1,6 +1,6 @@
 ---
 layout: result
-test: Pseudopotential tests for Pr
+test: Pseudopotential
 title: Pr
 ---
 

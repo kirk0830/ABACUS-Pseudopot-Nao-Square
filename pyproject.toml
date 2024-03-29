@@ -9,6 +9,7 @@ readme = "README.md"
 authors = [
     {name = "Yike HUANG", email = "huangyk@aici.ac.cn"},
 ]
+requires-python = ">=3.7"
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Programming Language :: Python :: 3.7",

@@ -1,6 +1,6 @@
 ---
 layout: result
-test: Pseudopotential tests for Na
+test: Pseudopotential
 title: Na
 ---
 

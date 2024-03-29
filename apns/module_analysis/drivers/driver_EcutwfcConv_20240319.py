@@ -22,13 +22,13 @@ def testname_pspotid(testname: str):
     """return pspotid from testname"""
     def translate_kind(testname):
         """translate pspotid to real pseudopotential name"""
-        dictionary = {"dojo": "PseudoDojo", "pslnc": "PSlibrary (Norm-Conserving)", 
+        dictionary = {"dojo": "PseudoDojo", "pslnc": "PSlibrary (NC)", 
                       "pslrrkjus": "PSlibrary (RRKJUS)", "pslncpaw": "PSlibrary (PAW)",
-                      "GTH": "Goedecker-Teter-Hutter", "HGH": "Hartwigsen-Goedecker-Hutter"}
+                      "gth": "Goedecker-Teter-Hutter", "hgh": "Hartwigsen-Goedecker-Hutter"}
         return dictionary[testname] if testname in dictionary.keys() else testname.upper()
     def translate_version(kind, version):
         if kind.upper() == "GTH":
-            return "-"+version
+            return " "+version
         elif kind.upper() == "PD":
             return version
         else:
@@ -156,26 +156,35 @@ def categorize_byelement(labels, data):
 
 import apns.module_analysis.postprocess.conv.ecutwfc_eks as amapeks
 import apns.module_analysis.postprocess.conv.ecutwfc_press as amapprs
-def search(path: str, ethr: float = 1e-3, pthr: float = 0.1):
+import apns.module_analysis.postprocess.conv.ecutwfc_istate as amapbs
+def search(path: str, ethr: float = 1e-3, pthr: float = 0.1, bsthr: float = 1e-2):
 
-    return amapeks.run(path, ethr), amapprs.run(path, pthr)
+    return amapeks.run(path, ethr),\
+           amapprs.run(path, pthr),\
+           amapbs.run(path, bsthr)
 
 def run():
     # always make independent on path for run() function, instead, use entry()
     path = entry()
     # postprocess
-    (conv_eks, data_eks), (conv_prs, data_prs) = search(path)
+    (conv_eks, data_eks), (conv_prs, data_prs), (conv_bs, data_bs) = search(path)
     # categorize by element
     elements, pspotids, eks_x, eks_y = categorize_byelement(conv_eks, data_eks)
-    elements, pspotids, prs_x, prs_y = categorize_byelement(conv_prs, data_prs)
+    _, _, prs_x, prs_y = categorize_byelement(conv_prs, data_prs)
+    _, _, bs_x, bs_y = categorize_byelement(conv_bs, data_bs)
 
     conv_results = {}
-    for iconv in range(len(conv_eks)):
-        if not conv_eks[iconv][0] in conv_results.keys():
-            conv_results[conv_eks[iconv][0]] = []
-        conv_results[conv_eks[iconv][0]].append((conv_eks[iconv][2], max(conv_eks[iconv][3], conv_prs[iconv][3])))
+    for iconv in range(len(conv_eks)): # loop over all system-mpid-pnid tests...
+        element = conv_eks[iconv][0]
+        pnid = conv_eks[iconv][2]
+        if not element in conv_results.keys():
+            conv_results[element] = []
+        conv_results[element].append((pnid, 
+                                      max(conv_eks[iconv][3], 
+                                          conv_prs[iconv][3],
+                                          conv_bs[iconv][3])))
 
-    # remember: eks_x/prs_x/eks_y/prs_y is indiced by [element][pspotid][ecutwfc] to get a float value
+    # remember: eks_*/prs_*/... is indiced by [element][pspotid][ecutwfc] to get a float value
     for i in range(len(elements)):
         element = elements[i]
         _pspotnames, _pspotids = zip(*[testname_pspotid(id) for id in pspotids[i]])
@@ -196,17 +205,18 @@ def run():
         # eks_x[i]/prs_x[i]/eks_y[i]/prs_y[i], indiced by [pspotid][ecutwfc]
         # or say shape = (npspotid, necutwfc)
         # let them be (nproperties, npspotid, necutwfc)
-        xs = [eks_x[i], prs_x[i]]
-        ys = [eks_y[i], prs_y[i]]
+        xs = [eks_x[i], prs_x[i], bs_x[i]]
+        ys = [eks_y[i], prs_y[i], bs_y[i]]
 
-        logplot_style = {"highlight_ys": [1e-3, 0.1], "nrows": 1, 
+        logplot_style = {"highlight_ys": [1e-3, 0.1, 1e-2], "nrows": 1, 
                          "xtitle": "Kinetic energy cutoff for planewave basis (ecutwfc, in Ry)", 
                          "ytitle": ["Absolute Kohn-Sham energy difference per atom (eV)", 
-                                    "Absolute pressure difference (kbar)"], 
+                                    "Absolute pressure difference (kbar)",
+                                    "Band structure difference (eV)"], 
+                         "ysymbols": ["$|\Delta E_{KS}|$", "$|\Delta P|$", "$|\eta_{all, 00}|$"],
                          "suptitle": element, 
                          "supcomment": "NOTE: Semitransparent lines correspond to red circles in the lineplot, \
-with precision threshold 1e-3 eV/atom and 0.1 kbar respectively. Absence of data points result from SCF\
- convergence failure or walltime limit.",
+ Absence of data points result from SCF convergence failure or walltime limit.",
                          "labels": _pspotnames, "fontsize": 12}
         fig, ax = discrete_logplots(xs=xs, ys=ys, **logplot_style)
         plt.savefig(f"{element}_logplot.svg")
@@ -219,8 +229,8 @@ with precision threshold 1e-3 eV/atom and 0.1 kbar respectively. Absence of data
         # eks_x[i]/prs_x[i]/eks_y[i]/prs_y[i], indiced by [pspotid][ecutwfc]
         # or say shape = (npspotid, necutwfc)
         # let them be (npspotid, nproperties, necutwfc)
-        xs = [[eks_x[i][j], prs_x[i][j]] for j in range(len(_pspotnames))]
-        ys = [[eks_y[i][j], prs_y[i][j]] for j in range(len(_pspotnames))]
+        xs = [[eks_x[i][j], prs_x[i][j], bs_x[i][j]] for j in range(len(_pspotnames))]
+        ys = [[eks_y[i][j], prs_y[i][j], bs_y[i][j]] for j in range(len(_pspotnames))]
 
         lineplot_style = {"highlight_xs": conv_results[element], "ncols": 1, 
                           "subtitles": _pspotnames, 
@@ -228,15 +238,24 @@ with precision threshold 1e-3 eV/atom and 0.1 kbar respectively. Absence of data
                           "grid": True,
                           "xtitle": "Kinetic energy cutoff for planewave basis (ecutwfc, in Ry)", 
                           "ytitle": ["Kohn-Sham energy difference per atom (eV)", 
-                                     "Pressure difference (kbar)"],
+                                     "Pressure difference (kbar)",
+                                     "Band structure difference (eV)"],
                           "suptitle": element, 
                           "supcomment": "NOTE: The red circle indicates the converged ecutwfc wrt. ecutwfc$_{max}$\
- with precision threshold 1e-3 eV/atom and 0.1 kbar respectively. Absence of data points result from SCF convergence\
- failure or walltime limit.",
-                          "fontsize": 12}
+ with precision threshold (1.0 meV/atom, 0.1 kbar, 10 meV) respectively.\n \
+Absence of data points result from SCF convergence failure or walltime limit.",
+                          "fontsize": 13, "alpha": 0.8}
         fig, ax = stack_lineplots(xs=xs, ys=ys, **lineplot_style)
+        plt.savefig(f"{element}_stack.svg")
+        plt.close()
+
+        shift_style = {"shifts": [5, 500, 10], "ld": "pseudopotential",
+                       "ysymbols": ["$\Delta E_{KS}$", "$\Delta P$", "$\eta_{all, 00}$"],
+                      }
+        fig, ax = shift_lineplots(xs=xs, ys=ys, **shift_style, **lineplot_style)
         plt.savefig(f"{element}.svg")
         plt.close()
+
         import apns.module_analysis.external_frender.htmls as amaeh
         html = amaeh.pseudopotentials(element=element, 
                                       xc_functional="PBE", 
@@ -248,7 +267,7 @@ with precision threshold 1e-3 eV/atom and 0.1 kbar respectively. Absence of data
 
 def styles_factory(property: str = "color", val: float = -1, ndim: int = None) -> list:
     if property == "color":
-        colorpool = ["#2A306A", "#24B5A5", "#1DB8A8", "#015BBC", "#EACE4F"]
+        colorpool = ["#2b316f", "#d8006a", "#24b5a5", "#e8cc47", "#005bbd"]
         return [colorpool[i % len(colorpool)] for i in range(ndim)]
     elif property == "marker":
         markerpool = ["o", "s", "D", "v", "^", "<", ">", "p", "P", "*", "h", "H", "+", "x", "X", "|", "_"]
@@ -266,6 +285,7 @@ def styles_factory(property: str = "color", val: float = -1, ndim: int = None) -
         raise ValueError("Unknown property")
 
 import matplotlib.pyplot as plt
+from matplotlib.legend import Legend
 import numpy as np
 def stack_lineplots(xs: list, ys: list, **kwargs):
     nsubplts = len(xs)
@@ -312,10 +332,12 @@ def stack_lineplots(xs: list, ys: list, **kwargs):
     assert z_vals is None or len(z_vals) == npspots
     # create figure and axes
     nrows = nsubplts // ncols + (nsubplts % ncols > 0)
-    fig, ax = plt.subplots(nrows, ncols, figsize=(subplotsize[0] * ncols, subplotsize[1] * nrows), squeeze=False)
+    fig, ax = plt.subplots(nrows, ncols, figsize=(subplotsize[0] * ncols + (nprptys - 1) * 0.02, # reserve space for multi-y axis
+                                                  subplotsize[1] * nrows), 
+                           squeeze=False)
     
-    xtitle_styles = {"ha": "center", "va": "center", "transform": fig.transFigure, "fontsize": fontsize}
-    ytitle_styles = {"ha": "center", "va": "center", "rotation": "vertical", "transform": fig.transFigure, "fontsize": fontsize}
+    xtitle_styles = {"ha": "center", "va": "center", "transform": fig.transFigure, "fontsize": fontsize * 1.2}
+    ytitle_styles = {"ha": "center", "va": "center", "rotation": "vertical", "transform": fig.transFigure, "fontsize": fontsize * 1.2}
 
     # for there may be data failed to converge or due to failure of Bohrium platform, the length of
     # xs between different pseudopotentials may not be the same, so we need to find the minimum and maximum
@@ -323,6 +345,12 @@ def stack_lineplots(xs: list, ys: list, **kwargs):
 
     ecutwfc_min = min([min([min(xs[i][j]) for j in range(nprptys)]) for i in range(npspots)])
     ecutwfc_max = max([max([max(xs[i][j]) for j in range(nprptys)]) for i in range(npspots)])
+    ecutwfcs = [20, 30, 40, 50, 60, 70, 80, 90, 100, 150, 200]
+    ecutwfcs.append(ecutwfc_max) if ecutwfc_max > ecutwfcs[-1] else None
+    xticklabels = []
+    for ecutwfc in np.arange(ecutwfc_min, ecutwfc_max + 10, 10):
+        xticklabels.append(str(ecutwfc)) if ecutwfc in ecutwfcs else xticklabels.append("")
+    xticks = np.linspace(ecutwfc_min, ecutwfc_max, int((ecutwfc_max - ecutwfc_min)/10) + 1)
 
     twinxs = []
     # plot
@@ -338,17 +366,29 @@ def stack_lineplots(xs: list, ys: list, **kwargs):
             # add yticks for each line
             ylim = np.max(np.abs(ys[i][j]))
             yticks = [-ylim*0.75, 0, ylim*0.75]
-            ylims = [-ylim*1.25, ylim*1.25]
-            # set yticks with color in the same color as the line
             twinxs[i][j].set_yticks(yticks)
-            twinxs[i][j].set_yticklabels([f"{yticks[i]:.2f}" for i in range(len(yticks))], color=colors[j])
-            # change color of y axis
-            twinxs[i][j].spines["right" if j == 1 else "left"].set_color(colors[j])
+            # set color for yaxis, yticks, yticklabels the same as the line, yticklabels .2f, fontsize = fontsize
+            # thickness of yaxis = 2, yticklabels are left aligned
+            twinxs[i][j].yaxis.label.set_color(colors[j])
+            twinxs[i][j].tick_params(axis="y", colors=colors[j])
+            twinxs[i][j].set_yticklabels(["%.2f"%ytick for ytick in yticks])
+            twinxs[i][j].spines["right"].set_color(colors[j])
+            twinxs[i][j].spines["right"].set_linewidth(2)
+
+            # translate y axis with some distance
+            twinxs[i][j].spines["right"].set_position(("axes", 1 + (j-1)*0.08)) if j >= 1 else None
+
+            # set ylims
+            ylims = [-ylim*1.25, ylim*1.25]
             twinxs[i][j].set_ylim(ylims[0], ylims[1])
+
+            # set xlims
             twinxs[i][j].set_xlim(ecutwfc_min - 10, ecutwfc_max + 10)
 
         # add grid
-        twinxs[i][0].grid(grid)
+        twinxs[i][0].grid(grid, alpha = 0.1)
+        # add xticks
+        twinxs[i][0].set_xticks(xticks)
         # add subtitle at right, text left aligned
         pspotid_style = {"horizontalalignment": "right", "verticalalignment": "top", 
                          "transform": twinxs[i][0].transAxes, "fontsize": fontsize,
@@ -362,6 +402,8 @@ def stack_lineplots(xs: list, ys: list, **kwargs):
         if highlight_xs is not None:
             # add a circle at the x position, on the topmost layer
             twinxs[i][0].plot(highlight_xs[i][1], 0, "o", **conv_marker_style)
+    # set fontsize for xticks
+    twinxs[-1][0].set_xticklabels(xticklabels, fontsize=fontsize)
 
     # subplot size adjustment, leave no space between subplots vertically
     plt.subplots_adjust(hspace=0.0, wspace=0.2)
@@ -375,7 +417,7 @@ def stack_lineplots(xs: list, ys: list, **kwargs):
     if ytitle is not None:
         ytitle = [ytitle] if isinstance(ytitle, str) else ytitle
         for i in range(len(ytitle)):
-            x = 0.075 if i == 0 else 0.95 + (i - 1)*0.05
+            x = 0.075 if i == 0 else 0.945 + (i - 1)*0.05
             plt.text(x, 0.5, ytitle[i], **ytitle_styles)
     # suptitle
     suptitle = kwargs.get("suptitle", None)
@@ -400,20 +442,15 @@ def discrete_logplots(xs: list, ys: list, **kwargs):
         assert len(xs[i]) == nlines
         assert len(ys[i]) == nlines
     
-    xtitle = kwargs.get("xtitle", None)
-    ytitle = kwargs.get("ytitle", None)
-    labels = kwargs.get("labels", None)
+    xtitle, ytitle = kwargs.get("xtitle", None), kwargs.get("ytitle", None)
+    ysymbols, labels = kwargs.get("ysymbols", None), kwargs.get("labels", None)
     colors = kwargs.get("colors", None)
-    markers = kwargs.get("markers", None)
-    markersizes = kwargs.get("markersizes", None)
-    linestyles = kwargs.get("linestyles", None)
-    linewidths = kwargs.get("linewidths", None)
+    markers, markersizes = kwargs.get("markers", None), kwargs.get("markersizes", None)
+    linestyles, linewidths = kwargs.get("linestyles", None), kwargs.get("linewidths", None)
     alpha = kwargs.get("alpha", 1.0)
     grid = kwargs.get("grid", True)
     fontsize = kwargs.get("fontsize", 12)
-    subplotsize = kwargs.get("subplotsize", (10, 10))
-    nrows = kwargs.get("nrows", 1)
-
+    nrows, subplotsize = kwargs.get("nrows", 1), kwargs.get("subplotsize", (10, 10))
     highlight_ys = kwargs.get("highlight_ys", None)
 
     npspots = nlines
@@ -449,14 +486,26 @@ def discrete_logplots(xs: list, ys: list, **kwargs):
             styles = {"color": colors[j], "marker": markers[j], "markersize": markersizes[j], 
                       "linestyle": linestyles[j], "linewidth": linewidths[j], "alpha": alpha[j]}
             ax[0, i].plot(xs[i][j][:-1], np.abs(np.array(ys[i][j]))[:-1], label=labels[j], **styles)
-            ax[0, i].set_yscale("log")
-            ax[0, i].grid(grid)
-            ax[0, i].legend(fontsize=fontsize, shadow=True)
-            # set xtitle
-            ax[0, i].set_xlabel(xtitle, fontsize=fontsize)
-            ax[0, i].set_ylabel(ytitle[i], fontsize=fontsize)
+        # add threshold line
         if highlight_ys is not None:
-            ax[0, i].axhline(highlight_ys[i], color="red", linewidth=5, alpha=0.1)
+            thr_style = {"color": "red", "linewidth": 5, "alpha": 0.1, 
+                         "label": ysymbols[i] + " < " + "%.2e"%highlight_ys[i]}
+            ax[0, i].axhline(highlight_ys[i], **thr_style)
+
+        ax[0, i].set_yscale("log")
+        ax[0, i].grid(grid)
+        # add two legends, the first is normal legend, the second is threshold legend
+        lns = ax[0, i].get_lines()[:-1] if highlight_ys is not None else ax[0, i].get_lines()
+        ax[0, i].legend(handles=lns, fontsize=fontsize, shadow=True, loc="upper right")
+        if highlight_ys is not None:
+            thr_legend = Legend(ax[0, i], [ax[0, i].get_lines()[-1]], [ax[0, i].get_lines()[-1].get_label()], 
+                                fontsize=fontsize, frameon=True, shadow=False, loc="lower left")
+            ax[0, i].add_artist(thr_legend)
+        # set x/y title
+        ax[0, i].set_xlabel(xtitle, fontsize=fontsize * 1.2)
+        ax[0, i].set_ylabel(ytitle[i], fontsize=fontsize * 1.2)
+        # set x/y label fontsize
+        ax[0, i].tick_params(axis="both", labelsize=fontsize)
 
     # suptitle
     suptitle = kwargs.get("suptitle", None)
@@ -474,6 +523,178 @@ def discrete_logplots(xs: list, ys: list, **kwargs):
     plt.rcParams["font.family"] = "Arial"
     return fig, ax
 
+def shift_lineplots(xs: list, ys: list, **kwargs):
+    """draw all lines in one figure, but add shift to distinguish between
+    different pseudopotentials, therefore there are shifts needed to be
+    defined as many as properties. In this mode, EVERY SINGLE LINE can have
+    different length or number of data points, but x-y should still have
+    the same length.
+    
+    The shift is of the same property between different pseudopotentials, 
+    thus the ylim of the whole figure should be shift*npspots.
+    
+    Design to let all properties of the same pseudopotential share the same
+    color, but with different marker and linestyle. The loop should still be
+    2-dimensional, the one is pseudopotential and the other is property. If
+    pseudopotential is the outer loop, it means for each pseudopotential, 
+    firstly to draw all properties, then move to the next pseudopotential.
+    Vice versa, if property is the outer loop, it means first draw one property
+    for all pseudopotentials, then move to the next property.
+    """
+    
+    ld = kwargs.get("ld", None)
+    assert ld in ["pseudopotential", "property"] 
+    # leading dimension is necessary, therefore if not given, raise an error
+    if ld == "pseudopotential":
+        npspots = len(xs)
+        assert len(ys) == npspots
+        nprptys = len(xs[0])
+        for i in range(1, npspots):
+            assert len(xs[i]) == nprptys
+            assert len(ys[i]) == nprptys
+    elif ld == "property":
+        nprptys = len(xs)
+        assert len(ys) == nprptys
+        npspots = len(xs[0])
+        for i in range(1, nprptys):
+            assert len(xs[i]) == npspots
+            assert len(ys[i]) == npspots
+    else:
+        raise ValueError("Unknown loop direction")
+    
+    colors = kwargs.get("colors", None)
+    colors = styles_factory(property="color", ndim=npspots) if colors is None else colors
+    assert len(colors) == npspots
+
+    markers = kwargs.get("markers", None)
+    markers = styles_factory(property="marker", ndim=nprptys) if markers is None else markers
+    assert len(markers) == nprptys
+
+    linestyles = kwargs.get("linestyles", None)
+    linestyles = styles_factory(property="linestyle", ndim=nprptys) if linestyles is None else linestyles
+    assert len(linestyles) == nprptys
+
+    shifts = kwargs.get("shifts", None)
+    assert len(shifts) == nprptys # if shifts is not given, then will cause a assertation failure
+
+    # add pseudopotential name, z_valence information
+    pspotnames = kwargs.get("subtitles", None)
+    assert pspotnames is not None and len(pspotnames) == npspots
+    z_vals = kwargs.get("z_vals", None)
+    assert z_vals is None or len(z_vals) == npspots
+
+    highlight_xs = kwargs.get("highlight_xs", None)
+    assert highlight_xs is None or len(highlight_xs) == npspots
+
+    ysymbols = kwargs.get("ysymbols", None)
+    assert ysymbols is not None and len(ysymbols) == nprptys
+    
+    fontsize = kwargs.get("fontsize", 12)
+    # create figure and axes
+    fig, ax = plt.subplots(1, 1, figsize=(20, 10))
+    twinxs = [[None for _ in range(nprptys)] for _ in range(npspots)]
+    # record xticks, the basic one is [20, 30, 40, 50, 60, 70, 80, 90, 100, 150, 200]
+    # but if the maximum ecutwfc is larger than 200, then add it to the list
+    # then the xticklabels should be the same length as xticks
+    xticks = [20, 30, 40, 50, 60, 70, 80, 90, 100, 150, 200]
+    for i in range(nprptys):
+        for j in range(npspots):
+            # create a new twinx for each pseudopotential
+            twinxs[j][i] = ax.twinx()
+            # only add pseudopotential name and z_valence information for the first property
+            if i == 0:
+                xpos = 0.995
+                dypos = 1/npspots
+                ypos1 = j * dypos + dypos*0.9
+                ypos2 = j * dypos + dypos*0.3
+                pspotid_style = {"horizontalalignment": "right", "verticalalignment": "top", 
+                                 "transform": twinxs[j][i].transAxes, "fontsize": fontsize}
+                twinxs[j][i].text(xpos, ypos1, pspotnames[j], **pspotid_style)
+                twinxs[j][i].text(xpos, ypos2, "$Z$ = %d"%z_vals[j], **pspotid_style) if z_vals is not None else None
+                # also add circle at the x position for the converged ecutwfc
+                conv_marker_style = {"markersize": 15, "markerfacecolor": "none", "markeredgecolor": "red", "markeredgewidth": 2,
+                                     "zorder": 10, "alpha": 0.5}
+                twinxs[j][i].plot(highlight_xs[j][1], shifts[i] * j, "o", **conv_marker_style) if highlight_xs is not None else None
+
+            # prepare data and make shift
+            x, y = np.array(xs[j][i]), np.array(ys[j][i]) + shifts[i] * j
+            # check if xticks should be updated
+            xticks = np.unique(np.concatenate((xticks, x)))
+            # all properties of the same pseudopotential share the same color
+            # but with different marker and linestyle
+            style = {"color": colors[j], "marker": markers[i], "linestyle": linestyles[i],
+                     "linewidth": 1, "markersize": 5, "alpha": 0.8, "label": ysymbols[i]}
+            twinxs[j][i].plot(x, y, **style)
+            # set ylim
+            twinxs[j][i].set_ylim(-shifts[i]/2, shifts[i] * (npspots - 1/2))
+            # turn off yticks
+            twinxs[j][i].set_yticks([]) if j != 0 else None
+            # turn off yticklabels
+            twinxs[j][i].set_yticklabels([]) if j != 0 else None
+            
+        # translate y axis with some distance for j == -1
+        twinxs[0][i].spines["right"].set_position(("axes", 1 + i*0.04))
+        # set thickness of yaxis to 2
+        twinxs[0][i].spines["right"].set_linewidth(2)
+    # set xlims to be xmin - 10, xmax + 10
+    xmin, xmax = np.min(xticks), np.max(xticks)
+    for i in range(npspots):
+        for j in range(nprptys):
+            twinxs[i][j].set_xlim(xmin - 10, xmax + 10)
+    # set xticklabels
+    xticklabels = []
+    for ecutwfc in xticks:
+        xticklabels.append(str(ecutwfc)) if ecutwfc in xticks else xticklabels.append("")
+    twinxs[-1][0].set_xticks(xticks)
+    twinxs[-1][0].set_xticklabels(xticklabels, fontsize=fontsize)
+    
+    # only add legends for the first pseudopotential for all properties
+    lns = [twinxs[0][i].get_lines()[-1] for i in range(nprptys)]
+    labels = [ysymbols[i] for i in range(nprptys)]
+    legend_style = {"fontsize": fontsize, "shadow": True, "loc": "upper right", 
+                    "bbox_to_anchor": (0, 0)}
+    ax.legend(lns, labels, **legend_style)
+
+    # add one "y = 0" for reference for each pseudopotential
+    for j in range(npspots):
+        twinxs[j][0].axhline(0 + shifts[0] * j, color="black", linewidth=1, alpha=0.1)
+    # turn on xgrid
+    ax.grid(True, alpha=0.1)
+    # and another line to seperate different pseudopotentials
+    for j in range(npspots - 1):
+        twinxs[j][0].axhline(shifts[0] * (j + 1 - 1/2), color="black", linewidth=1, alpha=0.8)
+    # turn off yticks
+    ax.set_yticks([])
+    # turn off yticklabels
+    ax.set_yticklabels([])
+    # set xtitle
+    xtitle = kwargs.get("xtitle", None)
+    if xtitle is not None:
+        ax.set_xlabel(xtitle, fontsize=fontsize)
+    # set ytitles at right
+    ytitles = kwargs.get("ytitle", None)
+    if ytitles is not None:
+        style = {"ha": "center", "va": "bottom", "transform": fig.transFigure, 
+                 "fontsize": fontsize}
+        ytitles = [ytitles] if isinstance(ytitles, str) else ytitles
+        for i in range(len(ytitles)):
+            xpos, ypos = 0.91 + i*0.03, 0.90
+            plt.text(xpos, ypos, ysymbols[i], **style)
+    # set suptitle
+    suptitle = kwargs.get("suptitle", None)
+    if suptitle is not None:
+        plt.suptitle(suptitle, fontsize=fontsize * 1.5)
+    # set supcomment
+    supcomment = kwargs.get("supcomment", None)
+    if supcomment is not None:
+        supcomment_style = {"ha": "center", "va": "center", "transform": fig.transFigure, 
+                            "fontsize": fontsize, "style": "italic"}
+        plt.text(0.5, 0.925, supcomment, **supcomment_style)
+    # set overall fontstyle
+    plt.rcParams["font.family"] = "Arial"
+
+    return fig, ax
+            
 if __name__ == "__main__":
     # this should not be changed no matter what kind of postprocess is!
     run()

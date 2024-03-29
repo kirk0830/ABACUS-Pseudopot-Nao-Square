@@ -1,6 +1,6 @@
 ---
 layout: result
-test: Pseudopotential tests for Co
+test: Pseudopotential
 title: Co
 ---
 

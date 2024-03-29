@@ -1,6 +1,6 @@
 ---
 layout: result
-test: Pseudopotential tests for Zn
+test: Pseudopotential
 title: Zn
 ---
 

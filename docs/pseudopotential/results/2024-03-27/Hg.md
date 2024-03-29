@@ -1,6 +1,6 @@
 ---
 layout: result
-test: Pseudopotential tests for Hg
+test: Pseudopotential
 title: Hg
 ---
 

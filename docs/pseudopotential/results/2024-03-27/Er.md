@@ -1,6 +1,6 @@
 ---
 layout: result
-test: Pseudopotential tests for Er
+test: Pseudopotential
 title: Er
 ---
 

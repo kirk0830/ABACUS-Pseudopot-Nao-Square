@@ -1,6 +1,6 @@
 ---
 layout: result
-test: Pseudopotential tests for Tm
+test: Pseudopotential
 title: Tm
 ---
 

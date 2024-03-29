@@ -1,6 +1,6 @@
 ---
 layout: result
-test: Pseudopotential tests for Gd
+test: Pseudopotential
 title: Gd
 ---
 
