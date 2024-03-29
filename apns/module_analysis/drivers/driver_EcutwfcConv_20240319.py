@@ -218,9 +218,7 @@ def run():
                                     "Band structure difference (eV)"], 
                          "ysymbols": ["$|\Delta E_{KS}|$", "$|\Delta P|$", "$|\eta_{all, 00}|$"],
                          "suptitle": element, 
-                         "supcomment": "NOTE: Semitransparent lines mark convergence threshold for \
-each property. Maximal value among all properties corresponds to the red circle in plot above.\n \
-Absence of data points result from SCF convergence failure or walltime limit.",
+                         "supcomment": "NOTE: Absence of data points result from SCF convergence failure or walltime limit.",
                          "labels": _pspotnames, "fontsize": 19}
         fig, ax = discrete_logplots(xs=xs, ys=ys, **logplot_style)
         plt.savefig(f"{element}_logplot.svg")
@@ -679,7 +677,9 @@ def shift_lineplots(xs: list, ys: list, **kwargs):
     # set xtitle
     xtitle = kwargs.get("xtitle", None)
     if xtitle is not None:
-        ax.set_xlabel(xtitle, fontsize=fontsize)
+        xtitle_style = {"ha": "center", "va": "center", "transform": fig.transFigure, 
+                        "fontsize": fontsize * 1.2}
+        plt.text(0.5, 0.05, xtitle, **xtitle_style)
     # set ytitles at right
     ytitles = kwargs.get("ytitle", None)
     if ytitles is not None:
