@@ -1,6 +1,6 @@
 ---
 layout: result
-test: Pseudopotential tests for Si
+test: Pseudopotential
 title: Si
 ---
 

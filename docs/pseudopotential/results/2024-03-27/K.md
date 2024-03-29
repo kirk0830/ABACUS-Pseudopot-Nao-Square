@@ -1,6 +1,6 @@
 ---
 layout: result
-test: Pseudopotential tests for K
+test: Pseudopotential
 title: K
 ---
 

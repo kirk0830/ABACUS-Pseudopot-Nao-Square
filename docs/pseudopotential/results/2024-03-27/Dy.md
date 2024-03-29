@@ -1,6 +1,6 @@
 ---
 layout: result
-test: Pseudopotential tests for Dy
+test: Pseudopotential
 title: Dy
 ---
 

@@ -1,6 +1,6 @@
 ---
 layout: result
-test: Pseudopotential tests for Eu
+test: Pseudopotential
 title: Eu
 ---
 

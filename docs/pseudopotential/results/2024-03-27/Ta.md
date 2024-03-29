@@ -1,6 +1,6 @@
 ---
 layout: result
-test: Pseudopotential tests for Ta
+test: Pseudopotential
 title: Ta
 ---
 

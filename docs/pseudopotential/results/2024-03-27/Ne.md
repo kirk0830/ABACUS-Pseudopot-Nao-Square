@@ -1,6 +1,6 @@
 ---
 layout: result
-test: Pseudopotential tests for Ne
+test: Pseudopotential
 title: Ne
 ---
 

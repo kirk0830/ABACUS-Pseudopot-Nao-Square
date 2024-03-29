@@ -1,6 +1,6 @@
 ---
 layout: result
-test: Pseudopotential tests for Li
+test: Pseudopotential
 title: Li
 ---
 

@@ -1,6 +1,6 @@
 ---
 layout: result
-test: Pseudopotential tests for Xe
+test: Pseudopotential
 title: Xe
 ---
 

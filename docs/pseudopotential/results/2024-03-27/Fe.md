@@ -1,6 +1,6 @@
 ---
 layout: result
-test: Pseudopotential tests for Fe
+test: Pseudopotential
 title: Fe
 ---
 

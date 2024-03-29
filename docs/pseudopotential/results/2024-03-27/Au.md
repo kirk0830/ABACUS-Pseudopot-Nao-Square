@@ -1,6 +1,6 @@
 ---
 layout: result
-test: Pseudopotential tests for Au
+test: Pseudopotential
 title: Au
 ---
 
