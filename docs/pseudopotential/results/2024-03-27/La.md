@@ -1,6 +1,6 @@
 ---
 layout: result
-test: Pseudopotential
+test: Pseudopotential tests for La
 title: La
 ---
 
