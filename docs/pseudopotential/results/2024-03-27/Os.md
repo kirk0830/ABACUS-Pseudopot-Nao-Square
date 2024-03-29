@@ -1,6 +1,6 @@
 ---
 layout: result
-test: Pseudopotential tests for Os
+test: Pseudopotential
 title: Os
 ---
 

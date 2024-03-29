@@ -184,6 +184,9 @@ def run():
                                           conv_prs[iconv][3],
                                           conv_bs[iconv][3])))
 
+    # set Arial as default font
+    plt.rcParams["font.family"] = "Arial"
+
     # remember: eks_*/prs_*/... is indiced by [element][pspotid][ecutwfc] to get a float value
     for i in range(len(elements)):
         element = elements[i]
@@ -218,7 +221,7 @@ def run():
                          "supcomment": "NOTE: Semitransparent lines mark convergence threshold for \
 each property. Maximal value among all properties corresponds to the red circle in plot above.\n \
 Absence of data points result from SCF convergence failure or walltime limit.",
-                         "labels": _pspotnames, "fontsize": 13}
+                         "labels": _pspotnames, "fontsize": 19}
         fig, ax = discrete_logplots(xs=xs, ys=ys, **logplot_style)
         plt.savefig(f"{element}_logplot.svg")
         plt.close()
@@ -246,9 +249,9 @@ Absence of data points result from SCF convergence failure or walltime limit.",
  with precision threshold (1.0 meV/atom, 0.1 kbar, 10 meV) respectively.\n \
 Absence of data points result from SCF convergence failure or walltime limit.",
                           "fontsize": 13, "alpha": 0.8}
-        fig, ax = stack_lineplots(xs=xs, ys=ys, **lineplot_style)
-        plt.savefig(f"{element}_stack.svg")
-        plt.close()
+        # fig, ax = stack_lineplots(xs=xs, ys=ys, **lineplot_style)
+        # plt.savefig(f"{element}_stack.svg")
+        # plt.close()
 
         shift_style = {"shifts": [5, 500, 10], "ld": "pseudopotential",
                        "ysymbols": ["$\Delta E_{KS}$", "$\Delta P$", "$\eta_{all, 00}$"],
@@ -478,7 +481,9 @@ def discrete_logplots(xs: list, ys: list, **kwargs):
     
     # create figure and axes
     ncols = nprptys // nrows + (nprptys % nrows > 0)
-    fig, ax = plt.subplots(nrows, ncols, figsize=(subplotsize[0] * ncols, subplotsize[1] * nrows), squeeze=False)
+    fig, ax = plt.subplots(nrows, ncols, 
+                           figsize=(subplotsize[0] * ncols, subplotsize[1] * nrows + 4), 
+                           squeeze=False)
 
     # plot
     for i in range(nprptys): # for each property
@@ -520,8 +525,6 @@ def discrete_logplots(xs: list, ys: list, **kwargs):
                             "fontsize": fontsize, "style": "italic"}
         plt.text(0.5, 0.925, supcomment, **supcomment_style)
 
-    # set overall fontstyle
-    plt.rcParams["font.family"] = "Arial"
     return fig, ax
 
 def shift_lineplots(xs: list, ys: list, **kwargs):
@@ -638,6 +641,9 @@ def shift_lineplots(xs: list, ys: list, **kwargs):
         twinxs[0][i].spines["right"].set_position(("axes", 1 + i*0.04))
         # set thickness of yaxis to 2
         twinxs[0][i].spines["right"].set_linewidth(2)
+        # set fontsize
+        twinxs[0][i].tick_params(axis="y", labelsize=fontsize)
+
     # set xlims to be xmin - 10, xmax + 10
     xmin, xmax = np.min(xticks), np.max(xticks)
     for i in range(npspots):
@@ -648,8 +654,9 @@ def shift_lineplots(xs: list, ys: list, **kwargs):
     for ecutwfc in xticks:
         xticklabels.append(str(ecutwfc)) if ecutwfc in xticks else xticklabels.append("")
     twinxs[-1][0].set_xticks(xticks)
-    twinxs[-1][0].set_xticklabels(xticklabels, fontsize=fontsize)
-    
+    # set fontsize
+    ax.tick_params(axis="x", labelsize=fontsize)
+
     # only add legends for the first pseudopotential for all properties
     lns = [twinxs[0][i].get_lines()[-1] for i in range(nprptys)]
     labels = [ysymbols[i] for i in range(nprptys)]
@@ -692,8 +699,6 @@ def shift_lineplots(xs: list, ys: list, **kwargs):
         supcomment_style = {"ha": "center", "va": "center", "transform": fig.transFigure, 
                             "fontsize": fontsize, "style": "italic"}
         plt.text(0.5, 0.925, supcomment, **supcomment_style)
-    # set overall fontstyle
-    plt.rcParams["font.family"] = "Arial"
 
     return fig, ax
             

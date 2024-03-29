@@ -1,6 +1,6 @@
 ---
 layout: result
-test: Pseudopotential tests for Zr
+test: Pseudopotential
 title: Zr
 ---
 

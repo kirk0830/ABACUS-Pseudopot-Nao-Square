@@ -1,6 +1,6 @@
 ---
 layout: result
-test: Pseudopotential tests for Ir
+test: Pseudopotential
 title: Ir
 ---
 
