@@ -215,9 +215,10 @@ def run():
                                     "Band structure difference (eV)"], 
                          "ysymbols": ["$|\Delta E_{KS}|$", "$|\Delta P|$", "$|\eta_{all, 00}|$"],
                          "suptitle": element, 
-                         "supcomment": "NOTE: Semitransparent lines correspond to red circles in the lineplot, \
- Absence of data points result from SCF convergence failure or walltime limit.",
-                         "labels": _pspotnames, "fontsize": 12}
+                         "supcomment": "NOTE: Semitransparent lines mark convergence threshold for \
+each property. Maximal value among all properties corresponds to the red circle in plot above.\n \
+Absence of data points result from SCF convergence failure or walltime limit.",
+                         "labels": _pspotnames, "fontsize": 13}
         fig, ax = discrete_logplots(xs=xs, ys=ys, **logplot_style)
         plt.savefig(f"{element}_logplot.svg")
         plt.close()
@@ -599,14 +600,15 @@ def shift_lineplots(xs: list, ys: list, **kwargs):
     xticks = [20, 30, 40, 50, 60, 70, 80, 90, 100, 150, 200]
     for i in range(nprptys):
         for j in range(npspots):
+            invj = npspots - j - 1
             # create a new twinx for each pseudopotential
             twinxs[j][i] = ax.twinx()
             # only add pseudopotential name and z_valence information for the first property
             if i == 0:
                 xpos = 0.995
                 dypos = 1/npspots
-                ypos1 = j * dypos + dypos*0.9
-                ypos2 = j * dypos + dypos*0.3
+                ypos1 = invj * dypos + dypos*0.9
+                ypos2 = invj * dypos + dypos*0.3
                 pspotid_style = {"horizontalalignment": "right", "verticalalignment": "top", 
                                  "transform": twinxs[j][i].transAxes, "fontsize": fontsize}
                 twinxs[j][i].text(xpos, ypos1, pspotnames[j], **pspotid_style)
@@ -614,10 +616,10 @@ def shift_lineplots(xs: list, ys: list, **kwargs):
                 # also add circle at the x position for the converged ecutwfc
                 conv_marker_style = {"markersize": 15, "markerfacecolor": "none", "markeredgecolor": "red", "markeredgewidth": 2,
                                      "zorder": 10, "alpha": 0.5}
-                twinxs[j][i].plot(highlight_xs[j][1], shifts[i] * j, "o", **conv_marker_style) if highlight_xs is not None else None
+                twinxs[j][i].plot(highlight_xs[j][1], shifts[i] * invj, "o", **conv_marker_style) if highlight_xs is not None else None
 
             # prepare data and make shift
-            x, y = np.array(xs[j][i]), np.array(ys[j][i]) + shifts[i] * j
+            x, y = np.array(xs[j][i]), np.array(ys[j][i]) + shifts[i] * invj
             # check if xticks should be updated
             xticks = np.unique(np.concatenate((xticks, x)))
             # all properties of the same pseudopotential share the same color
