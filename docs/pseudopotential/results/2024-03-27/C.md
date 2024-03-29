@@ -1,6 +1,6 @@
 ---
 layout: result
-test: Pseudopotential tests for C
+test: Pseudopotential
 title: C
 ---
 

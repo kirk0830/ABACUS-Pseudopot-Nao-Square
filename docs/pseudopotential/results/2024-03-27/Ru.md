@@ -1,6 +1,6 @@
 ---
 layout: result
-test: Pseudopotential tests for Ru
+test: Pseudopotential
 title: Ru
 ---
 

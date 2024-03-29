@@ -1,6 +1,6 @@
 ---
 layout: result
-test: Pseudopotential tests for Ba
+test: Pseudopotential
 title: Ba
 ---
 

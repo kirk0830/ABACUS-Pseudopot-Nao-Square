@@ -1,6 +1,6 @@
 ---
 layout: result
-test: Pseudopotential tests for Ti
+test: Pseudopotential
 title: Ti
 ---
 

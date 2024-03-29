@@ -1,6 +1,6 @@
 ---
 layout: result
-test: Pseudopotential tests for Sr
+test: Pseudopotential
 title: Sr
 ---
 

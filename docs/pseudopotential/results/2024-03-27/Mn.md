@@ -1,6 +1,6 @@
 ---
 layout: result
-test: Pseudopotential tests for Mn
+test: Pseudopotential
 title: Mn
 ---
 

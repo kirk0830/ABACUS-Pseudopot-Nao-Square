@@ -1,6 +1,6 @@
 ---
 layout: result
-test: Pseudopotential tests for Rh
+test: Pseudopotential
 title: Rh
 ---
 

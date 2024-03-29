@@ -1,6 +1,6 @@
 ---
 layout: result
-test: Pseudopotential tests for Ga
+test: Pseudopotential
 title: Ga
 ---
 

@@ -20,7 +20,7 @@ def search_pressure(search_domain: str):
 
 def run(search_domain: str, thr: float = 1e-1):
     first, second = amack.search(search_domain=search_domain,
-                                searcher=search_pressure)
+                                 searcher=search_pressure)
     conv = amack.calculate(first, second, thr=thr)
     return conv, second
 
