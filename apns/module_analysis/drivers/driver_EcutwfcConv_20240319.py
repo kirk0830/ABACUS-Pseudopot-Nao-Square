@@ -212,7 +212,7 @@ def run():
         ys = [eks_y[i], prs_y[i], bs_y[i]]
 
         logplot_style = {"highlight_ys": [1e-3, 0.1, 1e-2], "nrows": 1, 
-                         "xtitle": "Kinetic energy cutoff for planewave basis (ecutwfc, in Ry)", 
+                         "xtitle": "Planewave kinetic energy cutoff (ecutwfc, in Ry)", 
                          "ytitle": ["Absolute Kohn-Sham energy difference per atom (eV)", 
                                     "Absolute pressure difference (kbar)",
                                     "Band structure difference (eV)"], 
@@ -240,7 +240,7 @@ Absence of data points result from SCF convergence failure or walltime limit.",
                           "subtitles": _pspotnames, 
                           "z_vals": [z_valence(element, _pspotid) for _pspotid in _pspotids], 
                           "grid": True,
-                          "xtitle": "Kinetic energy cutoff for planewave basis (ecutwfc, in Ry)", 
+                          "xtitle": "Planewave kinetic energy cutoff (ecutwfc, in Ry)", 
                           "ytitle": ["Kohn-Sham energy difference per atom (eV)", 
                                      "Pressure difference (kbar)",
                                      "Band structure difference (eV)"],
