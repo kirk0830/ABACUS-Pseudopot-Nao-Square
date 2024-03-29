@@ -1,6 +1,6 @@
 ---
 layout: result
-test: Pseudopotential tests for Cd
+test: Pseudopotential
 title: Cd
 ---
 

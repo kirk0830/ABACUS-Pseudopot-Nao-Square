@@ -1,6 +1,6 @@
 ---
 layout: result
-test: Pseudopotential tests for Tc
+test: Pseudopotential
 title: Tc
 ---
 

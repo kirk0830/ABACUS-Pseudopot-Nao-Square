@@ -1,6 +1,6 @@
 ---
 layout: result
-test: Pseudopotential tests for Ca
+test: Pseudopotential
 title: Ca
 ---
 

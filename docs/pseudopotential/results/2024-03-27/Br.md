@@ -1,6 +1,6 @@
 ---
 layout: result
-test: Pseudopotential tests for Br
+test: Pseudopotential
 title: Br
 ---
 

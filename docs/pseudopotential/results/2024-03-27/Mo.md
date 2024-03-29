@@ -1,6 +1,6 @@
 ---
 layout: result
-test: Pseudopotential tests for Mo
+test: Pseudopotential
 title: Mo
 ---
 

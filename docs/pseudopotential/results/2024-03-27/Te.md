@@ -1,6 +1,6 @@
 ---
 layout: result
-test: Pseudopotential tests for Te
+test: Pseudopotential
 title: Te
 ---
 
