@@ -73,24 +73,13 @@ def find_fpseudo(element: str,
     pseudo_dir = pseudo_dir.replace("\\", "/")
     if not pseudo_dir.endswith("/"):
         pseudo_dir += "/"
-    with open(pseudo_dir + "description.json", "r") as f:
+    with open(pseudo_dir + "pseudo_db.json", "r") as f:
         pseudo_db = json.load(f)
-        keys = list(pseudo_db.keys())
-        for key in keys:
-            if key.replace("_", "") == pspot_id or key == pspot_id:
-                pseudo_dir = pseudo_db[key]
-                break
-    pseudo_dir = pseudo_dir.replace("\\", "/")
-    if not pseudo_dir.endswith("/"):
-        pseudo_dir += "/"
-    with open(pseudo_dir + "description.json", "r") as f:
-        print(f"Find the pseudopotential file for the given element {element} and pspot_id {pspot_id}")
-        fpseudo_db = json.load(f)["files"]
-        if element in fpseudo_db:
-            pseudo_name = fpseudo_db[element]
-        else:
-            return pseudo_dir, None
-    return pseudo_dir, pseudo_name
+        for key in pseudo_db[element].keys():
+            if key.replace("_", "").replace(".", "") == pspot_id or key == pspot_id:
+                pseudo_name = pseudo_db[element][key]
+                return pseudo_dir, pseudo_name
+    return pseudo_dir, None
 
 import apns.module_nao.orbgen_kernel.siab_new as amnoksn
 def siab_generator(element: str,

@@ -19,7 +19,7 @@ class test_driver(apns_driver):
         """setup the driver"""
         pass
     def run(self):
-        amwtd.driver_v1(self.finp)
+        amwtd.run(self.finp)
 
 import apns.module_workflow.workflow_analysis.driver as amwad
 class analysis_driver(apns_driver):

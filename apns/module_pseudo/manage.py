@@ -55,7 +55,7 @@ def valid_pseudo(pseudo_dir: str, elements: list, pseudo_setting: dict):
             result[e] = pseudo_db[e]
         else:
             for kind in pseudo_setting["kinds"][e]:
-                if pseudo_setting["versions"] == ["all"]:
+                if pseudo_setting["versions"][e] == ["all"]:
                     for id in pseudo_db[e]:
                         if id.startswith(f"{kind}_"):
                             result[e][id] = pseudo_db[e][id]
@@ -75,6 +75,42 @@ def valid_pseudo(pseudo_dir: str, elements: list, pseudo_setting: dict):
 
     return result
 
+def get_attribute(pseudo_dir: str, **kwargs):
+    """
+    method1: provide fpseudo, folder
+    method2: provide fpseudo_withpath
+    
+    return: {"kind": kind, "version": version, "appendix": appendix}
+    """
+    with open(os.path.join(pseudo_dir, "rules.json")) as f:
+        rules = json.load(f)
+    
+    fpseudo = kwargs.get("fpseudo", None)
+    fpseudo_withpath = kwargs.get("fpseudo_withpath", None)
+    folder = kwargs.get("folder", None)
+    if fpseudo is None and fpseudo_withpath is None and folder is None:
+        raise ValueError("At least one of fpseudo, fpseudo_withpath, folder should be provided.")
+    if fpseudo is not None and folder is not None:
+        for i in range(len(rules["rules"])):
+            match_file = re.match(rules["rules"][i]["re.file"], fpseudo)
+            match_folder = re.match(rules["rules"][i]["re.folder"], folder)
+            if match_file and match_folder:
+                return {"kind": rules["rules"][i]["kind"], 
+                        "version": rules["rules"][i]["version"], 
+                        "appendix": rules["rules"][i]["appendix"]}
+    elif fpseudo_withpath is not None:
+        folder = fpseudo_withpath.replace("\\", "/").split("/")[-2]
+        fpseudo = fpseudo_withpath.split("/")[-1]
+        for i in range(len(rules["rules"])):
+            match_file = re.match(rules["rules"][i]["re.file"], fpseudo)
+            match_folder = re.match(rules["rules"][i]["re.folder"], folder)
+            if match_file and match_folder:
+                return {"kind": rules["rules"][i]["kind"], 
+                        "version": rules["rules"][i]["version"], 
+                        "appendix": rules["rules"][i]["appendix"]}
+    else:
+        raise ValueError("Invalid combination of fpseudo, fpseudo_withpath, folder.")
+
 import unittest
 class TestPseudo(unittest.TestCase):
     def test_load(self):
@@ -87,10 +123,11 @@ class TestPseudo(unittest.TestCase):
         pseudo_dir = "./download/pseudopotentials/"
         elements = ["Si", "Ge"]
         pseudo_setting = {
-            "kind": ["all"],
-            "version": [""],
-            "appendix": [""]
+            "kinds": ["all"],
+            "versions": [""],
+            "appendices": [""]
         }
+        pseudo_setting = {key: {element: pseudo_setting[key] for element in elements} for key in pseudo_setting}
         result = valid_pseudo(pseudo_dir, elements, pseudo_setting)
         self.assertTrue(len(result) > 0)
         self.assertTrue(len(result["Si"]) > 0)
@@ -138,5 +175,133 @@ class TestPseudo(unittest.TestCase):
             self.assertTrue(k in result["Ge"])
             self.assertEqual(result["Ge"][k], v)
         
+        elements = ["Si", "Ge"]
+        pseudo_setting = {
+            "kinds": ["sg15"],
+            "versions": ["all"],
+            "appendices": [""]
+        }
+        pseudo_setting = {key: {element: pseudo_setting[key] for element in elements} for key in pseudo_setting}
+        result = valid_pseudo(pseudo_dir, elements, pseudo_setting)
+        self.assertTrue(len(result) > 0)
+        self.assertTrue(len(result["Si"]) > 0)
+        self.assertTrue(len(result["Ge"]) > 0)
+        Si_ref = {
+            "sg15_1.0": "./download/pseudopotentials/sg15_oncv_upf_2020-02-06\\Si_ONCV_PBE-1.0.upf",
+            "sg15_1.1": "./download/pseudopotentials/sg15_oncv_upf_2020-02-06\\Si_ONCV_PBE-1.1.upf",
+            "sg15_1.2": "./download/pseudopotentials/sg15_oncv_upf_2020-02-06\\Si_ONCV_PBE-1.2.upf",
+            "sg15_1.1_fr": "./download/pseudopotentials/sg15_oncv_upf_2020-02-06\\Si_ONCV_PBE_FR-1.1.upf"
+        }
+        for k, v in Si_ref.items():
+            self.assertTrue(k in result["Si"])
+            self.assertEqual(result["Si"][k], v)
+        Ge_ref = {
+            "sg15_1.0": "./download/pseudopotentials/sg15_oncv_upf_2020-02-06\\Ge_ONCV_PBE-1.0.upf",
+            "sg15_1.2": "./download/pseudopotentials/sg15_oncv_upf_2020-02-06\\Ge_ONCV_PBE-1.2.upf",
+            "sg15_1.0_fr": "./download/pseudopotentials/sg15_oncv_upf_2020-02-06\\Ge_ONCV_PBE_FR-1.0.upf"
+        }
+        for k, v in Ge_ref.items():
+            self.assertTrue(k in result["Ge"])
+            self.assertEqual(result["Ge"][k], v)
+
+        elements = ["Si", "Ge"]
+        pseudo_setting = {
+            "kinds": ["sg15"],
+            "versions": ["1.0"],
+            "appendices": ["all"]
+        }
+        pseudo_setting = {key: {element: pseudo_setting[key] for element in elements} for key in pseudo_setting}
+        result = valid_pseudo(pseudo_dir, elements, pseudo_setting)
+        self.assertTrue(len(result) > 0)
+        self.assertTrue(len(result["Si"]) > 0)
+        self.assertTrue(len(result["Ge"]) > 0)
+        Si_ref = {
+            "sg15_1.0": "./download/pseudopotentials/sg15_oncv_upf_2020-02-06\\Si_ONCV_PBE-1.0.upf"
+        }
+        for k, v in Si_ref.items():
+            self.assertTrue(k in result["Si"])
+            self.assertEqual(result["Si"][k], v)
+        Ge_ref = {
+            "sg15_1.0": "./download/pseudopotentials/sg15_oncv_upf_2020-02-06\\Ge_ONCV_PBE-1.0.upf",
+            "sg15_1.0_fr": "./download/pseudopotentials/sg15_oncv_upf_2020-02-06\\Ge_ONCV_PBE_FR-1.0.upf"
+        }
+        for k, v in Ge_ref.items():
+            self.assertTrue(k in result["Ge"])
+            self.assertEqual(result["Ge"][k], v)
+
+        elements = ["Si", "Ge"]
+        pseudo_setting = {
+            "kinds": ["sg15"],
+            "versions": ["1.0"],
+            "appendices": ["fr"]
+        }
+        pseudo_setting = {key: {element: pseudo_setting[key] for element in elements} for key in pseudo_setting}
+        # Si will not have valid pseudopotential
+        with self.assertRaises(ValueError):
+            result = valid_pseudo(pseudo_dir, elements, pseudo_setting)
+        
+        elements = ["Si", "Ge"]
+        pseudo_setting = {
+            "kinds": ["sg15", "dojo"],
+            "versions": ["all"],
+            "appendices": [""]
+        }
+        pseudo_setting = {key: {element: pseudo_setting[key] for element in elements} for key in pseudo_setting}
+        result = valid_pseudo(pseudo_dir, elements, pseudo_setting)
+        self.assertTrue(len(result) > 0)
+        self.assertTrue(len(result["Si"]) > 0)
+        self.assertTrue(len(result["Ge"]) > 0)
+        Si_ref = {
+            "sg15_1.0": "./download/pseudopotentials/sg15_oncv_upf_2020-02-06\\Si_ONCV_PBE-1.0.upf",
+            "sg15_1.1": "./download/pseudopotentials/sg15_oncv_upf_2020-02-06\\Si_ONCV_PBE-1.1.upf",
+            "sg15_1.2": "./download/pseudopotentials/sg15_oncv_upf_2020-02-06\\Si_ONCV_PBE-1.2.upf",
+            "sg15_1.1_fr": "./download/pseudopotentials/sg15_oncv_upf_2020-02-06\\Si_ONCV_PBE_FR-1.1.upf",
+            "dojo_0.4_fr": "./download/pseudopotentials/nc-fr-04_pbe_standard\\Si.upf",
+            "dojo_0.4_sr": "./download/pseudopotentials/nc-sr-04_pbe_standard_upf\\Si.upf",
+            "dojo_0.5_sr": "./download/pseudopotentials/nc-sr-05_pbe_standard_upf\\Si.upf",
+            "dojo_0.3_sr": "./download/pseudopotentials/pbe_s_sr\\Si.upf"
+        }
+        for k, v in Si_ref.items():
+            self.assertTrue(k in result["Si"])
+            self.assertEqual(result["Si"][k], v)
+        Ge_ref = {
+            "sg15_1.0": "./download/pseudopotentials/sg15_oncv_upf_2020-02-06\\Ge_ONCV_PBE-1.0.upf",
+            "sg15_1.2": "./download/pseudopotentials/sg15_oncv_upf_2020-02-06\\Ge_ONCV_PBE-1.2.upf",
+            "sg15_1.0_fr": "./download/pseudopotentials/sg15_oncv_upf_2020-02-06\\Ge_ONCV_PBE_FR-1.0.upf",
+            "dojo_0.4_fr": "./download/pseudopotentials/nc-fr-04_pbe_standard\\Ge.upf",
+            "dojo_0.4_sr": "./download/pseudopotentials/nc-sr-04_pbe_standard_upf\\Ge.upf",
+            "dojo_0.5_sr": "./download/pseudopotentials/nc-sr-05_pbe_standard_upf\\Ge.upf",
+            "dojo_0.3_sr": "./download/pseudopotentials/pbe_s_sr\\Ge.upf"
+        }
+        for k, v in Ge_ref.items():
+            self.assertTrue(k in result["Ge"])
+            self.assertEqual(result["Ge"][k], v)
+
+    def test_get_attribute(self):
+        pseudo_dir = "./download/pseudopotentials/"
+        fpseudo = "Si_ONCV_PBE-1.0.upf"
+        folder = "sg15_oncv_upf_2020-02-06"
+        result = get_attribute(pseudo_dir, fpseudo=fpseudo, folder=folder)
+        self.assertEqual(result["kind"], "sg15")
+        self.assertEqual(result["version"], "1.0")
+        self.assertEqual(result["appendix"], "")
+        
+        fpseudo_withpath = "./download/pseudopotentials/sg15_oncv_upf_2020-02-06/Si_ONCV_PBE-1.0.upf"
+        result = get_attribute(pseudo_dir, fpseudo_withpath=fpseudo_withpath)
+        self.assertEqual(result["kind"], "sg15")
+        self.assertEqual(result["version"], "1.0")
+        self.assertEqual(result["appendix"], "")
+        
+        with self.assertRaises(ValueError):
+            result = get_attribute(pseudo_dir, fpseudo=fpseudo)
+        
+        with self.assertRaises(ValueError):
+            result = get_attribute(pseudo_dir, folder=folder)
+        
+        with self.assertRaises(ValueError):
+            result = get_attribute(pseudo_dir)
+
+            
+
 if __name__ == "__main__":
     unittest.main()
