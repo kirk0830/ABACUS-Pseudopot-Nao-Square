@@ -97,14 +97,14 @@ def recall_memory(formuli: str, n_structure: int, consider_magnetism: bool = Fal
 
 def search(mpr: MPRester, 
            structure_criteria: dict = None,
-           magnetism_criteria: bool = False) -> tuple[list, list]:
+           with_magmom: bool = False) -> tuple[list, list]:
     """with MPRester handle, return all mpids and corresponding magnetism information in lists
     """
     docs = mpr.materials.summary.search(formula=structure_criteria["formuli"], 
                                         theoretical=structure_criteria["theoretical"], 
                                         is_stable=structure_criteria["is_stable"])
     mpi_ids = [doc.material_id for doc in docs]
-    if magnetism_criteria is None:
+    if not with_magmom:
         return mpi_ids, []
     
     docs = mpr.magnetism.search(material_ids=mpi_ids)
@@ -185,6 +185,8 @@ def elemental_substances(api_key: str, element: str, num_cif = 1, theoretical = 
 
     return {element: cif_filenames}
 
+import re
+import apns.module_structure.CifParser_Pymatgen as amscif
 def composites(api_key: str, 
                formula: list, 
                num_cif: int|list, 
@@ -217,6 +219,18 @@ def composites(api_key: str,
         raise ValueError("empty request to Materials Project")
 
     result = {}
+    mpid_pattern = r"mp-\d+"
+    for fomuli in formula:
+        mpid_match = re.match(mpid_pattern, fomuli)
+        if mpid_match:
+            with open(amwi.TEMPORARY_FOLDER + "/" + fomuli + ".cif", "r") as f:
+                chemical_formula = f.readlines()[1].strip().split("_")[-1]
+            system_mpid = chemical_formula + "_" + fomuli.replace("mp-", "")
+            result.setdefault(chemical_formula, []).append(system_mpid)
+            formula.remove(fomuli)
+    if len(formula) == 0:
+        print(result)
+        return result
     
     print("Establishing connection to Materials Project database...")
     with MPRester(api_key) as mpr:
@@ -233,19 +247,19 @@ def composites(api_key: str,
                      +"If not satisfied with result, delete file formula_mpid.json and restart.")
             else:
                 structure_criteria = dict(zip(["formuli", "theoretical", "is_stable"], [formuli, theoretical, is_stable]))
-                mpi_ids, magmoms = search(mpr, structure_criteria, magnetism_criteria=consider_magnetism)
+                mpi_ids, magmoms = search(mpr, structure_criteria, with_magmom=consider_magnetism)
 
                 while len(mpi_ids) == 0 and (is_stable or not theoretical):
                     print("Warning: No structure found for formula %s for filter theoretical = %s and is_stable = %s"%(formuli, theoretical, is_stable))
                     if is_stable:
                         print("Automatically switch to is_stable = False, this operation will include more substable structures.")
                         structure_criteria["is_stable"] = False
-                        mpi_ids, magmoms = search(mpr, structure_criteria, magnetism_criteria=consider_magnetism)
+                        mpi_ids, magmoms = search(mpr, structure_criteria, with_magmom=consider_magnetism)
                         is_stable = False
                     elif not theoretical:
                         print("Automatically switch to theoretical = True, this operation will include also not experimentally observed structures.")
                         structure_criteria["theoretical"] = True
-                        mpi_ids, magmoms = search(mpr, structure_criteria, magnetism_criteria=consider_magnetism)
+                        mpi_ids, magmoms = search(mpr, structure_criteria, with_magmom=consider_magnetism)
                         theoretical = True
                     else:
                         raise ValueError("No structure found for formula {}".format(formuli))

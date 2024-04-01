@@ -46,7 +46,8 @@ def driver_v1(input_file: str):
     # , say all information needed for the code to run.
     # DESIGN: INITIALIZE CAN RETURN RUNTIME INFORMATION
     import apns.module_workflow.workflow_test.initialize as amwinit
-    runtime_settings, vupfs, vorbs, upf_arch, orb_arch = amwinit.initialize(input_file)
+    runtime_settings, vupfs, vorbs = amwinit.initialize(input_file) # presently vorbs is empty for
+                                                                    # all elements.
     # ---------------------------------------------------------------------------------------------
     """iterate
     1. setup_iterables
@@ -58,21 +59,16 @@ def driver_v1(input_file: str):
     # calculation_settings is about INPUT
     # extensive_settings is about "outer" loop, "outer" loop usually is about different systems
     # upforb_settings is about "inner" loop
-    inner_iter, abacus_inputs, outer_iter = \
-        amwai.setup_iterables(system_list=runtime_settings["systems"],
-                              pseudopotentials=vupfs,                               # always available
-                              numerical_orbitals=vorbs,                             # not always available
-                              calculation_settings=runtime_settings["calculation"], # INPUT
-                              extensive_settings=runtime_settings["extensive"])     # outer loop
+    iterable_settings = {"systems": runtime_settings["systems"], "pseudopotentials": vupfs, "numerical_orbitals": vorbs,
+                         "calculation_settings": runtime_settings["calculation"], "extensive_settings": runtime_settings["extensive"]}
+    inner_iter, abacus_inputs, outer_iter = amwai.setup_iterables(**iterable_settings)
     import apns.module_workflow.workflow_test.iterate as amwi
-    folders = amwi.iterate(software=runtime_settings["global"]["software"].lower(),         # with software
-                           systems=runtime_settings["systems"],                             # on systems
-                           pseudopot_nao_settings=inner_iter,
-                           calculation_settings=abacus_inputs,
-                           extensive_settings=outer_iter,
-                           valid_pseudopotentials=vupfs, valid_numerical_orbitals=vorbs,
-                           pspot_archive=upf_arch,       nao_archive=orb_arch,
-                           test_mode=False)
+    iterate_setting = {"software": runtime_settings["global"]["software"].lower(),
+                       "systems": runtime_settings["systems"],
+                       "extensive_settings": outer_iter, "upforb_bundles": inner_iter, 
+                       "calculation_settings": abacus_inputs, "upfs": vupfs, "orbs": vorbs, 
+                       "test_mode": False}
+    folders = amwi.iterate(**iterate_setting)
     """compress"""
     import time
     import os

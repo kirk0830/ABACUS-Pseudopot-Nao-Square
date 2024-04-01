@@ -1,3 +1,40 @@
+"""There is a critical issue needed to solve for this module:
+how can pseudopotentials be easily managed and its library can be easily updated/expanded?
+
+Design notes:
+
+Manually set the rule distinguish three domain from folder and file name with regular expression:
+example:
+rule = {
+    "kind": "sg15",
+    "version": "1.0",
+    "appendix": "fr",
+    "re.folder": "sg15_oncv_upf_2020-02-06",
+    "re.file": "^([A-Z][a-z]?)(_ONCV_PBE-)(1\.0)(\.upf)$"
+}
+and save all rules in one json file named rules.json:
+{
+    rules: [
+        {
+            "kind": "sg15",
+            "version": "1.0",
+            "appendix": "fr",
+            "re.folder": "sg15_oncv_upf_2020-02-06",
+            "re.file": "^([A-Z][a-z]?)(_ONCV_PBE\-)(1\.0)(\.upf)$"
+        },
+        {
+            "kind": "pd",
+            "version": "04",
+            "appendix": "3+_f--core-icmod1",
+            "re.folder": "NCPP-PD04-PBE",
+            "re.file": "^([A-Z][a-z]?)(3\+_f\-\-core\-icmod1\.PD04.PBE.UPF)$"
+        }
+        ...
+    ]
+}
+with such rules, 
+"""
+
 import os
 import re
 import json
@@ -52,14 +89,16 @@ def determine_kind(folder: str):
         folder = folder.split("/")[-1]
     if folder.count("\\") > 0:
         folder = folder.split("\\")[-1]
-
     if folder.startswith("nc-"):
+        # PseudoDojo is maintained by ABINIT developers, and the pseudopotential is norm-conserving
+        # Website: http://www.pseudo-dojo.org/
         return "dojo"
     elif folder.startswith("pbe_s_sr"):
         return "dojo"
     elif folder.startswith("NCPP-PD04"):
-        return "pd04" # <- however, the real kind is pd instead of pd04
-                      # pd04 is directly distinguished here due to for one element there is more than 1 pseudopotential, sometimes
+        # however, the real kind is pd instead of pd04
+        # pd04 is directly distinguished here due to for one element there is more than 1 pseudopotential, sometimes
+        return "pd04" 
     elif folder.startswith("NCPP-PD03"):
         return "pd03" # <- however, the real kind is pd instead of pd03
     elif folder.startswith("sg15"):
@@ -72,6 +111,15 @@ def determine_kind(folder: str):
         return "psl"
     elif folder.startswith("GBRV_pbe_UPF"):
         return "gbrv"
+    elif folder.startswith("pseudos_ac_she"):
+        # up to 2024/04/01, not officially published on pseudo-dojo website, but published with the paper
+        # https://doi.org/10.1016/j.cpc.2023.109002
+        # Generating and grading 34 optimised norm-conserving Vanderbilt pseudopotentials
+        # for actinides and super-heavy elements in the PseudoDojo
+        # Github repo: https://github.com/gmatteo/pseudos_ac_she
+        # might release with other pseudopotentials marked as dojo-v1.0
+        # Github repo: https://github.com/PseudoDojo/ONCVPSP-PBE-SR-PDv1.0
+        return "dojo" 
     else:
         print("Current folder name is: ", folder)
         raise ValueError("Folder name not recognized, add a logic branch in this function"
@@ -209,33 +257,72 @@ def op_SG15_(path: str):
 
 def op_DOJO_(path: str):
     """add description.json in DOJO pseudopotential folder  
-    special case: DOJO v0.3: pbe_s_sr  
+    special case: DOJO v0.3: pbe_s_sr
+                  DOJO v1.0: pseudos_ac_she
     general pattern: r"^(nc-)([s|f]r)(-)([0-9]{1,2})([-_])([.*])?(_pbe_standard_upf)(.*)$"  
     """
-    description = {"kind": "dojo"}
     path_backup = os.path.abspath(os.getcwd())
     folder = path.split("\\")[-1] if path.count("\\") > 0 else path.split("/")[-1]
     os.chdir(path)
+    # because there are limited possibilities of how the folder is named, therefore use
+    # if-elif-else to determine the kind of pseudopotential
     if folder == "pbe_s_sr":
-        description["version"] = "03"
-        description["appendix"] = ""
+        description = {"kind": "dojo", "version": "03", "appendix": ""}
+    elif folder == "pseudos_ac_she":
+        # possibly to be PseudoDojo v1.0, appendix can be "fr" or "sr"
+        description = {"kind": "dojo", "version": "10", "appendix": ""}
+    elif folder == "nc-fr-04_pbe_standard":
+        description = {"kind": "dojo", "version": "04", "appendix": "fr"}
+    elif folder == "nc-sr-04-3plus_pbe_standard":
+        description = {"kind": "dojo", "version": "04", "appendix": "sr"}
+    elif folder == "nc-sr-04_pbe_standard_upf":
+        description = {"kind": "dojo", "version": "04", "appendix": "sr"}
+    elif folder == "nc-sr-05_pbe_standard_upf":
+        description = {"kind": "dojo", "version": "05", "appendix": "sr"}
+    # handling files in the folder
+    if description["version"] != "10":
+        for file in os.listdir():
+            element = file.split(".")[0]
+            description.setdefault("files", {})[element] = file
+        with open("description.json", "w") as json_f:
+            json.dump(description, json_f, indent=4)
     else:
-        _match = re.match(r"^(nc-)([sf]r)(-)([0-9]{1,2})([-_]*)(.*)(_pbe_standard)(.*)$", folder)
-        if not _match:
-            print("Cannot recognize arbitrary named pseudopotential folder name: ", folder)
-            raise ValueError("Not standard folder name of DOJO pseudopotential.")
-        if not _match.group(1).startswith("nc"):
-            raise ValueError("Non norm-conserving pseudopotential is not supported by ABACUS yet.")
-        description["version"] = _match.group(4)
-        if _match.group(2) == "sr":
-            description["appendix"] = _match.group(6)
-        else:
-            description["appendix"] = _match.group(2) + "_" + _match.group(6) if _match.group(6) != "" else _match.group(2)
-    for file in os.listdir():
-        element = file.split(".")[0]
-        description.setdefault("files", {})[element] = file
-    with open("description.json", "w") as json_f:
-        json.dump(description, json_f, indent=4)
+        # extended at 2024/04/01, for actinides and super-heavy elements
+        # for Acitnides, two version of pseudopotentials are provided, one is SR and the other is FR, set as appendix
+        # first to extract all files in subfolders to the main folder, then sort them into two subfolders
+        folder_todelete = []
+        for subfolder in os.listdir():
+            if os.path.isdir(subfolder):
+                for file in os.listdir(subfolder):
+                    if file.endswith(".upf"):
+                        os.rename(subfolder+"/"+file, file)
+                folder_todelete.append(subfolder)
+        # delete subfolders
+        print("Folders to delete: ", folder_todelete)
+        # for folder in folder_todelete:
+        #     os.system("rm -rf "+folder)
+        # sort files into two subfolders
+        os.mkdir("sr")
+        os.mkdir("fr")
+        # naming convention: element-*.upf or element-*_r.upf, _r means full relativistic, therefore to fr folder
+        for file in os.listdir():
+            if file.endswith(".upf"):
+                if file.count("_r") > 0:
+                    os.rename(file, "fr/"+file)
+                else:
+                    os.rename(file, "sr/"+file)
+        # create description.json for each subfolder
+        description["files"] = {}
+        for subfolder in ["sr", "fr"]:
+            os.chdir(subfolder)
+            for file in os.listdir():
+                element = file.split("-")[0]
+                description["files"][element] = file
+            with open("description.json", "w") as json_f:
+                _description = description.copy()
+                _description["appendix"] = subfolder
+                json.dump(_description, json_f, indent=4)
+            os.chdir("..")
 
     os.chdir(path_backup)
     return description
