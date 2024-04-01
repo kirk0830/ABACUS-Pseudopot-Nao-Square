@@ -1,0 +1,71 @@
+#ONCVPSP  (Optimized Norm-Conservinng Vanderbilt PSeudopotential)
+#scalar-relativistic version 3.2.3 08/16/2016
+#
+#While it is not required under the terms of the GNU GPL, it is
+#suggested that you cite D. R. Hamann, Phys. Rev. B 88, 085117 (2013)
+#in any publication utilizing these pseudopotentials.
+#
+# ATOM AND REFERENCE CONFIGURATION
+# atsym   z     nc   nv     iexc    psfile
+  Nh   113.00   10    9       4      both
+#
+#   n    l    f
+1    0    2.00
+2    0    2.00
+2    1    6.00
+3    0    2.00
+3    1    6.00
+3    2   10.00
+4    0    2.00
+4    1    6.00
+4    2   10.00
+4    3   14.00  #end of core
+5    0    2.00
+5    1    6.00
+5    2   10.00
+5    3   14.00
+6    0    2.00
+6    1    6.00
+6    2   10.00
+7    0    2.00
+7    1    1.00
+#
+# PSEUDOPOTENTIAL AND OPTIMIZATION
+# lmax
+3
+#
+#   l,   rc,      ep,       ncon, nbas, qcut
+    0    1.1      0.00       4       8   16.50
+    1    1.1      0.00       4       8   17.50
+    2    1.1      0.00       4       8   17.00
+    3    1.1      0.00       4       8   17.00
+#
+# LOCAL POTENTIAL
+# lloc, lpopt,  rc(5),   dvloc0
+4    5   1.00000      2.00000
+#
+# VANDERBILT-KLEINMAN-BYLANDER PROJECTORs
+# l, nproj, debl
+0    3   2.5
+1    2   3.0
+2    2   3.0
+3    2   5.0
+#
+# MODEL CORE CHARGE
+# icmod, fcfact, rcfact
+3  5.0    1.43
+#
+# LOG DERIVATIVE ANALYSIS
+# epsh1, epsh2, depsh
+-20.00   20.00    0.02
+#
+# OUTPUT GRID
+# rlmax, drl
+6.00    0.01
+#
+# TEST CONFIGURATIONS
+# ncnf
+0
+# nvcnf
+#   n    l    f
+</INPUT>
