@@ -5,19 +5,14 @@ layout: default
 
 <div>
 <h1>Welcome</h1>
-    <p class="plain-text">Welcome to ABACUS-Pseudopotential-Numerical atomic orbital Square (APNS). 
- APNS aims to present accurancy test results on common pseudopotentials and corresponding ABACUS numerical atomic
- orbitals to users, provide reference for estimation of calculation efficiency. APNS also is designed to provide 
-pseudopotentials and pseudopotential-numerical atomic orbitals bundles which are tested to have high precision 
- and efficiency as high as possible for ABACUS user to perform simulation and generate training sets for 
-deep learning model for both "pw" and "lcao" calculations. A collection of workflows for testing availabilities 
-of pseudopotentials in specific systems are also provided, for more information, please refer to "About" section.
+    <p class="plain-text">
+Welcome to ABACUS-Pseudopotential-Numerical Atomic Orbital Square (APNS). APNS strives to present accurate test results for widely used pseudopotentials and their corresponding ABACUS numerical atomic orbitals, offering users a reference for assessing calculation efficiency. Moreover, APNS is crafted to supply bundles of rigorously tested pseudopotentials and numerical atomic orbitals, which exhibit high precision and are optimized for maximal efficiency, enabling ABACUS users to conduct simulations and create training datasets for deep learning models suitable for both plane-wave ('pw') and linear combination of atomic orbitals ('lcao') calculations. We also provide a suite of workflows to evaluate the suitability of pseudopotentials for specific systems. For additional details, please consult the "About" section.
 <br>APNS is mainly developed and maintained by ABACUS-AISI team.</p>
 </div>
 
 <div>
-<h1>Frequently Asked Questions</h1>
-<h2>Q: What kind of pseudopotentials will be tested?</h2>
+<h1>Frequently Asked Questions (Q&A)</h1>
+<h2>Q: What kind of pseudopotentials have been tested? Will other pseudopotentials be tested in the future?</h2>
     <p class="plain-text">
 A: APNS collects and tests pseudopotentials from different sources, including but not limited to:
 <ul>
@@ -27,21 +22,28 @@ A: APNS collects and tests pseudopotentials from different sources, including bu
     <li>PD03 and PD04 pseudopotentials</li>
     <li>LnPP1 series Goedecker-Teter-Hutter (GTH) pseudopotentials</li>
 </ul>
-Pseudopotentials would be tested in the future:
+Pseudopotentials planned to be tested in the future:
 <ul>
     <li>PSLibrary 0.3.1 Ultrasoft (US) and PAW</li>
     <li>Garrity-Bennett-Rabe-Vanderbilt (GBRV) ultrasoft</li>
     <li>ATOMPAW pseudopotentials for Lanthanides</li>
+    <li>LnPP2, UZH series GTH pseudopotentials</li>
 </ul>
 <br>
 <h2>Q: What properties will be tested?</h2>
     <p class="plain-text">
-A: For pseudopotential tests, basic electronic structure aspects (including band similarity, total
- energy), optical/electrical aspects (including bandgaps), mechanical aspects (including Equation
- of State, Birch-Murnaghan equation) are considered. We also refer to paper 
-<a href="https://arxiv.org/abs/2305.17274">How to verify the precision of density-functional-theory
- implementations via reproducible and universal workflows</a> to measure precision of DFT-implementation
--pseudopotential by delta tests. 
+A: For pseudopotential tests, basic electronic structure aspects (including band similarity, total energy), optical/electrical aspects (including bandgaps), mechanical aspects (including Equation of State, Birch-Murnaghan equation) are considered. We also refer to paper <a href="https://arxiv.org/abs/2305.17274">How to verify the precision of density-functional-theory implementations via reproducible and universal workflows</a> to measure precision of DFT-implementation-pseudopotential by delta tests. 
+</p>
+<br>
+<h2>Q: I find the test result gives a higher ecutwfc than mine, if my previous calculation uses a lower value, does it mean my calculation is wrong or unreliable?</h2>
+    <p class="plain-text">
+A: One should note that the threshold set as convergence criteria in APNS are those usually used in ABACUS development and in-place testing. However, for practical calculations, the threshold for convergence and accurancy always up to context, and the test result presentend here should be a reference for guiding to a guess of the optimal value. It is always recommended to perform additional convergence tests on system
+ of interest.
+</p>
+<br>
+<h2>Q: What systems are included in pseudopotential and pseudopot-nao bundle tests?</h2>
+    <p class="plain-text">
+The APNS project greatly benefits from the Materials Project database (<a href="https://next-gen.materialsproject.org/">link</a>), which offers user-friendly interfaces for high-throughput materials screening. Currently, for each element, only the most stable and experimentally observed entries will be selected (<code>is_stable = True</code> and <code>theoretical = False</code>). To learn how to utilize the Materials Project API for your purposes, please refer to the <a href="https://next-gen.materialsproject.org/api">Materials Project API</a>.
 </p>
 <br>
 <h2>Q: How to download pseudopotentials tested in APNS?</h2>
@@ -52,20 +54,15 @@ A: Pseudopotentials tested in APNS are available in its Github repository. Users
 <br>
 <h2>Q: How to download pseudopotential-numerical atomic orbital bundles tested in APNS?</h2>
     <p class="plain-text">
-A: Presently ABACUS numerical atomic orbitals are not fully directly available for download. For numerical
- atomic orbitals bundled with SG15-1.0 (SR) pseudopotentials, users can download them from ABACUS official
- website: <a href="https://abacus.ustc.edu.cn/pseudo/list.htm">PSEUDOPOTENTIALS AND ORBITALS</a>. Users can
- also generate numerical atomic orbitals by themselves using ABACUS orbital generation code, for more information,
-please refer to official Github repository (<a href="https://github.com/abacusmodeling/ABACUS-orbitals">ABACUS-orbitals</a>)
- and corresponding hands-on tutorial maintained by ABACUS-PKU team: 
+A: Presently ABACUS numerical atomic orbitals are not fully directly available for download. For numerical atomic orbitals bundled with SG15-1.0 (SR) pseudopotentials, users can download them from ABACUS official
+ website: <a href="https://abacus.ustc.edu.cn/pseudo/list.htm">PSEUDOPOTENTIALS AND ORBITALS</a>. Users can also generate numerical atomic orbitals by themselves using ABACUS orbital generation code, for more information, please refer to official Github repository (<a href="https://github.com/abacusmodeling/ABACUS-orbitals">ABACUS-orbitals</a>) and corresponding hands-on tutorial maintained by ABACUS-PKU team: 
 <ul>
     <li><a href="https://mcresearch.github.io/abacus-user-guide/abacus-nac2.html">
 NAO2: Generate numerical atomic orbitals for specific norm-conserving pseudopotential</a>.
     <li><a href="https://mcresearch.github.io/abacus-user-guide/abacus-nac3.html">
 NAO3: Generate numerical atomic orbitals with high precision</a>.
 </ul>
-ABACUS-AISI team is also working on refactoring orbital generation codes for both higher efficiency and
-precision.
+ABACUS-AISI team is also working on refactoring orbital generation codes for both higher efficiency and precision.
 </p>
 <br>
 <h2>Q: How to make my calculation results reliable?</h2>
