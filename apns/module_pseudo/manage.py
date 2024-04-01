@@ -100,7 +100,8 @@ def get_attribute(pseudo_dir: str, **kwargs):
                         "appendix": rules["rules"][i]["appendix"]}
     elif fpseudo_withpath is not None:
         folder = fpseudo_withpath.replace("\\", "/").split("/")[-2]
-        fpseudo = fpseudo_withpath.split("/")[-1]
+        fpseudo = fpseudo_withpath.replace("\\", "/").split("/")[-1]
+        print(folder, fpseudo)
         for i in range(len(rules["rules"])):
             match_file = re.match(rules["rules"][i]["re.file"], fpseudo)
             match_folder = re.match(rules["rules"][i]["re.folder"], folder)
