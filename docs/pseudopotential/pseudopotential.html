@@ -5,14 +5,9 @@ layout: default
 <h1> Main part of periodic table </h1>
 <div align="center">
     <p class="inform" align="left">
-Pseudopotentials are constructed for describing interaction between core/core-electrons and valence electrons.
- However, due to the non-uniqueness of pseudopotential parameterization, for one construction of pseudopotential,
- for example the norm-conserving pseudopotential, there are many different sets of pseudopotentials generated
- based on slightly different purposes. <br>
-For all atoms, only norm-conserving pseudopotentials are tested, although ultrasoft pseudopotentials are recently
- supported by ABACUS planewave calculation. For more tests on ultrasoft pseudopotentials, please refer to the 
-<a href="https://www.materialscloud.org/discover/sssp/table/precision">Standard Solid State Pseudopotential (SSSP)
- library</a>, Quantum ESPRESSO is used to perform tests.<br>
+Pseudopotentials are developed to model the interactions between core electrons and valence electrons. Today, in addition to the traditional norm-conserving formalism, numerous other types have been well-developed, including ultrasoft and PAW pseudopotentials. However, due to the non-uniqueness in pseudopotential parameterization, a variety of pseudopotential sets are generated for different specific purposes, even within the same framework.
+
+At APNS, we currently test only norm-conserving pseudopotentials, though ABACUS has recently begun to support ultrasoft pseudopotentials in plane-wave calculations. For additional testing of ultrasoft pseudopotentials, please consult the Standard Solid State Pseudopotential (SSSP) library (<a href="https://www.materialscloud.org/discover/sssp/table/precision">link</a>), where Quantum ESPRESSO is employed for testing.
     </p>
 </div>
 {% include periodic_table_1.html %}
