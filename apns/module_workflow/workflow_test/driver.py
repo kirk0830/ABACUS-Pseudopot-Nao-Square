@@ -7,7 +7,7 @@ layer is pseudopotential-numerical atomic orbital settings. The third iteration 
 
 Therefore 
 """
-def driver_v1(input_file: str):
+def run(input_file: str):
     """new version of driver"""
 
     """initialize
@@ -87,22 +87,8 @@ def driver_v1(input_file: str):
 
 def driver_v0(input_file: str):
     """old version of driver"""
-    # Step 0: initialize
-    import apns.module_workflow.workflow_test.initialize as init
-    init.initialize_cache()
-    # Step 1: input -> work_status
-    import apns.module_workflow.workflow_test.old.to_work_status as tws
-    work_status = tws.to(fname=input_file)
-    # Step 2: work_status -> test_status
-    import apns.module_workflow.workflow_test.old.to_test_status as tts
-    test_status = tts.to(work_status=work_status)
-    # Step 3: test_status -> test
-    import apns.module_workflow.workflow_test.old.to_test as tt
-    tt.to(test_status=test_status,
-          software=work_status["global"]["software"],
-          basis_type=work_status["calculation"]["basis_type"],
-          functionals=work_status["calculation"]["functionals"],
-          cell_scalings=work_status["calculation"]["characteristic_lengths"])
+    print("old version of driver is not available now anymore")
+    return
 
 def configure(input_file: str):
     """configure the apns storing files, only run this at the first time"""
@@ -113,4 +99,4 @@ def configure(input_file: str):
     ampua.archive(pseudo_dir=inp["global"]["pseudo_dir"], only_scan=False)
 
 if __name__ == "__main__":
-    driver_v1("input.json")
+    run("input.json")

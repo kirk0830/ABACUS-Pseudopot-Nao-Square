@@ -86,7 +86,7 @@ def iterate(**kwargs):
                     if "numerical_orbital" not in upforb_bundle.keys():
                         upforb_bundle["numerical_orbital"] = []
                     folder = amwi._folder_(system=_system,
-                                           pseudo_nao_identifier=amwi.pseudopot_nao(**upforb_bundle),
+                                           pseudo_nao_identifier=amwi.pseudopot_nao(**upforb_bundle).replace(".", "").replace("_", ""),
                                            calculation_identifier=amwi.calculation(calculation_setting),
                                            extensive_identifier=amwi.extensive(extensive_setting))
                     # if name is too long, find ways to reduce the length

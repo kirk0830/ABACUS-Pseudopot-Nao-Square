@@ -18,8 +18,12 @@ def entry():
     return args.input
 
 import json
-def testname_pspotid(testname: str):
-    """return pspotid from testname"""
+import apns.module_pseudo.manage as ampm
+def testname_pspotid(element: str, testname: str):
+    """return pspotid from testname
+    
+    testname is the pspot_id.replace("_", "")
+    """
     def translate_kind(testname):
         """translate pspotid to real pseudopotential name"""
         dictionary = {"dojo": "PseudoDojo", "pslnc": "PSlibrary (NC)", 
@@ -39,35 +43,27 @@ def testname_pspotid(testname: str):
     # of GTH pseudopotentials, so we need to fix the name temporarily. Other versions like UZH, LnPP2,
     # ... will be added in the future.
     testname = "gthLnPP1" if testname == "gth" else testname
-    with open("download/pseudopotentials/description.json", "r") as f:
-        description = json.load(f)
-    for key in description.keys():
-        if key.replace("_", "") == testname:
-            val = description[key]
-            with open(val + "/description.json", "r") as f:
-                data = json.load(f)
-            data = {key: data[key] for key in data.keys() if key != "files"}
-            kind = translate_kind(data["kind"])
-            version = translate_version(data["kind"], data["version"])
+    with open("download/pseudopotentials/pseudo_db.json", "r") as f:
+        pseudo_db = json.load(f)
+    for key in pseudo_db[element].keys():
+        if key.replace("_", "").replace(".", "") == testname:
+            fpseudo_withpath = pseudo_db[element][key]
+            attribute = ampm.get_attribute("download/pseudopotentials", fpseudo_withpath)
+            kind, version, appendix = attribute["kind"], attribute["version"], attribute["appendix"]
+            kind = translate_kind(kind)
+            version = translate_version(kind, version)
             label = kind + version
-            label += " (" + data["appendix"] + ")" if data["appendix"] != "" else ""
+            label += " (" + appendix + ")" if appendix != "" else ""
             label = label.strip()
             return label, key
-    print("WARNING: testname", testname, "not found in description.json")
     return None, None
 
 import apns.module_pseudo.parse as ampp
 def z_valence(element: str, pspotid: str):
     """pspotid here should be the "key" returned by function testname_pspotid"""
-    with open("download/pseudopotentials/description.json", "r") as f:
-        description = json.load(f)
-    path = description[pspotid]
-    path += "/" if path[-1] != "/" else ""
-    fdes = path + "description.json"
-    with open(fdes, "r") as f:
-        description = json.load(f)
-    fpspot = path + description["files"][element]
-    return ampp.z_valence(fpspot)
+    with open("download/pseudopotentials/pseudo_db.json", "r") as f:
+        pseudo_db = json.load(f)
+    return ampp.z_valence(fpspot=pseudo_db[element][pspotid])
 
 def categorize_byelement(labels, data):
     """the data will arrange like:
@@ -190,7 +186,7 @@ def run():
     # remember: eks_*/prs_*/... is indiced by [element][pspotid][ecutwfc] to get a float value
     for i in range(len(elements)):
         element = elements[i]
-        _pspotnames, _pspotids = zip(*[testname_pspotid(id) for id in pspotids[i]])
+        _pspotnames, _pspotids = zip(*[testname_pspotid(element, id) for id in pspotids[i]])
         # DESIGN NOTE OF LOG_PLOTS AND STACK_LINEPLOTS
         # -------------------------------------------
         # LOG_PLOTS:

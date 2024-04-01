@@ -406,10 +406,7 @@ def read_keyvals_frominput(fin, keyword: str = None):
     return result if keyword is None else result[keyword]
 """Path from Bohrium.dp.tech"""
 def read_testconfig_fromBohriumpath(path: str):
-    """not satisfied with this function, in future there will be a file description.json
-    attached in each job, for description of the job, like pseudopotential identifier,
-    numerical atomic orbital identifier...
-    
+    """    
     Bohrium will arrange the path in the following way:
     11548850/10430308/tmp/outputs/artifacts/outputs/Ar_23155_pd04_PBEecw100pwclfs1clstrs1scf/00010
     in this folder there will be OUT.ABACUS and INPUT, STRU, KPT, ...
