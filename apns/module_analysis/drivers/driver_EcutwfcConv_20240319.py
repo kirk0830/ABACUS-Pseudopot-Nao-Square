@@ -36,7 +36,7 @@ def testname_pspotid(element: str, testname: str):
         elif kind.upper() == "PD":
             return version
         else:
-            version = ".".join([str(version[i]) for i in range(len(version))])
+            #version = ".".join([str(version[i]) for i in range(len(version))])
             return "-v" + version if version != "" else ""
     # TEMPORARY FIX
     # this is because presently only GTH LnPP1 are collected, while there are indeed other versions
@@ -48,7 +48,7 @@ def testname_pspotid(element: str, testname: str):
     for key in pseudo_db[element].keys():
         if key.replace("_", "").replace(".", "") == testname:
             fpseudo_withpath = pseudo_db[element][key]
-            attribute = ampm.get_attribute("download/pseudopotentials", fpseudo_withpath)
+            attribute = ampm.get_attribute("download/pseudopotentials", fpseudo_withpath=fpseudo_withpath)
             kind, version, appendix = attribute["kind"], attribute["version"], attribute["appendix"]
             kind = translate_kind(kind)
             version = translate_version(kind, version)
@@ -63,7 +63,7 @@ def z_valence(element: str, pspotid: str):
     """pspotid here should be the "key" returned by function testname_pspotid"""
     with open("download/pseudopotentials/pseudo_db.json", "r") as f:
         pseudo_db = json.load(f)
-    return ampp.z_valence(fpspot=pseudo_db[element][pspotid])
+    return ampp.z_valence(pseudo_db[element][pspotid])
 
 def categorize_byelement(labels, data):
     """the data will arrange like:
