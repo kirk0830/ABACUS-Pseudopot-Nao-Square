@@ -2,7 +2,7 @@ import json
 def read(finp: str):
     """read input file"""
     with open(finp, "r") as f:
-        return json.load(f)
+        return check(json.load(f))
 
 import os
 def check(inp: dict):
@@ -49,6 +49,14 @@ def check(inp: dict):
         raise ValueError("mpi_command not found in orbgen environment")
     if "abacus_command" not in inp["orbgen"]:
         raise ValueError("abacus_command not found in orbgen environment")
+    if "rcuts" not in inp["orbgen"]:
+        raise ValueError("rcuts not found in orbgen section")
+    if len(inp["orbgen"]["rcuts"]) == 0:
+        raise ValueError("rcuts section is empty")
+    if "types" not in inp["orbgen"]:
+        raise ValueError("types not found in orbgen section")
+    if len(inp["orbgen"]["types"]) == 0:
+        raise ValueError("types section is empty")
     # abacus section
     if "abacus" not in inp:
         raise ValueError("abacus section not found in input file")
@@ -72,57 +80,38 @@ def check(inp: dict):
         raise ValueError("appendices not found in pseudopotentials section")
     if len(inp["pseudopotentials"]["appendices"]) == 0:
         raise ValueError("appendices section is empty")
-    # numerical_orbitals section
-    if "numerical_orbitals" not in inp:
-        raise ValueError("numerical_orbitals section not found in input file")
-    if "rcuts" not in inp["numerical_orbitals"]:
-        raise ValueError("rcuts not found in numerical_orbitals section")
-    if len(inp["numerical_orbitals"]["rcuts"]) == 0:
-        raise ValueError("rcuts section is empty")
-    if "types" not in inp["numerical_orbitals"]:
-        raise ValueError("types not found in numerical_orbitals section")
-    if len(inp["numerical_orbitals"]["types"]) == 0:
-        raise ValueError("types section is empty")
+
     return inp
 
-def link_pspotlib(inp: dict):
-    """according to locally available pseudopotential library, link the pspot_ids to the input file
-    , and return the available pspot_ids selected by the input file"""
-    pspot_ids = []
-    with open(inp["global"]["pseudo_dir"] + "/description.json", "r") as f:
-        pspotlib = json.load(f)
-    
-    if inp["pseudopotentials"]["kinds"] == ["all"]:
-        pspot_ids = list(pspotlib.keys())
-    else:
-        for kind in inp["pseudopotentials"]["kinds"]:
-            for pspot_id in pspotlib.keys():
-                if pspot_id.startswith(kind):
-                    if inp["pseudopotentials"]["versions"] == ["all"]:
-                        pspot_ids.append(pspot_id)
-                    else:
-                        for version in inp["pseudopotentials"]["versions"]:
-                            if pspot_id.startswith(kind + "_" + version):
-                                if inp["pseudopotentials"]["appendices"] == ["all"]:
-                                    pspot_ids.append(pspot_id)
-                                else:
-                                    for appendix in inp["pseudopotentials"]["appendices"]:
-                                        if pspot_id.startswith(kind + "_" + version + "_" + appendix):
-                                            pspot_ids.append(pspot_id)
-    if len(pspot_ids) == 0:
-        raise ValueError("no pseudopotential found in range selected by input file. Please check the input file.")
-    """NOTE: we did not check the existence of the pseudopotential files here,
-    because we plan to support not only one element generating numerical orbitals in one shot,
-    therefore the detailed element-specific pseudopotential file existence check will be done 
-    in function apns/module_nao/orbgen/siab_generator.py:siab_generator() instead."""
-    return pspot_ids
-
+import apns.module_pseudo.manage as ampm
+import apns.module_io.input_translate as amiit
+import apns.module_structure.basic as amsb
 def initialize(finp: str):
-    """setup the orbgen workflow, return the inp file contents along with available pspot_ids selected by the input file"""
+    """setup the orbgen workflow, return the checked inp file contents 
+    along with available pspot_ids selected by the input file
+    
+    Args:
+    finp (str): fname of e.g., input_orbgen.json
+    
+    Returns:
+    dict: setting in "orbgen" section
+    list: elements
+    dict: valid pseudopotentials whose keys are element and values are key-value pair of pspotid
+    and fname"""
     inp = read(finp)
-    check(inp)
-    pspot_ids = link_pspotlib(inp)
-    return inp, pspot_ids
+    elements = amsb.scan_elements(inp["systems"])
+    inp = amiit.expand(inp, elements)
+    vupfs = ampm.valid_pseudo(inp["global"]["pseudo_dir"], elements, inp["pseudopotentials"])
+    # vupfs will have keys as elements 
+    # and values the key-value pairs of pspot_ids and file name with path
+
+    # design note: 
+    # the first contains information about: "what is needed for generating orbitals?"
+    # the second contains: "what kind of DFT calculation will perform?"
+    # the third contains: "for what elements? (although the original "system" key can specify
+    # composites, but eventually it would be the question of single element)"
+    # the fourth contains: what pseudopotentials
+    return inp["orbgen"], inp["abacus"], elements, vupfs
 
 import unittest
 class TestInitialize(unittest.TestCase):
@@ -169,40 +158,6 @@ class TestInitialize(unittest.TestCase):
             check({"global": {"pseudo_dir": "not_exist"}})
         with self.assertRaises(ValueError):
             check({"orbgen": {"generator": "not_exist"}})
-
-    def test_link_pspotlib(self):
-        
-        inp = {
-            "global": {
-                "pseudo_dir": "./download/pseudopotentials"
-            },
-            "pseudopotentials": {
-                "kinds": ["sg15", "pd"],
-                "versions": ["10", "04"],
-                "appendices": ["all"]
-            }
-        }
-        result = link_pspotlib(inp)
-        self.assertListEqual(result, 
-                             ['sg15_10', 'sg15_10_fr', 'pd_04_3+_f--core', 
-                              'pd_04_3+_f--core-icmod1', 'pd_04_d', 'pd_04', 
-                              'pd_04_fsp', 'pd_04_high', 'pd_04_low', 'pd_04_s', 
-                              'pd_04_s-high', 'pd_04_sp', 'pd_04_sp-exc', 
-                              'pd_04_sp-high', 'pd_04_spd', 'pd_04_spd-high'])
-        inp = {
-            "global": {
-                "pseudo_dir": "./download/pseudopotentials"
-            },
-            "pseudopotentials": {
-                "kinds": ["sg15"],
-                "versions": ["all"],
-                "appendices": ["all"]
-            }
-        }
-        result = link_pspotlib(inp)
-        self.assertListEqual(result, 
-                             ['sg15_10', 'sg15_10_fr', 'sg15_11', 'sg15_11_fr', 'sg15_12'])
-        
 
 if __name__ == '__main__':
     unittest.main()

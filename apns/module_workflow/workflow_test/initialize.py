@@ -1,7 +1,6 @@
 """initialize is the module should be called everytime will the program starts"""
 
 import apns.module_io.input_translate as amiit
-import apns.module_pseudo.archive as ampua
 # import apns.module_nao.nao_archive as amna
 def initialize(finp: str, test_mode: bool = False) -> tuple[dict, dict, dict, dict, dict]:
     """initialize the program, return runtime information can be determined before running the workflow
@@ -114,8 +113,6 @@ def download_structure(finp: str) -> dict:
     return system_with_mpids
 
 import apns.module_structure.basic as amsb
-import apns.module_pseudo.local_validity_scan as amplvs
-import apns.module_nao.local_validity_scan as amnlvs
 import apns.module_pseudo.manage as ampm
 def scan_upforb(finp: str|dict) -> tuple[dict, dict]:
     """scan valid pseudopotential for all elements in input file

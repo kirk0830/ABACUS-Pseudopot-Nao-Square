@@ -3,7 +3,7 @@ import json
 import apns.module_workflow.identifier as amwi
 def find_ecutwfc(element: str,
                  ecutwfc: float|list = None,
-                 pspot_id: str|list = None) -> tuple[list[float], list[str]]:
+                 pspot_id: str|list = None):
     
     """preset the ecutwfc and pspot_id for the given element for different cases"""
     print(f"Find the ecutwfc and pspot_id for the given element {element}")
@@ -64,50 +64,44 @@ def find_ecutwfc(element: str,
     else:
         raise ValueError(f"Confusing input: ecutwfc = {ecutwfc}, pspot_id = {pspot_id}")
 
-    return ecutwfc, pspot_id
-
-def find_fpseudo(element: str,
-                 pspot_id: str,
-                 pseudo_dir: str = "./download/pseudopotentials/") -> tuple[str, str]:
-    """find the pseudopotential file for the given element and pspot_id"""
-    pseudo_dir = pseudo_dir.replace("\\", "/")
-    if not pseudo_dir.endswith("/"):
-        pseudo_dir += "/"
-    with open(pseudo_dir + "pseudo_db.json", "r") as f:
-        pseudo_db = json.load(f)
-        for key in pseudo_db[element].keys():
-            if key.replace("_", "").replace(".", "") == pspot_id or key == pspot_id:
-                pseudo_name = pseudo_db[element][key]
-                return pseudo_dir, pseudo_name
-    return pseudo_dir, None
+    return dict(zip(pspot_id, ecutwfc))
 
 import apns.module_nao.orbgen_kernel.siab_new as amnoksn
-def siab_generator(element: str,
-                   rcuts: list = [6, 7, 8, 9, 10],
-                   ecutwfc: float|list = None,
-                   pspot_id: str|list = None,
-                   pseudo_dir: str = "./download/pseudopotentials/",
-                   other_settings: dict = None):
-    
-    # list    list, with the same length, one-to-one correspondence
-    ecutwfc, pspot_id = find_ecutwfc(element, ecutwfc, pspot_id)
-    if ecutwfc is None and pspot_id is None:
-        yield None
-    elif not ecutwfc is None and not pspot_id is None:
-        pass
-    else:
-        raise ValueError("Heterogeneous ecutwfc and pspot_id are not supported yet.")
-    # list[tuple[str, str]], the first is pseudo_dir, the second is pseudo_name
-    pspot_pack = [find_fpseudo(element, pspot_id[i], pseudo_dir) for i in range(len(pspot_id))]
-    if len(pspot_pack) == 0:
-        print(f"No pseudopotential found for the given element {element} and pspot_id(s): {pspot_id}")
-        yield None
-    for i in range(len(pspot_id)):
-        if pspot_pack[i][1] is None:
-            print(f"No pseudopotential found for the given element {element} and pspot_id {pspot_id[i]}")
+def siab_generator(**kwargs):
+    """
+    Generate SIAB_INPUT.json file based on the given settings
+    compulsory input: element
+    optional input: rcuts, ecutwfc, fpseudos, pseudo_dir, other_settings
+
+    Args:
+    element (str): element symbol
+    rcuts (list): list of cutoff radius for Sphbes
+    ecutwfc (float): energy cutoff for wavefunctions
+    fpseudos (dict): dict, keys are pspot_id, values are pseudo_name with path
+    other_settings (dict): other settings, can overwrite the reference settings
+    """
+    # compulsory input
+    element = kwargs["element"]
+    # optional, with default values
+    rcuts = kwargs.get("rcuts", [6, 7, 8, 9, 10])
+    ecutwfc = kwargs.get("ecutwfc", None)
+    fpseudos = kwargs.get("fpseudos", None)
+    other_settings = kwargs.get("other_settings", None)
+
+    old_pspotids = [pspot_id.replace(".", "").replace("sr", "") for pspot_id in fpseudos.keys()]
+    # old pspotids are those dots "." are removed, like sg15_1.0 to sg15_10
+    ecutwfcs = find_ecutwfc(element, ecutwfc, old_pspotids)
+    # example of ecutwfcs:
+    # {"sg15_10": 60, "sg15_20": 80, "sg15_30": 100, "sg15_40": 120, "sg15_50": 140}
+    print(list(ecutwfcs.keys()))
+    for pspot_id in fpseudos.keys():
+        old_pspotid = pspot_id.replace(".", "").replace("sr", "").replace("_", "")
+        ecutwfc = ecutwfcs[old_pspotid]
+        pseudo_dir_name = fpseudos[pspot_id].replace("\\", "/")
+        pseudo_dir, pseudo_name = pseudo_dir_name.rsplit("/", 1)
         yield amnoksn.generate(rcuts=rcuts,
-                               ecutwfc=ecutwfc[i],
-                               pseudo_name=pspot_pack[i][1],
-                               pseudo_dir=pspot_pack[i][0],
+                               ecutwfc=ecutwfc,
+                               pseudo_name=pseudo_name,
+                               pseudo_dir=pseudo_dir,
                                other_settings=other_settings,
                                fref="./apns/module_nao/orbgen_kernel/data/"+element+".SIAB_INPUT")
