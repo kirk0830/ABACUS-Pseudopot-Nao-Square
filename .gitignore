@@ -1,14 +1,10 @@
 *.cif
-work_status_*.json
-test_status_*.json
 input.json
-description.json
 formula_mpid.json
 *.pyc
 __pycache__
 *egg-info
 *.egg
 apns_cache
-t_*_*_*_*
 *.zip
 build/

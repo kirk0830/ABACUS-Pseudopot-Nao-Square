@@ -19,32 +19,29 @@ import apns.module_nao.orbgen as amno
 import time
 def run(finp: str):
    """run orbital generation from this driver"""
-   # initialize the workflow
-   inp, pspot_ids = initialize(finp)
-   ecutwfc = None if "ecutwfc" not in inp["abacus"] else inp["abacus"]["ecutwfc"]
-   for element in inp["systems"]:
+   # initialize the workflow, read-in, check and load available pseudopotentials
+   runtime_settings, abacus_settings, elements, vupfs = initialize(finp)
+   ecutwfc = None if "ecutwfc" not in abacus_settings else abacus_settings["ecutwfc"]
+   for element in elements:
       # this is just the reference mode. For general, ...
-      siab_generator = amno.siab_generator(element=element,
-                                           rcuts=inp["numerical_orbitals"]["rcuts"],
-                                           ecutwfc=ecutwfc,
-                                           pspot_id=pspot_ids,
-                                           other_settings={
-                                              "environment": inp["orbgen"]["environment"],
-                                              "mpi_command": inp["orbgen"]["mpi_command"],
-                                              "abacus_command": inp["orbgen"]["abacus_command"],
-                                           })
+      siab_settings = {"element": element, "rcuts": runtime_settings["rcuts"], "ecutwfc": ecutwfc,
+                       "fpseudos": vupfs[element], "other_settings": {
+                       "environment": runtime_settings["environment"],
+                       "mpi_command": runtime_settings["mpi_command"],
+                       "abacus_command": runtime_settings["abacus_command"]}}
+      siab_generator = amno.siab_generator(**siab_settings)
       finps_siab = []
       for siab_input in siab_generator:
          finp_siab = f"SIAB_INPUT_{time.strftime('%Y%m%d%H%M%S')}.json"
          with open(finp_siab, "w") as f:
             json.dump(siab_input, f, indent=4)
-         if inp["orbgen"]["generate_mode"] == "in-situ":
-            insitu_siab(inp["orbgen"]["generator"], finp_siab)
+         if runtime_settings["generate_mode"] == "in-situ":
+            insitu_siab(runtime_settings["generator"], finp_siab)
          else:
             finps_siab.append(finp_siab)
             time.sleep(1) # this is for updating time stamp
-      if inp["orbgen"]["generate_mode"] == "ex-situ":
-         fscript = exsitu_siab(inp["orbgen"]["generator"], finps_siab)
+      if runtime_settings["generate_mode"] == "ex-situ":
+         fscript = exsitu_siab(runtime_settings["generator"], finps_siab)
          print(f"Ex-situ SIAB generation script generated: {fscript}")
    print("Orbital generation workflow finished.")
 
