@@ -51,7 +51,6 @@ def iter_tree(root: ET.Element):
     return {child.tag: {"attrib": child.attrib, "data": child.text} for child in list(root.iter())}
 
 def parse(fname: str):
-    print("Parse pseudopotential file in XML format", fname)
     preprocess(fname)
     tree = ET.ElementTree(file=fname)
     root = tree.getroot()

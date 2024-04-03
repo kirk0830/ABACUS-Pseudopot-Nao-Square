@@ -1,5 +1,4 @@
 *.cif
-input.json
 formula_mpid.json
 pseudo_db.json
 *.pyc
@@ -10,3 +9,7 @@ apns_cache
 *.zip
 build/
 *venv*/
+.vscode/
+*.swp
+*.log
+*ignorethis*

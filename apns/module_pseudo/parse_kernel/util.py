@@ -71,12 +71,12 @@ def xml_tagchecker(content: str|list[str]):
             assert _buffer != "", "buffer is empty"
             _buffer = " ".join([_buffer, _line])
             if re.match(_single, _buffer):
-                yield True, _buffer
+                yield True, _buffer + "\n"
                 _buffer = ""
             elif re.match(_opening, _buffer):
                 name = re.match(r"<([^ >]+)", _buffer).group(1)
                 names.append(name)
-                yield False, _buffer
+                yield False, _buffer + "\n"
                 _buffer = ""
             else:
                 raise ValueError(f"incorrect tag: {_buffer}")

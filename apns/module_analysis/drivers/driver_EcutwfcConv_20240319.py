@@ -14,7 +14,6 @@ def entry():
     # add -i
     parser.add_argument("-i", "--input", type=str, help="input json file")
     args = parser.parse_args()
-
     return args.input
 
 import json
@@ -159,11 +158,34 @@ def search(path: str, ethr: float = 1e-3, pthr: float = 0.1, bsthr: float = 1e-2
            amapprs.run(path, pthr),\
            amapbs.run(path, bsthr)
 
+def summarize_conv(convs: list, result: dict):
+    for conv in convs:
+        for element, mpid, pnid, ecutwfc in conv:
+            result.setdefault(element, {}).setdefault(pnid, ecutwfc)
+            result[element][pnid] = max(result[element][pnid], ecutwfc)
+    return result
+
+import apns.module_workflow.identifier as amwi
+def ecutwfc_convergence(convs: list):
+    # summarize the convergence results
+    fresult = amwi.TEMPORARY_FOLDER + "/ecutwfc_conv.json"
+    if os.path.exists(fresult):
+        with open(fresult, "r") as f:
+            conv_result = json.load(f)
+    else:
+        conv_result = {}
+    conv_result = summarize_conv(convs, conv_result)
+    with open(fresult, "w") as f:
+        json.dump(conv_result, f, indent=4)
+
+import os
 def run():
     # always make independent on path for run() function, instead, use entry()
     path = entry()
     # postprocess
     (conv_eks, data_eks), (conv_prs, data_prs), (conv_bs, data_bs) = search(path)
+    # convergence
+    ecutwfc_convergence([conv_eks, conv_prs, conv_bs])
     # categorize by element
     elements, pspotids, eks_x, eks_y = categorize_byelement(conv_eks, data_eks)
     _, _, prs_x, prs_y = categorize_byelement(conv_prs, data_prs)
