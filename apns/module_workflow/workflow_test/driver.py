@@ -7,7 +7,7 @@ layer is pseudopotential-numerical atomic orbital settings. The third iteration 
 
 Therefore 
 """
-def driver_v1(input_file: str):
+def run(input_file: str):
     """new version of driver"""
 
     """initialize
@@ -46,7 +46,8 @@ def driver_v1(input_file: str):
     # , say all information needed for the code to run.
     # DESIGN: INITIALIZE CAN RETURN RUNTIME INFORMATION
     import apns.module_workflow.workflow_test.initialize as amwinit
-    runtime_settings, vupfs, vorbs, upf_arch, orb_arch = amwinit.initialize(input_file)
+    runtime_settings, vupfs, vorbs = amwinit.initialize(input_file) # presently vorbs is empty for
+                                                                    # all elements.
     # ---------------------------------------------------------------------------------------------
     """iterate
     1. setup_iterables
@@ -58,21 +59,16 @@ def driver_v1(input_file: str):
     # calculation_settings is about INPUT
     # extensive_settings is about "outer" loop, "outer" loop usually is about different systems
     # upforb_settings is about "inner" loop
-    inner_iter, abacus_inputs, outer_iter = \
-        amwai.setup_iterables(system_list=runtime_settings["systems"],
-                              pseudopotentials=vupfs,                               # always available
-                              numerical_orbitals=vorbs,                             # not always available
-                              calculation_settings=runtime_settings["calculation"], # INPUT
-                              extensive_settings=runtime_settings["extensive"])     # outer loop
+    iterable_settings = {"systems": runtime_settings["systems"], "pseudopotentials": vupfs, "numerical_orbitals": vorbs,
+                         "calculation_settings": runtime_settings["calculation"], "extensive_settings": runtime_settings["extensive"]}
+    inner_iter, abacus_inputs, outer_iter = amwai.setup_iterables(**iterable_settings)
     import apns.module_workflow.workflow_test.iterate as amwi
-    folders = amwi.iterate(software=runtime_settings["global"]["software"].lower(),         # with software
-                           systems=runtime_settings["systems"],                             # on systems
-                           pseudopot_nao_settings=inner_iter,
-                           calculation_settings=abacus_inputs,
-                           extensive_settings=outer_iter,
-                           valid_pseudopotentials=vupfs, valid_numerical_orbitals=vorbs,
-                           pspot_archive=upf_arch,       nao_archive=orb_arch,
-                           test_mode=False)
+    iterate_setting = {"software": runtime_settings["global"]["software"].lower(),
+                       "systems": runtime_settings["systems"],
+                       "extensive_settings": outer_iter, "upforb_bundles": inner_iter, 
+                       "calculation_settings": abacus_inputs, "upfs": vupfs, "orbs": vorbs, 
+                       "test_mode": False}
+    folders = amwi.iterate(**iterate_setting)
     """compress"""
     import time
     import os
@@ -89,32 +85,5 @@ def driver_v1(input_file: str):
     import apns.module_io.citation as amicite
     amicite.citation(software=runtime_settings["global"]["software"].lower())
 
-def driver_v0(input_file: str):
-    """old version of driver"""
-    # Step 0: initialize
-    import apns.module_workflow.workflow_test.initialize as init
-    init.initialize_cache()
-    # Step 1: input -> work_status
-    import apns.module_workflow.workflow_test.old.to_work_status as tws
-    work_status = tws.to(fname=input_file)
-    # Step 2: work_status -> test_status
-    import apns.module_workflow.workflow_test.old.to_test_status as tts
-    test_status = tts.to(work_status=work_status)
-    # Step 3: test_status -> test
-    import apns.module_workflow.workflow_test.old.to_test as tt
-    tt.to(test_status=test_status,
-          software=work_status["global"]["software"],
-          basis_type=work_status["calculation"]["basis_type"],
-          functionals=work_status["calculation"]["functionals"],
-          cell_scalings=work_status["calculation"]["characteristic_lengths"])
-
-def configure(input_file: str):
-    """configure the apns storing files, only run this at the first time"""
-    import json
-    with open(input_file, "r") as f:
-        inp = json.load(f)
-    import apns.module_pseudo.archive as ampua
-    ampua.archive(pseudo_dir=inp["global"]["pseudo_dir"], only_scan=False)
-
 if __name__ == "__main__":
-    driver_v1("input.json")
+    run("input.json")

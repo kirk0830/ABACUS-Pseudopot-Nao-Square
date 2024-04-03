@@ -10,46 +10,56 @@
 ## To run on your local machine
 **WARNING:** In principle APNS is not designed to be run on your local machine. However, if you want to run it on your local machine, you can follow the instructions below.
 ### Prerequisites
-    - ABACUS
-    - Python 3.6 or higher
-    - numpy
-    - matplotlib
-    - mp_api (Materials Project API, Python-end)
-    - pymatgen
+Prerequisites differ from workflows, currently there are three workflows. Mutual prerequisites are listed below:
+- Python 3.6 or higher
+- numpy
+- scipy
+
+Following lists prerequisites for each workflow:
+#### Test
+- urllib3 (< 2.1.0)
+- mp_api
+- pymatgen
+- seekpath
+#### Analysis
+- matplotlib
+- lbg (lebegue, developed by Deeptechnology Inc., for downloading groups of jobs from Bohrium Supercomputing Cloud platform)
+### Orbgen
+- pytorch
+- torch_optimizer
+- torch_complex
 ### Installation
-To run program with frozen codes, run
+*BEFORE INSTALLATION, WE STRONGLY RECOMMEND YOU TO CREATE A NEW VIRTUAL ENVIRONMENT.*
 ```bash
-python setup.py install
+python3 -m virtualenv apnsvenv
+source apnsvenv/bin/activate
 ```
-Codes will run from other replica rather than the original one. To run program supporting timely development, run
+in `.gitignore`, a line is already set for ignoring virtual environment folder entitled with substr `venv`. Then you can install the package.
+To install, run:
 ```bash
-python setup.py develop
+pip install .
+```
+, add `-e` to install in editable mode.
+```bash
+pip install -e .
 ```
 ### Usage
 #### Very first configuration
-1. download pseudopotentials in directory `./download/pseudopotentials`, decompress or unzip them if necessary. Sort folders like this:
-```bash
-download
-├── pseudopotentials
-│   ├── NCPP-PBE-PD04
-│   │   ├── ...upf
-│   │   └── ...upf
-│   ├── NCPP-PBE-PD03
-│   │   ├── ...upf
-│   │   └── ...upf
-│   ├── sg15_oncv_upf_2020-02-06
-│   │   ├── ...upf
-│   │   └── ...upf
+For APNS >= 1.0.0, no additional configuration is needed anymore, just run APNS, it will refresh the archive for pseudopotential and numerical atomic orbital (not implemented yet) automatically. However, you need to pay attention to the file `./download/pseudopotentials/rules.json`, it is for the configuration of pseudopotential archive. Once you add new kind of pseudopotential, you should always add a new rule to distinguish those pseudopotentials, like: 
+```json
+{
+    "rules": [
+        {
+            "kind": "sg15",
+            "version": "1.2",
+            "appendix": "fr",
+            "re.folder": ".*",
+            "re.file": "^([A-Z][a-z]?)(_ONCV_PBE_FR-1\\.0\\.upf)$"
+        }
+    ]
+}
 ```
-2. run pseudopotential archiving task like:
-```python
-import apns.module_pseudo.upf_archive as arch
-
-if __name__ == '__main__':
-    arch.archive(pseudo_dir = "./download/pseudopotentials",
-                 only_scan = False)
-```
-Then in `download/pseudopotentials`, all pseudopotential files will be moved into specific folders and in each folder there will be a `description.json` created, which contains the information of the pseudopotential.
+, in which `re.folder` and `re.file` are regular expressions for matching the folder and file name of the pseudopotential.
 #### Run APNS
 prepare `input.json` like this:
 ```json
@@ -92,15 +102,79 @@ prepare `input.json` like this:
     }
 }
 ```
-After preparing `input.json`, remember to check `main.py` if there is anything you should modify, especially the `input.json` path.  
+APNS also supports specifying `pseudopotentials` section for each element:
+```json
+    "pseudopotentials": {
+        "kinds": {"Cs": ["sg15"], "Ba": ["sg15", "dojo"]},
+        "versions": {"Cs": ["1.2"], "Ba": ["all"]},
+        "appendices": {"Cs": ["fr"], "Ba": [""]},
+    },
+```
 Then run:
 ```bash
-python main.py
+python main.py -i input.json
 ```
-#### Output
-The output will be an `*.zip` file, contains all the test data.
-#### Note
-1. The `input.json` does not support comment.
-2. make sure you have your own Materials Project API. For details, see `README.md` in `apns/module_structures/`
+After jobs are done, you can download with `lbg` developed by DPTechnology Inc.:
+```bash
+lbg jobgroup download <group_id>
+```
+However if it is the first time you run `lbg`, you need to configure it first:
+```bash
+lbg config account
+```
+, your Bohrium account and password are needed. Then edit another file named `input_analysis.json`:
+```json
+{
+    "global": {
+        "test_mode": "analysis",
+        "pseudo_dir": "./download/pseudopotentials",
+        "orbital_dir": "./download/numerical_orbitals"
+    },
+    "analysis": {
+        "search_domain": "./11845898",
+        "items": [
+            "driver_EcutwfcConv_20240319"
+        ]
+    }
+}
+```
+, in which `search_domain` should be the folder (either relative or absolute path) in which APNS will search jobs to analysis, and `items` are the items you want to analyze. APNS encourages users to write their own analysis workflow, once complete, add to the `list` items, then driver will run them one-by-one. Then run:
+```bash
+python main.py -i input_analysis.json
+```
+The element in `items` should be coded with respect to some workflow regulations, they are:
+1. always have an enter like
+```python
+import argparse
+def entry():
+    parser = argparse.ArgumentParser(description="APNS pseudopotential convergence test")
+    # add -i
+    parser.add_argument("-i", "--input", type=str, help="input json file")
+    args = parser.parse_args()
+    return args.input
+
+def run():
+    path = entry()
+    # your code here
+
+if __name__ == "__main__":
+    run()
+```
+Then driver of analysis workflow will call the analyzer with
+```python
+def run(finp: str):
+    with open(finp, "r") as f:
+        inp = json.load(f)
+
+    for item in inp["analysis"]["items"]:
+        
+        item = item.replace("\\", "/").split("/")[-1]
+        item = item + ".py" if not item.endswith(".py") else item
+        item = "apns/module_analysis/drivers/" + item
+        if os.path.exists(item):
+            os.system("python " + item + " -i" + inp["analysis"]["search_domain"])
+        else:
+            print("Warning: user-defined analysis item \"", item, "\" not found, skip.")
+```
 ## Author information  
 **APNS** is mainly developed and maintained by the ABACUS-AISI (Artificial Intelligence for Science Institute, BEIJING) team.  

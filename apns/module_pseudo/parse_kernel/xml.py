@@ -1,4 +1,6 @@
 import xml.etree.ElementTree as ET
+import re
+import apns.module_pseudo.parse_kernel.util as ampku
 
 def preprocess(fname: str):
     """ADC pseudopotential has & symbol at the beginning of line, which is not allowed in xml, replace & with &amp;"""
@@ -11,18 +13,19 @@ def preprocess(fname: str):
         lines.append("</UPF>")
 
     with open(fname, "w") as f:
-        for line in lines:
+
+        for state, line in ampku.xml_tagchecker(lines):
             """if line starts with &, replace & with &amp;, 
             but if already &amp;, do not replace"""
-            if line.strip().startswith("&") and not line.strip().startswith("&amp;"):
-                line = line.replace("&", "&amp;")
-            
+            _match = re.match(r"^([\s]*)(\&[\w]+)([^;]*)(\s*)$", line)
+            if _match:
+                line = _match.group(1) + _match.group(2).replace("&", "&amp;") + _match.group(3) + _match.group(4)
             f.write(line)
 
             if line.strip() == "</UPF>":
                 break
 
-import apns.module_pseudo.parse_kernel.util as ampku
+
 def postprocess(parsed: dict):
 
     for section in parsed:

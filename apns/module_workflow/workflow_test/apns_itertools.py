@@ -53,27 +53,28 @@ def pseudopot_nao(pseudopotentials: list, numerical_orbitals: list = None) -> li
         list: list of dictionaries containing pseudopotential and numerical orbital identifiers
         
     Examples:
-    >>> pseudopot_nao(
-        ...     pseudopotentials=["sg15_10", "pd_04"]
-        ... )
+    ```python
+    >>> pseudopot_nao(pseudopotentials=["sg15_10", "pd_04"])
+    # returns:
     [
         {'pseudopotential': 'sg15_10'}, 
         {'pseudopotential': 'pd_04'}
     ]
-    >>> pseudopot_nao(
-        ...     pseudopotentials=["sg15_10", "pd_04"],
-        ...     numerical_orbitals=["DZP_6@sg15_10", "TZDP_6@sg15_10", "TZDP_10@pd_04"]
-        ... )
+    >>> pseudopot_nao(pseudopotentials=["sg15_10", "pd_04"],
+                      numerical_orbitals=["DZP_6@sg15_10", "TZDP_6@sg15_10", "TZDP_10@pd_04"])
+    # returns:
     [
         {'pseudopotential': 'sg15_10', 'numerical_orbital': 'DZP_6'}, 
         {'pseudopotential': 'sg15_10', 'numerical_orbital': 'TZDP_6'}, 
         {'pseudopotential': 'pd_04', 'numerical_orbital': 'TZDP_10'}
     ]
+    ```
     """
-
-    return [{"pseudopotential": pseudopotential} for pseudopotential in pseudopotentials] if numerical_orbitals is None else \
-           [{"pseudopotential":   numerical_orbital.split("@")[1],
-             "numerical_orbital": numerical_orbital.split("@")[0]} for numerical_orbital in numerical_orbitals]
+    if numerical_orbitals is None:
+        return [{"pseudopotential": pseudopotential} for pseudopotential in pseudopotentials]
+    else:
+        return [{"pseudopotential": numerical_orbital.split("@")[1],
+                 "numerical_orbital": numerical_orbital.split("@")[0]} for numerical_orbital in numerical_orbitals]
 
 """This function provides element-wise combination of pseudopotential-nao combination yielded by
 function pseudopot_nao. Elements' pseudopotential-nao combination should be stored in a list.
@@ -97,12 +98,10 @@ def system(elements: list) -> list:
         list: a list of dictionaries containing pseudopotential and numerical orbital identifiers
     
     Examples:
-    >>> system(
-        ...     elements=[
-        ...                 [{"pseudopotential": "sg15_10"}, {"pseudopotential": "pd_04_spd"}],
-        ...                 [{"pseudopotential": "dojo_03"}, {"pseudopotential": "pd_03"}]
-        ...             ]
-        ... )
+    ```python
+    >>> system(elements=[[{"pseudopotential": "sg15_10"}, {"pseudopotential": "pd_04_spd"}],
+                         [{"pseudopotential": "dojo_03"}, {"pseudopotential": "pd_03"}]])
+    # returns:              element1,   element2
     [
         {'pseudopotential': ['sg15_10', 'dojo_03']},
         {'pseudopotential': ['sg15_10', 'pd_03']},
@@ -110,12 +109,9 @@ def system(elements: list) -> list:
         {'pseudopotential': ['pd_04_spd', 'pd_03']}
     ]
     
-    >>> system(
-        ...     elements=[
-        ...                 [{"pseudopotential": "sg15_10", "numerical_orbital": "DZP_6"}, {"pseudopotential": "pd_04_spd", "numerical_orbital": "TZDP_6"}],
-        ...                 [{"pseudopotential": "dojo_03", "numerical_orbital": "QZTP_10"}, {"pseudopotential": "pd_03", "numerical_orbital": "SZ_10"}]
-        ...             ]
-        ... )
+    >>> system(elements=[[{"pseudopotential": "sg15_10", "numerical_orbital": "DZP_6"}, {"pseudopotential": "pd_04_spd", "numerical_orbital": "TZDP_6"}],
+                         [{"pseudopotential": "dojo_03", "numerical_orbital": "QZTP_10"}, {"pseudopotential": "pd_03", "numerical_orbital": "SZ_10"}]])
+    # returns:              element1,   element2                          element1,   element2
     [
         {'pseudopotential': ['sg15_10', 'dojo_03'], 'numerical_orbital': ['DZP_6', 'QZTP_10']},
         {'pseudopotential': ['sg15_10', 'pd_03'], 'numerical_orbital': ['DZP_6', 'SZ_10']},
@@ -132,7 +128,7 @@ def system(elements: list) -> list:
 
 
 import apns.module_structure.basic as amsb
-def systems(system_list: list, valid_pseudopotentials: dict, valid_numerical_orbitals: dict = None) -> list:
+def systems(system_list: list, vupfs: dict, vorbs: dict = None) -> list:
     """generate all possible combinations for all systems, elemental information such as valid pseudopotentials and
     numerical orbitals should be provided
     
@@ -145,15 +141,20 @@ def systems(system_list: list, valid_pseudopotentials: dict, valid_numerical_orb
         list: a list of lists of dictionaries containing pseudopotential and numerical orbital identifiers for each pseudopot-nao combination for each
         system, in sequence of system_list
     """
-    if valid_numerical_orbitals is None:
-        valid_numerical_orbitals = {}
+    vorbs = {} if vorbs is None else vorbs
     upforb_settings = []
     for _system in system_list:
         elements = amsb.scan_elements(_system)
-        elements = [pseudopot_nao(pseudopotentials=list(valid_pseudopotentials[element].keys()),
-                                  numerical_orbitals=list(valid_numerical_orbitals[element].keys()))\
-                    for element in elements]
-        upforb_settings.append(system(elements=elements))
+        # then make Cartesian direct product of pseudopotential and numerical orbital
+        # for each element, return a list by function pseudopot_nao
+        # the .keys() method is used to get all pseudopotentials and numerical orbitals'
+        # identifiers, which are used to make Cartesian direct product
+        vupf_ids = [list(vupfs[element].keys()) for element in elements]
+        vorb_ids = [list(vorbs[element].keys()) if len(vorbs[element].keys()) > 0 else None for element in elements]
+        element_wise_combinations = [pseudopot_nao(pseudopotentials=vupf_ids[i], 
+                                                   numerical_orbitals=vorb_ids[i]) 
+                                     for i in range(len(elements))]
+        upforb_settings.append(system(element_wise_combinations))
     return upforb_settings
 
 """calculation parameters combination for global """
@@ -231,13 +232,13 @@ def extensive(extensive_settings: dict) -> list:
             result[i][key] = extensive_settings[key]
     return result
 
-def setup_iterables(system_list: list,
-                    pseudopotentials: dict,
-                    numerical_orbitals: dict,
-                    calculation_settings: dict,
-                    extensive_settings: dict) -> tuple[list, list, list]:
-    return systems(system_list=system_list,
-                   valid_pseudopotentials=pseudopotentials,
-                   valid_numerical_orbitals=numerical_orbitals), \
+def setup_iterables(**kwargs) -> tuple[list, list, list]:
+    system_list = kwargs["systems"]
+    pseudopotentials = kwargs["pseudopotentials"]
+    numerical_orbitals = kwargs["numerical_orbitals"]
+    calculation_settings = kwargs["calculation_settings"]
+    extensive_settings = kwargs["extensive_settings"]
+
+    return systems(system_list=system_list, vupfs=pseudopotentials, vorbs=numerical_orbitals), \
            calculation(calculation_settings), \
            extensive(extensive_settings)
