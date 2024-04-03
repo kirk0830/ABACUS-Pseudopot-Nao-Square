@@ -47,15 +47,11 @@ import apns.module_workflow.workflow_test.driver as amwtd
 def main():
     # initialize: get input file and version
     input_file, version = initialize()
-    if version == "v1":
-        """I use polymorphism here, because seems each task can really have similar interface
-        But it might be heavy..."""
-        driver = amwd.spawn_driver(input_file)
-        driver.setup() # no matter which driver, run setup
-        driver.run()   # no matter which driver, run the workflow
-    else:
-        """version 0 would be fully deprecated in the future"""
-        amwtd.driver_v0(input_file)
+    """I use polymorphism here, because seems each task can really have similar interface
+    But it might be heavy..."""
+    driver = amwd.spawn_driver(input_file)
+    driver.setup() # no matter which driver, run setup
+    driver.run()   # no matter which driver, run the workflow
 
 if __name__ == "__main__":
     main()

@@ -191,7 +191,17 @@ def generate(rcuts: list,
              pseudo_dir: str,
              other_settings: dict,
              fref: str) -> dict:
-
+    """generate one single SIAB_INPUT.json file based on existing reference file
+    SIAB_INPUT in old version
+    
+    Parameters:
+    rcuts: list, the cutoff radius for Sphbes, will be directly transferred to bessel_nao_rcut
+    ecutwfc: float, the energy cutoff for wavefunctions
+    pseudo_name: str, the pseudopotential file name, note that its path should be fed by pseudo_dir
+    pseudo_dir: str, the directory for pseudopotential file
+    other_settings: dict, other settings, can overwrite the reference settings
+    fref: str, the reference file path
+    """
     if not os.path.exists(fref):
         raise FileNotFoundError("The reference file does not exist")
     ref = parse_reference(fref)

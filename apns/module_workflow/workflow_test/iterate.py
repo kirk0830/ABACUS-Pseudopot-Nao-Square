@@ -4,16 +4,7 @@ import apns.module_software.qespresso.generation as amsqg
 import apns.module_structure.basic as amsb
 import os
 
-def iterate(software: str, # which software? abacus or qespresso
-            systems: list,
-            pseudopot_nao_settings: list,
-            calculation_settings: list,
-            extensive_settings: list,
-            valid_pseudopotentials: dict,
-            valid_numerical_orbitals: dict,
-            pspot_archive: dict,
-            nao_archive: dict,
-            test_mode: bool = True):
+def iterate(**kwargs):
     """iterate over all possible combinations of input parameters and generate folders
     
     Args:
@@ -75,19 +66,27 @@ def iterate(software: str, # which software? abacus or qespresso
     Returns:
         `list`: folders generated
     """
+    software = kwargs.get("software", "abacus")
+    systems = kwargs.get("systems", [])
+    extensive_settings = kwargs.get("extensive_settings", [])
+    upforb_bundles = kwargs.get("upforb_bundles", [])
+    calculation_settings = kwargs.get("calculation_settings", [])
+    upfs = kwargs.get("upfs", {})
+    orbs = kwargs.get("orbs", {})
+    test_mode = kwargs.get("test_mode", True)
+
     folders = []
     for _is, _system in enumerate(systems): # iterate over structures
-        system_pseudopot_nao_settings = pseudopot_nao_settings[_is]
-        for spns in system_pseudopot_nao_settings: # iterate over pseudopotential and numerical orbital settings
+        upforb_bundles_system = upforb_bundles[_is]
+        for upforb_bundle in upforb_bundles_system: # iterate over pseudopotential and numerical orbital settings
             # spns: system_pseudopot_nao_setting
             for calculation_setting in calculation_settings: # iterate over calculation settings
                 for extensive_setting in extensive_settings: # iterate over extensive settings
                     # make folder
-                    if "numerical_orbital" not in spns.keys():
-                        spns["numerical_orbital"] = []
+                    if "numerical_orbital" not in upforb_bundle.keys():
+                        upforb_bundle["numerical_orbital"] = []
                     folder = amwi._folder_(system=_system,
-                                           pseudo_nao_identifier=amwi.pseudopot_nao(pseudopotential=spns["pseudopotential"],
-                                                                                    numerical_orbital=spns["numerical_orbital"]),
+                                           pseudo_nao_identifier=amwi.pseudopot_nao(**upforb_bundle).replace(".", "").replace("_", ""),
                                            calculation_identifier=amwi.calculation(calculation_setting),
                                            extensive_identifier=amwi.extensive(extensive_setting))
                     # if name is too long, find ways to reduce the length
@@ -101,24 +100,26 @@ def iterate(software: str, # which software? abacus or qespresso
                     _elements = amsb.scan_elements(_system)
                     # copy pseudopotential
                     pseudopotentials = {}
-                    _pspotids = spns["pseudopotential"] # get pseudopotential identifiers of one combination
+                    # upforb_bundle["pseudopotential"] arranges like [pseudopotential_identifier, ...]
+                    # indiced by index of element
+                    _pspotids = upforb_bundle["pseudopotential"] # get pseudopotential identifiers of one combination
                     for i in range(len(_pspotids)): # iterate over all elements
                         _pspotid = _pspotids[i] # for one element, get its pseudopotential identifier, however, which is this element?
                         _element = _elements[i]
-                        fpseudo = pspot_archive[_pspotid] + "/" + valid_pseudopotentials[_element][_pspotid]["file"]
-                        os.system("cp {} {}/".format(fpseudo, folder)) if not test_mode else print("cp {} {}/".format(fpseudo, folder))
-                        pseudopotentials[_element] = valid_pseudopotentials[_element][_pspotid]["file"]
+                        fpseudo_withpath = upfs[_element][_pspotid]
+                        fpseudo = fpseudo_withpath.replace("\\", "/").split("/")[-1]
+                        os.system(f"cp {fpseudo_withpath} {folder}/{fpseudo}") if not test_mode else print(f"cp {fpseudo_withpath} {folder}/{fpseudo}")
+                        pseudopotentials[_element] = fpseudo
                     # copy numerical orbital
                     numerical_orbitals = {}
-                    _naoids = spns["numerical_orbital"] # get numerical orbital identifiers of one combination
+                    _naoids = upforb_bundle["numerical_orbital"] # get numerical orbital identifiers of one combination
                     for i in range(len(_naoids)):
                         _naoid = _naoids[i] + "@" + _pspotids[i]
                         _element = _elements[i]
-                        fnao = nao_archive[_naoid] + "/"
-                        fnao += valid_numerical_orbitals[_element][_naoid]["file"]
-                        os.system("cp {} {}/".format(fnao, folder)) if not test_mode else print("cp {} {}/".format(fnao, folder))
-                        numerical_orbitals[_element] = valid_numerical_orbitals[_element][_naoid]["file"]
-
+                        fnao_withpath = orbs[_element][_naoid]
+                        fnao = fnao_withpath.replace("\\", "/").split("/")[-1]
+                        os.system("cp {} {}/{}".format(fnao_withpath, folder, fnao)) if not test_mode else print("cp {} {}/{}".format(fnao_withpath, folder, fnao))
+                        numerical_orbitals[_element] = fnao
                     for word in _system.split("_")[1]:
                         if word.isalpha():
                             extensive_setting["nkpoints_in_line"] = -1 # mpid only contains numbers, so if it contains letters, it will be dimer, trimer or tetramer
@@ -177,14 +178,14 @@ def iterate_abacus(system_with_mpid: str = "", # on which structure? system with
     numerical_orbitals = None if numerical_orbitals is not None and len(numerical_orbitals) == 0 else numerical_orbitals
 
     if extensive_setting["nkpoints_in_line"] >= 0:
-        starting_magnetization = amsb.starting_magnetization(amwi.cif(system_with_mpid), magnetism=extensive_setting["magnetism"])
+        starting_magnetization = amsb.init_magmom(amwi.cif(system_with_mpid), magnetism=extensive_setting["magnetism"])
         _stru, _cell = amsag.STRU_Pymatgen(fname=amwi.TEMPORARY_FOLDER + "/" + amwi.cif(system_with_mpid),
                                            pseudopotentials=pseudopotentials,
                                            numerical_orbitals=numerical_orbitals,
                                            cell_scaling=extensive_setting["characteristic_lengths"],
                                            starting_magnetization=starting_magnetization)
     else:
-        starting_magnetization = amsb.starting_magnetization(system_with_mpid.split("_")[1], magnetism=extensive_setting["magnetism"])
+        starting_magnetization = amsb.init_magmom(system_with_mpid.split("_")[1], magnetism=extensive_setting["magnetism"])
         _stru, _cell = amsag.STRU_Molecule(shape=system_with_mpid.split("_")[1],
                                            pseudopotentials=pseudopotentials,
                                            numerical_orbitals=numerical_orbitals,

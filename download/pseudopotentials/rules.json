@@ -1,0 +1,298 @@
+{
+    "rules": [
+        {
+            "kind": "sg15",
+            "version": "1.0",
+            "appendix": "",
+            "re.folder": "sg15_oncv_upf_2020-02-06",
+            "re.file": "^([A-Z][a-z]?)(_ONCV_PBE\\-1\\.0\\.upf)$"
+        },
+        {
+            "kind": "sg15",
+            "version": "1.0",
+            "appendix": "fr",
+            "re.folder": "sg15_oncv_upf_2020-02-06",
+            "re.file": "^([A-Z][a-z]?)(_ONCV_PBE_FR\\-1\\.0\\.upf)$"
+        },
+        {
+            "kind": "sg15",
+            "version": "1.1",
+            "appendix": "",
+            "re.folder": "sg15_oncv_upf_2020-02-06",
+            "re.file": "^([A-Z][a-z]?)(_ONCV_PBE\\-1\\.1\\.upf)$"
+        },
+        {
+            "kind": "sg15",
+            "version": "1.1",
+            "appendix": "fr",
+            "re.folder": "sg15_oncv_upf_2020-02-06",
+            "re.file": "^([A-Z][a-z]?)(_ONCV_PBE_FR\\-1\\.1\\.upf)$"
+        },
+        {
+            "kind": "sg15",
+            "version": "1.2",
+            "appendix": "",
+            "re.folder": "sg15_oncv_upf_2020-02-06",
+            "re.file": "^([A-Z][a-z]?)(_ONCV_PBE\\-1\\.2\\.upf)$"
+        },
+        {
+            "kind": "pslkjpaw",
+            "version": "0.3.1",
+            "appendix": "",
+            "re.folder": "PSEUDOPOTENTIALS",
+            "re.file": "([A-Z][a-z]?)(\\.pbe)(-[spdn]+)?(-kjpaw_psl\\.[\\d\\.]+\\.UPF)"
+        },
+        {
+            "kind": "pslrrkjus",
+            "version": "0.3.1",
+            "appendix": "",
+            "re.folder": "PSEUDOPOTENTIALS",
+            "re.file": "([A-Z][a-z]?)(\\.pbe)(-[spdn]+)?(-rrkjus_psl\\.[\\d\\.]+\\.UPF)"
+        },
+        {
+            "kind": "pslkjpaw",
+            "version": "0.3.1",
+            "appendix": "alt",
+            "re.folder": "PSEUDOPOTENTIALS_ALT",
+            "re.file": "([A-Z][a-z]?)(\\.pbe)(-[spdn]+)?(-kjpaw_psl\\.[\\d\\.]+\\.UPF)"
+        },
+        {
+            "kind": "pslrrkjus",
+            "version": "0.3.1",
+            "appendix": "alt",
+            "re.folder": "PSEUDOPOTENTIALS_ALT",
+            "re.file": "([A-Z][a-z]?)(\\.pbe)(-[spdn]+)?(-rrkjus_psl\\.[\\d\\.]+\\.UPF)"
+        },
+        {
+            "kind": "pslnc",
+            "version": "0.3.1",
+            "appendix": "",
+            "re.folder": "PSEUDOPOTENTIALS_NC",
+            "re.file": "([A-Z][a-z]?)(\\.pbe)(-n)?(-nc\\.UPF)"
+        },
+        {
+            "kind": "pslkjpaw",
+            "version": "0.3.1",
+            "appendix": "fr",
+            "re.folder": "PSEUDOPOTENTIALS_TOT",
+            "re.file": "([A-Z][a-z]?)(\\.pbe)(-[spdn]+)?(-kjpaw_psl\\.[\\d\\.]+\\.UPF)"
+        },
+        {
+            "kind": "pslrrkjus",
+            "version": "0.3.1",
+            "appendix": "alt",
+            "re.folder": "PSEUDOPOTENTIALS_TOT",
+            "re.file": "([A-Z][a-z]?)(\\.pbe)(-[spdn]+)?(-rrkjus_psl\\.[\\d\\.]+\\.UPF)"
+        },
+        {
+            "kind": "dojo",
+            "version": "1.0",
+            "appendix": "sr",
+            "re.folder": "([\\d]+)(_)([A-Z][a-z]?)",
+            "re.file": "([A-Z][a-z]*)([-_]\\d[spdfn]+\\.upf)"
+        },
+        {
+            "kind": "dojo",
+            "version": "1.0",
+            "appendix": "fr",
+            "re.folder": "([\\d]+)(_)([A-Z][a-z]?)",
+            "re.file": "([A-Z][a-z]*)([-_]\\d[spdfn]+_r\\.upf)"
+        },
+        {
+            "kind": "dojo",
+            "version": "0.3",
+            "appendix": "sr",
+            "re.folder": "pbe_s_sr",
+            "re.file": "([A-Z][a-z]?)(\\.upf)"
+        },
+        {
+            "kind": "dojo",
+            "version": "0.5",
+            "appendix": "sr",
+            "re.folder": "nc-sr-05_pbe_standard_upf",
+            "re.file": "([A-Z][a-z]?)(\\.upf)"
+        },
+        {
+            "kind": "dojo",
+            "version": "0.4",
+            "appendix": "3plus",
+            "re.folder": "nc-sr-04-3plus_pbe_standard_upf",
+            "re.file": "([A-Z][a-z]?)(\\.upf)"
+        },
+        {
+            "kind": "dojo",
+            "version": "0.4",
+            "appendix": "sr",
+            "re.folder": "nc-sr-04_pbe_standard_upf",
+            "re.file": "([A-Z][a-z]?)(\\.upf)"
+        },
+        {
+            "kind": "dojo",
+            "version": "0.4",
+            "appendix": "fr",
+            "re.folder": "nc-fr-04_pbe_standard",
+            "re.file": "([A-Z][a-z]?)(\\.upf)"
+        },
+        {
+            "kind": "pd",
+            "version": "04",
+            "appendix": "3+_f--core",
+            "re.folder": "NCPP-PD04-PBE",
+            "re.file": "^([A-Z][a-z]?)(3\\+_f--core\\.PD04\\.PBE\\.UPF)$"
+        },
+        {
+            "kind": "pd",
+            "version": "04",
+            "appendix": "3+_f--core-icmod1",
+            "re.folder": "NCPP-PD04-PBE",
+            "re.file": "^([A-Z][a-z]?)(3\\+_f--core-icmod1\\.PD04\\.PBE\\.UPF)$"
+        },
+        {
+            "kind": "pd",
+            "version": "04",
+            "appendix": "d",
+            "re.folder": "NCPP-PD04-PBE",
+            "re.file": "^([A-Z][a-z]?)(-d\\.PD04\\.PBE\\.UPF)$"
+        },
+        {
+            "kind": "pd",
+            "version": "04",
+            "appendix": "",
+            "re.folder": "NCPP-PD04-PBE",
+            "re.file": "^([A-Z][a-z]?)(\\.PD04\\.PBE\\.UPF)$"
+        },
+        {
+            "kind": "pd",
+            "version": "04",
+            "appendix": "fsp",
+            "re.folder": "NCPP-PD04-PBE",
+            "re.file": "^([A-Z][a-z]?)(-fsp\\.PD04\\.PBE\\.UPF)$"
+        },
+        {
+            "kind": "pd",
+            "version": "04",
+            "appendix": "high",
+            "re.folder": "NCPP-PD04-PBE",
+            "re.file": "^([A-Z][a-z]?)(-high\\.PD04\\.PBE\\.UPF)$"
+        },
+        {
+            "kind": "pd",
+            "version": "04",
+            "appendix": "low",
+            "re.folder": "NCPP-PD04-PBE",
+            "re.file": "^([A-Z][a-z]?)(-low\\.PD04\\.PBE\\.UPF)$"
+        },
+        {
+            "kind": "pd",
+            "version": "04",
+            "appendix": "s",
+            "re.folder": "NCPP-PD04-PBE",
+            "re.file": "^([A-Z][a-z]?)(-s\\.PD04\\.PBE\\.UPF)$"
+        },
+        {
+            "kind": "pd",
+            "version": "04",
+            "appendix": "s-high",
+            "re.folder": "NCPP-PD04-PBE",
+            "re.file": "^([A-Z][a-z]?)(-s-high\\.PD04\\.PBE\\.UPF)$"
+        },
+        {
+            "kind": "pd",
+            "version": "04",
+            "appendix": "sp",
+            "re.folder": "NCPP-PD04-PBE",
+            "re.file": "^([A-Z][a-z]?)(-sp\\.PD04\\.PBE\\.UPF)$"
+        },
+        {
+            "kind": "pd",
+            "version": "04",
+            "appendix": "sp-exc",
+            "re.folder": "NCPP-PD04-PBE",
+            "re.file": "^([A-Z][a-z]?)(-sp-exc\\.PD04\\.PBE\\.UPF)$"
+        },
+        {
+            "kind": "pd",
+            "version": "04",
+            "appendix": "sp-high",
+            "re.folder": "NCPP-PD04-PBE",
+            "re.file": "^([A-Z][a-z]?)(-sp-high\\.PD04\\.PBE\\.UPF)$"
+        },
+        {
+            "kind": "pd",
+            "version": "04",
+            "appendix": "spd",
+            "re.folder": "NCPP-PD04-PBE",
+            "re.file": "^([A-Z][a-z]?)(-spd\\.PD04\\.PBE\\.UPF)$"
+        },
+        {
+            "kind": "pd",
+            "version": "04",
+            "appendix": "spd-high",
+            "re.folder": "NCPP-PD04-PBE",
+            "re.file": "^([A-Z][a-z]?)(-spd-high\\.PD04\\.PBE\\.UPF)$"
+        },
+        {
+            "kind": "pd",
+            "version": "03",
+            "appendix": "",
+            "re.folder": "NCPP-PD03-PBE",
+            "re.file": "^([A-Z][a-z]?)(\\.PD03\\.PBE\\.UPF)$"
+        },
+        {
+            "kind": "hgh",
+            "version": "1.0",
+            "appendix": "",
+            "re.folder": ".*",
+            "re.file": "^([A-Z][a-z]?)(\\.pbe-hgh\\.UPF)$"
+        },
+        {
+            "kind": "hgh",
+            "version": "1.0",
+            "appendix": "d",
+            "re.folder": ".*",
+            "re.file": "^([A-Z][a-z]?)(\\.pbe-d-hgh\\.UPF)$"
+        },
+        {
+            "kind": "hgh",
+            "version": "1.0",
+            "appendix": "s",
+            "re.folder": ".*",
+            "re.file": "^([A-Z][a-z]?)(\\.pbe-s-hgh\\.UPF)$"
+        },
+        {
+            "kind": "hgh",
+            "version": "1.0",
+            "appendix": "sp",
+            "re.folder": ".*",
+            "re.file": "^([A-Z][a-z]?)(\\.pbe-sp-hgh\\.UPF)$"
+        },
+        {
+            "kind": "hgh",
+            "version": "1.0",
+            "appendix": "spd",
+            "re.folder": ".*",
+            "re.file": "^([A-Z][a-z]?)(\\.pbe-spd-hgh\\.UPF)$"
+        },
+        {
+            "kind": "gth",
+            "version": "LnPP1",
+            "appendix": "",
+            "re.folder": ".*",
+            "re.file": "^([A-Z][a-z]?)(_GTH_NC_LnPP1\\.upf)$"
+        },
+        {
+            "kind": "gbrv",
+            "version": "1.5",
+            "appendix": "",
+            "re.folder": "GBRV_pbe_UPF_v1\\.5",
+            "re.file": "^([a-z]+)(_pbe_v[\\d\\.]+\\.uspp\\.F\\.UPF)$"
+        },
+        {
+            "kind": "gbrv",
+            "version": "1.5",
+            "appendix": "plus4",
+            "re.folder": "GBRV_pbe_UPF_v1\\.5",
+            "re.file": "^([a-z]+)(_pbe_plus4_v[\\d\\.]+\\.uspp\\.F\\.UPF)$"
+        }
+    ]
+}

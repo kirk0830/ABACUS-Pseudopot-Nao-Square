@@ -9,7 +9,9 @@
         "generate_mode": "ex-situ",
         "environment": "",
         "mpi_command": "mpirun -np 16",
-        "abacus_command": "abacus"
+        "abacus_command": "abacus",
+        "rcuts": [6, 7, 8, 10],
+        "types": ["DZP"]
     },
     "abacus": {
         "functionals": "PBE",
@@ -21,9 +23,5 @@
         "kinds": ["dojo", "pd"],
         "versions": ["all"],
         "appendices": ["all"]
-    },
-    "numerical_orbitals": {
-        "rcuts": [6, 7, 8, 10],
-        "types": ["DZP"]
     }
 }
