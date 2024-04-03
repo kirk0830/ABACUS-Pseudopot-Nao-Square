@@ -1,6 +1,7 @@
 *.cif
 input.json
 formula_mpid.json
+pseudo_db.json
 *.pyc
 __pycache__
 *egg-info
@@ -8,3 +9,4 @@ __pycache__
 apns_cache
 *.zip
 build/
+*venv*/

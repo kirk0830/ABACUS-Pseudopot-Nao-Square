@@ -34,7 +34,7 @@ def initialize(finp: str, test_mode: bool = False) -> tuple[dict, dict, dict, di
     """
     # 1. program file I/O initialization: initialize cache directory, by either creating or checking
     # IS IT FOR PREPARING RUNTIME INFORMATION? yes
-    initialize_cache()
+
     # 2. prepare structure: download structure from remote server or generate by user setting, and return a dict whose keys are system
     #    (1) download structure from Materials Project to cache directory, the cif named as mp-xxx.cif
     #    (2) 
@@ -51,19 +51,6 @@ def initialize(finp: str, test_mode: bool = False) -> tuple[dict, dict, dict, di
     # , the same for valid_orbs
 
     return runtime_settings, valid_upfs, valid_orbs
-
-import os
-import apns.module_workflow.identifier as amwi
-def initialize_cache() -> None:
-
-    print("Current working directory: {}".format(os.getcwd()))
-    """change id.TEMPORARY_FOLDER to absolute path"""
-    amwi.TEMPORARY_FOLDER = os.path.join(os.getcwd(), amwi.TEMPORARY_FOLDER)
-    """create cache directory if not exist"""
-    if not os.path.exists(amwi.TEMPORARY_FOLDER):
-        os.mkdir(amwi.TEMPORARY_FOLDER)
-    else:
-        print("Cache directory already exists.")
 
 import json
 import apns.module_structure.materials_project as amsmp
@@ -88,12 +75,14 @@ def download_structure(finp: str) -> dict:
     # open 
     with open(finp, "r") as f:
         inp = json.load(f)
-
+    # isolated is reserved for performing numerical atomic orbital test (development motivation)
     isolated = [s for s in inp["systems"] if s.endswith("_dimer") or s.endswith("_trimer") or s.endswith("_tetramer")]
+    # routinely used, for practical systems
     crystal = [s for s in inp["systems"] if s not in isolated]
+    # do not support specifying two kinds of systems together
     if len(isolated)*len(crystal) != 0:
         raise ValueError("Isolated molecule and crystal cannot be mixed.")
-
+    # support the feature that one chemical formula with many mp-id, say many structures
     system_with_mpids = {}
     if len(crystal) > 0:
         consider_magnetism = True if (inp["calculation"]["nspin"] == 2 and inp["extensive"]["magnetism"] == "materials_project") else False
@@ -111,6 +100,8 @@ def download_structure(finp: str) -> dict:
         raise ValueError("No system to download or generate, check your setting.")
     
     return system_with_mpids
+
+
 
 import apns.module_structure.basic as amsb
 import apns.module_pseudo.manage as ampm

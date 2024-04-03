@@ -85,18 +85,5 @@ def run(input_file: str):
     import apns.module_io.citation as amicite
     amicite.citation(software=runtime_settings["global"]["software"].lower())
 
-def driver_v0(input_file: str):
-    """old version of driver"""
-    print("old version of driver is not available now anymore")
-    return
-
-def configure(input_file: str):
-    """configure the apns storing files, only run this at the first time"""
-    import json
-    with open(input_file, "r") as f:
-        inp = json.load(f)
-    import apns.module_pseudo.archive as ampua
-    ampua.archive(pseudo_dir=inp["global"]["pseudo_dir"], only_scan=False)
-
 if __name__ == "__main__":
     run("input.json")
