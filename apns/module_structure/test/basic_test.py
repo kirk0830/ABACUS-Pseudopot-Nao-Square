@@ -103,27 +103,27 @@ class TestBasic(unittest.TestCase):
             }
         })
 
-    def test_starting_magnetization(self):
+    def test_init_magmom(self):
 
-        magnetization = amsb.starting_magnetization("mp-35.cif", magnetism="materials_project")
+        magnetization = amsb.init_magmom("mp-35.cif", magnetism="materials_project")
         self.assertListEqual(magnetization, [4.1, -3.6, -3.6, -3.6, -3.6, 3.4, 3.4, 3.4, 3.4, 3.4, 3.4, 3.4, 3.4, 3.4, 3.4, 3.4, 3.4, -2.3, -2.3, -2.3, -2.3, -2.3, -2.3, -2.3, -2.3, -2.3, -2.3, -2.3, -2.3])
-        magnetization = amsb.starting_magnetization("dimer", magnetism="default")
+        magnetization = amsb.init_magmom("dimer", magnetism="default")
         self.assertListEqual(magnetization, [0.0, 0.0])
-        magnetization = amsb.starting_magnetization("dimer", magnetism="ferromagnetic")
+        magnetization = amsb.init_magmom("dimer", magnetism="ferromagnetic")
         self.assertListEqual(magnetization, [1.0, 1.0])
-        magnetization = amsb.starting_magnetization("dimer", magnetism="antiferromagnetic")
+        magnetization = amsb.init_magmom("dimer", magnetism="antiferromagnetic")
         self.assertListEqual(magnetization, [1.0, -1.0])
-        magnetization = amsb.starting_magnetization("trimer", magnetism="default")
+        magnetization = amsb.init_magmom("trimer", magnetism="default")
         self.assertListEqual(magnetization, [0.0, 0.0, 0.0])
-        magnetization = amsb.starting_magnetization("trimer", magnetism="ferromagnetic")
+        magnetization = amsb.init_magmom("trimer", magnetism="ferromagnetic")
         self.assertListEqual(magnetization, [1.0, 1.0, 1.0])
-        magnetization = amsb.starting_magnetization("trimer", magnetism="antiferromagnetic")
+        magnetization = amsb.init_magmom("trimer", magnetism="antiferromagnetic")
         self.assertListEqual(magnetization, [0.0, 0.0, 0.0])
-        magnetization = amsb.starting_magnetization("tetramer", magnetism="default")
+        magnetization = amsb.init_magmom("tetramer", magnetism="default")
         self.assertListEqual(magnetization, [0.0, 0.0, 0.0, 0.0])
-        magnetization = amsb.starting_magnetization("tetramer", magnetism="ferromagnetic")
+        magnetization = amsb.init_magmom("tetramer", magnetism="ferromagnetic")
         self.assertListEqual(magnetization, [1.0, 1.0, 1.0, 1.0])
-        magnetization = amsb.starting_magnetization("tetramer", magnetism="antiferromagnetic")
+        magnetization = amsb.init_magmom("tetramer", magnetism="antiferromagnetic")
         self.assertListEqual(magnetization, [1.0, -1.0, 1.0, -1.0])
 
 if __name__ == "__main__":

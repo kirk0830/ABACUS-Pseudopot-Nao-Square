@@ -178,14 +178,14 @@ def iterate_abacus(system_with_mpid: str = "", # on which structure? system with
     numerical_orbitals = None if numerical_orbitals is not None and len(numerical_orbitals) == 0 else numerical_orbitals
 
     if extensive_setting["nkpoints_in_line"] >= 0:
-        starting_magnetization = amsb.starting_magnetization(amwi.cif(system_with_mpid), magnetism=extensive_setting["magnetism"])
+        starting_magnetization = amsb.init_magmom(amwi.cif(system_with_mpid), magnetism=extensive_setting["magnetism"])
         _stru, _cell = amsag.STRU_Pymatgen(fname=amwi.TEMPORARY_FOLDER + "/" + amwi.cif(system_with_mpid),
                                            pseudopotentials=pseudopotentials,
                                            numerical_orbitals=numerical_orbitals,
                                            cell_scaling=extensive_setting["characteristic_lengths"],
                                            starting_magnetization=starting_magnetization)
     else:
-        starting_magnetization = amsb.starting_magnetization(system_with_mpid.split("_")[1], magnetism=extensive_setting["magnetism"])
+        starting_magnetization = amsb.init_magmom(system_with_mpid.split("_")[1], magnetism=extensive_setting["magnetism"])
         _stru, _cell = amsag.STRU_Molecule(shape=system_with_mpid.split("_")[1],
                                            pseudopotentials=pseudopotentials,
                                            numerical_orbitals=numerical_orbitals,

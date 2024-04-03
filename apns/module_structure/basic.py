@@ -97,9 +97,10 @@ def expand_atomic_species(symbols: list,
     
     return result
 
+import os
 import apns.module_workflow.identifier as amwi
 import json
-def starting_magnetization(structure: str, magnetism: str = "default") -> list|None:
+def init_magmom(structure: str, magnetism: str = "default") -> list|None:
     """generate starting magnetization for a given structure
     
     Args:
@@ -123,6 +124,11 @@ def starting_magnetization(structure: str, magnetism: str = "default") -> list|N
             return None
         mpid = structure.replace(".cif", "").replace(".CIF", "")
         fmagmom = amwi.TEMPORARY_FOLDER + "/mpid_magmom.json"
+        if not os.path.exists(fmagmom):
+            print("Warning: the file 'mpid_magmom.json' does not exist, magnetization is set to zero. Create an empty file.")
+            with open(fmagmom, "w") as f:
+                json.dump({}, f)
+            return None
         with open(fmagmom, "r") as f:
             magmom = json.load(f)
         if mpid in magmom.keys():
