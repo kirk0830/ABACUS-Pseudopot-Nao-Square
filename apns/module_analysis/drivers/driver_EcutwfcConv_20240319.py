@@ -17,46 +17,6 @@ def entry():
     return args.input
 
 import json
-import apns.module_pseudo.manage as ampm
-def testname_pspotid(element: str, testname: str):
-    """return pspotid from testname
-    
-    testname is the pspot_id.replace("_", "")
-    """
-    def translate_kind(testname):
-        """translate pspotid to real pseudopotential name"""
-        dictionary = {"dojo": "PseudoDojo", "pslnc": "PSlibrary (NC)", 
-                      "pslrrkjus": "PSlibrary (RRKJUS)", "pslncpaw": "PSlibrary (PAW)",
-                      "gth": "Goedecker-Teter-Hutter", "hgh": "Hartwigsen-Goedecker-Hutter"}
-        return dictionary[testname] if testname in dictionary.keys() else testname.upper()
-    def translate_version(kind, version):
-        if kind.upper() == "GTH":
-            return " "+version
-        elif kind.upper() == "PD":
-            return version
-        else:
-            #version = ".".join([str(version[i]) for i in range(len(version))])
-            return "-v" + version if version != "" else ""
-    # TEMPORARY FIX
-    # this is because presently only GTH LnPP1 are collected, while there are indeed other versions
-    # of GTH pseudopotentials, so we need to fix the name temporarily. Other versions like UZH, LnPP2,
-    # ... will be added in the future.
-    testname = "gthLnPP1" if testname == "gth" else testname
-    with open("download/pseudopotentials/pseudo_db.json", "r") as f:
-        pseudo_db = json.load(f)
-    for key in pseudo_db[element].keys():
-        if key.replace("_", "").replace(".", "") == testname:
-            fpseudo_withpath = pseudo_db[element][key]
-            attribute = ampm.get_attribute("download/pseudopotentials", fpseudo_withpath=fpseudo_withpath)
-            kind, version, appendix = attribute["kind"], attribute["version"], attribute["appendix"]
-            kind = translate_kind(kind)
-            version = translate_version(kind, version)
-            label = kind + version
-            label += " (" + appendix + ")" if appendix != "" else ""
-            label = label.strip()
-            return label, key
-    return None, None
-
 import apns.module_pseudo.parse as ampp
 def z_valence(element: str, pspotid: str):
     """pspotid here should be the "key" returned by function testname_pspotid"""
@@ -179,6 +139,7 @@ def ecutwfc_convergence(convs: list):
         json.dump(conv_result, f, indent=4)
 
 import os
+import apns.module_analysis.postprocess.pseudopotential as amppspot
 def run():
     # always make independent on path for run() function, instead, use entry()
     path = entry()
@@ -208,7 +169,7 @@ def run():
     # remember: eks_*/prs_*/... is indiced by [element][pspotid][ecutwfc] to get a float value
     for i in range(len(elements)):
         element = elements[i]
-        _pspotnames, _pspotids = zip(*[testname_pspotid(element, id) for id in pspotids[i]])
+        _pspotnames, _pspotids = zip(*[amppspot.testname_pspotid(element, id) for id in pspotids[i]])
         # DESIGN NOTE OF LOG_PLOTS AND STACK_LINEPLOTS
         # -------------------------------------------
         # LOG_PLOTS:
@@ -285,28 +246,10 @@ Absence of data points result from SCF convergence failure or walltime limit.",
         with open(f"{element}.md", "w") as f:
             f.write(html)
 
-def styles_factory(property: str = "color", val: float = -1, ndim: int = None) -> list:
-    if property == "color":
-        colorpool = ["#2b316f", "#d8006a", "#24b5a5", "#e8cc47", "#005bbd"]
-        return [colorpool[i % len(colorpool)] for i in range(ndim)]
-    elif property == "marker":
-        markerpool = ["o", "s", "D", "v", "^", "<", ">", "p", "P", "*", "h", "H", "+", "x", "X", "|", "_"]
-        return [markerpool[i % len(markerpool)] for i in range(ndim)]
-    elif property == "markersize":
-        return [5 if val < 0 else val] * ndim
-    elif property == "linestyle":
-        linestylepool = ["-", "--", "-.", ":"]
-        return [linestylepool[i % len(linestylepool)] for i in range(ndim)]
-    elif property == "linewidth":
-        return [1 if val < 0 else val] * ndim
-    elif property == "alpha":
-        return [1.0 if val < 0 else val] * ndim
-    else:
-        raise ValueError("Unknown property")
-
 import matplotlib.pyplot as plt
 from matplotlib.legend import Legend
 import numpy as np
+import apns.module_analysis.external_frender.styles as amefs
 def stack_lineplots(xs: list, ys: list, **kwargs):
     nsubplts = len(xs)
     nlines = len(ys[0])
@@ -336,17 +279,17 @@ def stack_lineplots(xs: list, ys: list, **kwargs):
     labels = ["data " + str(i) for i in range(nprptys)] if labels is None else labels
     assert len(labels) == nprptys
 
-    colors = styles_factory(property="color", ndim=nprptys) if colors is None else colors
+    colors = amefs.styles_factory(property="color", ndim=nprptys) if colors is None else colors
     assert len(colors) == nprptys
-    markers = styles_factory(property="marker", ndim=nprptys) if markers is None else markers
+    markers = amefs.styles_factory(property="marker", ndim=nprptys) if markers is None else markers
     assert len(markers) == nprptys
-    markersizes = styles_factory(property="markersize", ndim=nprptys) if markersizes is None else markersizes
+    markersizes = amefs.styles_factory(property="markersize", ndim=nprptys) if markersizes is None else markersizes
     assert len(markersizes) == nprptys
-    linestyles = styles_factory(property="linestyle", ndim=nprptys) if linestyles is None else linestyles
+    linestyles = amefs.styles_factory(property="linestyle", ndim=nprptys) if linestyles is None else linestyles
     assert len(linestyles) == nprptys
-    linewidths = styles_factory(property="linewidth", ndim=nprptys) if linewidths is None else linewidths
+    linewidths = amefs.styles_factory(property="linewidth", ndim=nprptys) if linewidths is None else linewidths
     assert len(linewidths) == nprptys
-    alpha = styles_factory(property="alpha", val=alpha, ndim=nprptys)
+    alpha = amefs.styles_factory(property="alpha", val=alpha, ndim=nprptys)
     assert len(alpha) == nprptys
 
     assert z_vals is None or len(z_vals) == npspots
@@ -482,17 +425,17 @@ def discrete_logplots(xs: list, ys: list, **kwargs):
         ytitle = [ytitle] * nprptys
     assert len(ytitle) == nprptys
 
-    colors = styles_factory(property="color", ndim=npspots) if colors is None else colors
+    colors = amefs.styles_factory(property="color", ndim=npspots) if colors is None else colors
     assert len(colors) == npspots
-    markers = styles_factory(property="marker", ndim=npspots) if markers is None else markers
+    markers = amefs.styles_factory(property="marker", ndim=npspots) if markers is None else markers
     assert len(markers) == npspots
-    markersizes = styles_factory(property="markersize", ndim=npspots) if markersizes is None else markersizes
+    markersizes = amefs.styles_factory(property="markersize", ndim=npspots) if markersizes is None else markersizes
     assert len(markersizes) == npspots
-    linestyles = styles_factory(property="linestyle", ndim=npspots) if linestyles is None else linestyles
+    linestyles = amefs.styles_factory(property="linestyle", ndim=npspots) if linestyles is None else linestyles
     assert len(linestyles) == npspots
-    linewidths = styles_factory(property="linewidth", ndim=npspots) if linewidths is None else linewidths
+    linewidths = amefs.styles_factory(property="linewidth", ndim=npspots) if linewidths is None else linewidths
     assert len(linewidths) == npspots
-    alpha = styles_factory(property="alpha", val=alpha, ndim=npspots)
+    alpha = amefs.styles_factory(property="alpha", val=alpha, ndim=npspots)
     assert len(alpha) == npspots
     
     # create figure and axes
@@ -583,15 +526,15 @@ def shift_lineplots(xs: list, ys: list, **kwargs):
         raise ValueError("Unknown loop direction")
     
     colors = kwargs.get("colors", None)
-    colors = styles_factory(property="color", ndim=npspots) if colors is None else colors
+    colors = amefs.styles_factory(property="color", ndim=npspots) if colors is None else colors
     assert len(colors) == npspots
 
     markers = kwargs.get("markers", None)
-    markers = styles_factory(property="marker", ndim=nprptys) if markers is None else markers
+    markers = amefs.styles_factory(property="marker", ndim=nprptys) if markers is None else markers
     assert len(markers) == nprptys
 
     linestyles = kwargs.get("linestyles", None)
-    linestyles = styles_factory(property="linestyle", ndim=nprptys) if linestyles is None else linestyles
+    linestyles = amefs.styles_factory(property="linestyle", ndim=nprptys) if linestyles is None else linestyles
     assert len(linestyles) == nprptys
 
     shifts = kwargs.get("shifts", None)

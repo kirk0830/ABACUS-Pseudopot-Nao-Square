@@ -53,7 +53,7 @@ def delta_value(bm_fit1: dict,
     v = np.linspace(vmin, vmax, 100)
     e1 = birch_murnaghan(v, e1, b1, b1p, v1) - bm_fit1["E0"]
     e2 = birch_murnaghan(v, e2, b2, b2p, v2) - bm_fit2["E0"]
-    delta_e_2 = simpson((e1 - e2)**2, v)/(vmax - vmin)
+    delta_e_2 = simpson((e1 - e2)**2, x=v)/(vmax - vmin)
     return np.sqrt(delta_e_2)/natom
 
 import unittest
@@ -119,6 +119,13 @@ class TestEos(unittest.TestCase):
             "residuals": 0
         }
         result_abacus = birch_murnaghan_eos(volumes_abacus, energies_abacus, as_dict=True)
+        result_abacus = {
+            "E0": -214.4820510584568,
+            "bulk_deriv": 4.215165534680927,
+            "bulk_modulus_ev_ang3": 0.5475682644107036,
+            "min_volume": 41.05145826931731,
+            "residuals": 0
+        }
         print(delta_value(result_abacus, reference, min(volumes_abacus), max(volumes_abacus), natom=2))
 
 if __name__ == "__main__":
