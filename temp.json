@@ -1,0 +1,67 @@
+{
+    "global": {
+        "test_mode": "pseudopotential",
+        "software": "abacus",
+        "work_dir": "./",
+        "pseudo_dir": "./download/pseudopotentials",
+        "orbital_dir": "./download/numerical_orbitals",
+        "save_log": true
+    },
+    "calculation": {
+        "basis_type": "pw",
+        "ecutwfc": 100.0,
+        "cal_force": 1,
+        "cal_stress": 1,
+        "scf_nmax": 500,
+        "nspin": 1,
+        "symmetry": 0,
+        "fixed_axes": "volume",
+        "calculation": "cell-relax"
+    },
+    "extensive": {
+        "characteristic_lengths": [
+            -0.06,
+            -0.04,
+            -0.02,
+            0.0,
+            0.02,
+            0.04,
+            0.06
+        ],
+        "magnetism": "materials_project"
+    },
+    "systems": [
+        "Li"
+    ],
+    "materials_project": {
+        "api_key": "wV1HUdmgESPVgSmQj5cc8WvttCO8NTHp",
+        "n_structures": 1,
+        "theoretical": false,
+        "most_stable": true
+    },
+    "pseudopotentials": {
+        "kinds": [
+            "pslnc"
+        ],
+        "versions": [
+            "0.3.1"
+        ],
+        "appendices": [
+            ""
+        ]
+    },
+    "numerical_orbitals": {
+        "types": [
+            "DZP"
+        ],
+        "rcuts": [
+            7,
+            8,
+            9,
+            10
+        ],
+        "appendices": [
+            ""
+        ]
+    }
+}

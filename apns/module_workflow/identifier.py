@@ -226,11 +226,25 @@ def cif(system_with_mpid: str) -> str:
     """
     return "mp-" + system_with_mpid.split("_")[-1] + ".cif"
 
+import uuid
 def folder_reduce(folder: str) -> str:
     """Remove some redundant words in folder name to make it shorter,
     but keep it clear enough to identify the calculation."""
     for key in FOLDER_ABBR.keys():
         folder = folder.replace(key, FOLDER_ABBR[key])
+    if len(folder) > 50:
+        domains = folder.split("_")
+        first_three_domains = "_".join(domains[:3])
+        rest = "_".join(domains[3:])
+        # use uuid3 because it is deterministic, use the shortest uuid.NAMESPACE
+        rest = uuid.uuid3(uuid.NAMESPACE_DNS, rest).hex
+        folder = first_three_domains + "_" + rest
+        print(f"""WARNING - APNS - Module Workflow - Identifier - folder_reduce:
+The length of folder is too long: {len(folder)}.
+Will conserve first two domains and replace all the rest to uuid.
+Original: {"_".join(domains)}
+After: {folder}
+""")
     return folder
 
 KEYWORD_ABBR = {"basis": "bs", "cal": "cl", "ecut": "ec", "force": "fs", "stress": "strs", "cell": "c", "scaling": "scal", "kspacing": "kspc",

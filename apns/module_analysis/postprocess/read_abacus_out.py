@@ -413,7 +413,7 @@ def read_testconfig_fromBohriumpath(path: str):
     """
     path = path.replace("\\", "/")
     frags = path.split("/")
-
+    #         element mpid   pnid    id
     _tp = r"^([\w]*)(_[\d]+)(_[^_]+)(_.*)$"
     test = ""
     for frag in frags:

@@ -91,8 +91,6 @@ def iterate(**kwargs):
                                            extensive_identifier=amwi.extensive(extensive_setting))
                     # if name is too long, find ways to reduce the length
                     folder = amwi.folder_reduce(folder)
-                    if len(folder) > 100:
-                        folder = "_".join(folder.split("_")[1:])
                     os.makedirs(folder, exist_ok=True) if not test_mode else print("mkdir {}".format(folder))
                     folders.append(folder)
 
