@@ -566,7 +566,7 @@ def generator(elements: list = None,
         reference += "/"
     visited = [False]*len(elements)
     folders_pseudo = amupfa.load()
-    with open(amwid.TEMPORARY_FOLDER + "/ecutwfc_conv.json", "r+") as f:
+    with open(amwid.TEMPORARY_FOLDER + "/apns_ecutwfc_db.json", "r+") as f:
         ecutwfcs = json.load(f)
     for root, dirs, files in os.walk(reference):
         for file in files:
