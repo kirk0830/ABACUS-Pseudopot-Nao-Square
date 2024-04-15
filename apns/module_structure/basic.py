@@ -70,7 +70,7 @@ def expand_atomic_species(symbols: list,
                     "atomic_positions": [atomic_positions[ia]]
                 }
                 if numerical_orbitals is not None:
-                    result[symbol]["numerical_orbitals"] = numerical_orbitals[symbol]
+                    result[symbol]["numerical_orbitals"] = numerical_orbitals.get(symbol, None)
     elif isinstance(starting_magnetization, list) and len(starting_magnetization) == len(symbols):
         """means magnetization is specified for each atom"""
 
@@ -91,7 +91,7 @@ def expand_atomic_species(symbols: list,
                     "atomic_positions": [atomic_positions[ia]]
                 }
                 if numerical_orbitals is not None:
-                    result[species]["numerical_orbitals"] = numerical_orbitals[symbols[ia]]
+                    result[species]["numerical_orbitals"] = numerical_orbitals.get(symbols[ia], None)
     else:
         raise TypeError("starting_magnetization must be a dict or a list. For dict, it is specified atom-type-wise. For list, it is specified atom-wise.")
     
@@ -108,7 +108,7 @@ def init_magmom(structure: str, magnetism: str = "default") -> list|None:
         magnetism (str, optional): magnetism type. Defaults to "default", can be "default", "ferromagnetic", "antiferromagnetic", "materials_project".
 
     Note:
-        "materials_project" is only available for CIF files. It will read the magnetization from the file "apns_cache/mpid_magmom.json".
+        "materials_project" is only available for CIF files. It will read the magnetization from the file "apns_cache/matproj_magmom_cache.json".
         "default" means no magnetization.
         "ferromagnetic" means all spins are up.
         "antiferromagnetic" means spins are up and down alternatively, but not strictly possible for odd number of atoms.
@@ -123,9 +123,9 @@ def init_magmom(structure: str, magnetism: str = "default") -> list|None:
             print("Currently only materials_project is supported for Materials Downloaded CIF files.")
             return None
         mpid = structure.replace(".cif", "").replace(".CIF", "")
-        fmagmom = amwi.TEMPORARY_FOLDER + "/mpid_magmom.json"
+        fmagmom = amwi.TEMPORARY_FOLDER + "/matproj_magmom_cache.json"
         if not os.path.exists(fmagmom):
-            print("Warning: the file 'mpid_magmom.json' does not exist, magnetization is set to zero. Create an empty file.")
+            print("Warning: the file 'matproj_magmom_cache.json' does not exist, magnetization is set to zero. Create an empty file.")
             with open(fmagmom, "w") as f:
                 json.dump({}, f)
             return None

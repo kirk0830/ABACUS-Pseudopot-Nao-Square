@@ -168,7 +168,7 @@ def summarize_conv(convs: list, result: dict):
 import apns.module_workflow.identifier as amwi
 def ecutwfc_convergence(convs: list):
     # summarize the convergence results
-    fresult = amwi.TEMPORARY_FOLDER + "/ecutwfc_conv.json"
+    fresult = amwi.TEMPORARY_FOLDER + "/apns_ecutwfc_db.json"
     if os.path.exists(fresult):
         with open(fresult, "r") as f:
             conv_result = json.load(f)
