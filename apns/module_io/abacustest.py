@@ -1,12 +1,9 @@
 def image_information(software: str = "abacus"):
-
-    print("-"*88)
     # software: ABACUS, qespresso
     if software == "abacus":
         abacus()
     elif software == "qespresso":
         qespresso()
-    print("-"*88)
 
 def abacus():
 
@@ -39,7 +36,8 @@ def template(software: str = "ABACUS",
     result = result.replace("_machine_type_", machine_type)
     print(result)
 
-TEMPLATE = """Generation Done.
+TEMPLATE = """
+GENERATION DONE
 To run _software_ tests on abacustest, use the following parameters:
 rundft: _commands_ 
 _additional_information_

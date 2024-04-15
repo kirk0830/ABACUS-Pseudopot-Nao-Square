@@ -16,7 +16,7 @@ def check(inp: dict) -> None:
     """
     """basic"""
     if inp["global"]["software"] == "qespresso":
-        if inp["calculation"]["basis_type"] == "lcao":
+        if inp["calculation"]["basis_type"] != "pw":
             raise ValueError("Quantum ESPRESSO only supports pw calculation.")
     
     """on the Feature Request of EOS calculation"""
@@ -105,8 +105,8 @@ def toabspath(relative_path: str) -> str:
 
     return path
 
-def inp_translate(fname: str, **kwargs) -> dict:
-    """render input file to a dict
+def read_apns_inp(fname: str) -> dict:
+    """read input file and output a dict with corresponding settings
     1. expand pseudopotentials and numerical_orbitals information to element-by-element
     2. set default values if not explicity specified
     3. convert relative path to absolute one
@@ -122,25 +122,12 @@ def inp_translate(fname: str, **kwargs) -> dict:
         inp = json.load(f)
     # get all elements as list from inp
     elements = []
-    for system in inp["systems"]:
-        _elements = scan_elements(system)
-        for element in _elements:
-            if element not in elements:
-                elements.append(element)
-    # expand systems, sed the system name with system_mpids in read input
-    if "system_with_mpids" in kwargs:
-        for system in kwargs["system_with_mpids"].keys(): # example: system = Er2O3
-            if system in inp["systems"]:
-                # remove this system from inp["systems"] list
-                inp["systems"].remove(system)
-            for structure in kwargs["system_with_mpids"][system]: # example: structure = Er2O3_2460
-                if structure not in inp["systems"]:
-                    # for `crystal` case, for example Cr crystal, the above remove will remove Cr, 
-                    # but Cr_dimer cannot be removed because it is not the key of kwargs["system_with_mpids"]
-                    # , it is just the case of `isolated
-                    inp["systems"].append(structure)
-    else:
-        raise ValueError("system_with_mpids not found in kwargs.")
+    formula = inp["systems"] if isinstance(inp["systems"], list) else list(inp["systems"].keys())
+    for fo in formula:
+        es = scan_elements(fo)
+        for e in es:
+            if e not in elements:
+                elements.append(e)
     # expand pseudopotentials and numerical_orbitals from list to dict
     inp = expand(inp, elements)
     # for unset attributes, use default values
