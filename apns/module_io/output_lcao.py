@@ -91,7 +91,7 @@ def abacus(test_status: dict, functionals: list = ["pbe"], cell_scalings: list =
 
     os.chdir(test_status["paths"]["root"])
     print_str = """------------------------------------------------------------------------------
-Generation Done.
+GENERATION DONE
 To run ABACUS tests on ABACUS Test, use the following parameters:
 rundft: OMP_NUM_THREADS=16 mpirun -np 1 abacus | tee out.log 
 (especially when dft_functional = HSE, arbitrary if PBE)

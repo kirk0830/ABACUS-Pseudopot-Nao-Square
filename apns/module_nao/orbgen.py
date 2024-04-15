@@ -9,16 +9,16 @@ def find_ecutwfc(element: str,
     print(f"Find the ecutwfc and pspot_id for the given element {element}")
     print(f"ecutwfc = {ecutwfc}, pspot_id = {pspot_id}")
     # import ecutwfc database
-    fecutwfc = amwi.TEMPORARY_FOLDER + "/ecutwfc_conv.json"
+    fecutwfc = amwi.TEMPORARY_FOLDER + "/apns_ecutwfc_db.json"
     with open(fecutwfc, "r") as f:
         ecutwfc_db = json.load(f)[element]
 
     if ecutwfc is None and pspot_id is None:
-        print("Use all values for one element record in the ecutwfc_conv.json file")
+        print("Use all values for one element record in the apns_ecutwfc_db.json file")
         ecutwfc = list(ecutwfc_db.values())
         pspot_id = list(ecutwfc_db.keys())
     elif ecutwfc is None and not pspot_id is None:
-        print("Use ecutwfc record in the ecutwfc_conv.json file for the given pspot_id")
+        print("Use ecutwfc record in the apns_ecutwfc_db.json file for the given pspot_id")
         if isinstance(pspot_id, str):
             if pspot_id.replace("_", "") in ecutwfc_db.keys():
                 ecutwfc = [ecutwfc_db[pspot_id.replace("_", "")]]
@@ -58,7 +58,7 @@ def find_ecutwfc(element: str,
         pspot_id = [pspot.replace("_", "") for pspot in pspot_id]
         pspot_id_fromdb = [pspot for pspot in pspot_id if pspot in ecutwfc_db.keys()]
         if len(pspot_id) != len(pspot_id_fromdb):
-            print("WARNING WARNING WARNING!\nWARNING: some pspot_id(s) not found in the ecutwfc_conv.json file")
+            print("WARNING WARNING WARNING!\nWARNING: some pspot_id(s) not found in the apns_ecutwfc_db.json file")
         ecutwfc = [ecutwfc] * len(pspot_id)
 
     else:

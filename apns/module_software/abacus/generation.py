@@ -116,88 +116,19 @@ def STRU_dimer(element: str, bond_length: float, pseudopotentials: dict, **kwarg
 
     return return_str
 
-def _STRU_(fname: str, 
-           pseudopotentials: dict,
-           numerical_orbitals: dict = None,
-           cell_scaling: float = 0.0, 
-           **kwargs):
-    """convert cif file to STRU file, refactored version
-
-    Args:
-        fname (str): name of the cif file.
-        pseudopotentials (dict): pseudopotentials information.
-        template (bool, optional): whether to use template pseudopotential file name. Defaults to False.
-        **kwargs: mass: dict, 
-                  numerical_orbitals: dict, 
-                  magnetism: dict,
-                  constraints: dict,
-                  cell_rescaling_factors: list, 
-                  ...
-
-    Returns:
-        return_str (str): readily usable string for STRU file.
-    """
-    cif = amscif.read_1(fname)
-    return_str = "ATOMIC_SPECIES\n"
-    for _element in pseudopotentials:
-        mass = kwargs.get("mass", {}).get(_element, amdd.element_label_tomass(_element))
-        pseudopotential = pseudopotentials[_element]
-        return_str += "%s %8.4f %s\n" % (_element, mass, pseudopotential)
-    return_str += "\n"
-    if numerical_orbitals is not None:
-        return_str += "NUMERICAL_ORBITAL\n"
-        for _element in numerical_orbitals.keys():
-            numerical_orbital = _element + "_numerical_orbital"
-            numerical_orbital = numerical_orbitals[_element]
-            return_str += "%s\n" % (numerical_orbital)
-        return_str += "\n"
-
-    lattice_constant = 1.889726877 * (1.0 + cell_scaling)
-    return_str += "LATTICE_CONSTANT\n%s\n\n"%(lattice_constant)
-    return_str += "LATTICE_VECTORS\n"
-    cell_parameters = cif["cell_parameters"]
-    lattice_vectors = amscif.cellparam_to_latvec(cell_parameters)
-
-    for lattice_vector in lattice_vectors:
-        return_str += "%12.8f %12.8f %12.8f\n" %(lattice_vector[0],
-                                                 lattice_vector[1],
-                                                 lattice_vector[2])
-    return_str += "\n"
-    return_str += "ATOMIC_POSITIONS\nDirect\n"
-    atomic_positions = cif["atomic_positions"]
-    for atom in atomic_positions.keys():
-        return_str += "%s\n" % (atom)
-        magnetism = 0.0
-        if "magnetism" in kwargs:
-            if atom in kwargs["magnetism"]:
-                magnetism = kwargs["magnetism"][atom]
-        return_str += "%4.2f\n"%(magnetism)
-        return_str += "%d\n"%(len(atomic_positions[atom]))
-        for ia, position in enumerate(atomic_positions[atom]):
-            return_str += "%12.8f %12.8f %12.8f"%(position[0], position[1], position[2])
-            if "constraints" in kwargs:
-                return_str += " m %d %d %d"%(kwargs["constraints"][atom][ia][0], 
-                                             kwargs["constraints"][atom][ia][1], 
-                                             kwargs["constraints"][atom][ia][2])
-            else:
-                return_str += " m 1 1 1"
-            return_str += "\n"
-
-    return return_str, cell_parameters
-
-def STRU_Molecule(shape: str,
-                    pseudopotentials: dict,
-                    numerical_orbitals: dict = None,
-                    bond_length: float = 0.0,
-                    **kwargs):
+def STRU_Molecule(**kwargs):
+    shape = kwargs.get("shape", "").lower()
     if shape == "":
         raise ValueError("shape must be specified.")
+    pseudopotentials = kwargs.get("pseudopotentials", {})
     if len(pseudopotentials) == 0:
         raise ValueError("pseudopotentials must be specified.")
     if len(pseudopotentials) > 1:
         raise ValueError("pseudopotentials must be specified for only one element.")
+    numerical_orbitals = kwargs.get("numerical_orbitals", None)
     if numerical_orbitals is not None and len(numerical_orbitals) > 1:
         raise ValueError("numerical_orbitals must be specified for only one element.")
+    bond_length = kwargs.get("bond_length", 0.0)
     if bond_length == 0.0:
         raise ValueError("bond_length must be specified.")
     
@@ -244,19 +175,21 @@ def STRU_Molecule(shape: str,
         return_str += "%12.8f %12.8f %12.8f m 1 1 0\n"%(bond_length/2, bond_length/2*3**0.5, 0.0)
         return_str += "%12.8f %12.8f %12.8f m 1 1 1\n"%(bond_length/2, bond_length/2/3**0.5, bond_length/2*3**0.5)
     else:
-        raise ValueError("shape must be dimer, trimer or tetramer.")
+        raise ValueError(f"shape must be dimer, trimer or tetramer: {shape} is not supported.")
 
     return return_str, [20.0, 20.0, 20.0]
 
 import apns.module_structure.CifParser_Pymatgen as amcp
 import apns.module_structure.basic as ambs
-def STRU_Pymatgen(fname: str,                                   # cif file name
-                  pseudopotentials: dict,                       # pseudopotentials information
-                  numerical_orbitals: dict = None,              # numerical orbitals information
-                  cell_scaling: float = 0.0,                    # cell scaling factor
-                  starting_magnetization: list|dict = None):    # starting magnetization information
-    
+def STRU_Pymatgen(**kwargs):
     """with Pymatgen's CifParser, convert cif file to STRU file."""
+    fname = kwargs.get("fname", None)
+    assert fname is not None, "Cif file name must be specified."
+    pseudopotentials = kwargs.get("pseudopotentials", {})
+    numerical_orbitals = kwargs.get("numerical_orbitals", None)
+    cell_scaling = kwargs.get("cell_scaling", 0.0)
+    starting_magnetization = kwargs.get("starting_magnetization", None)
+
     symbols, xyzs = amcp.structure(fname)
     a, b, c, alpha, beta, gamma, lattice_vectors = amcp.lattice(fname)
     if starting_magnetization is None:
@@ -273,7 +206,7 @@ def STRU_Pymatgen(fname: str,                                   # cif file name
                                          amdd.element_label_tomass(element),
                                          species[element]["pseudopotential"])
     return_str += "\n"
-    if numerical_orbitals is not None:
+    if numerical_orbitals is not None and len(numerical_orbitals) > 0:
         return_str += "NUMERICAL_ORBITAL\n"
         for element in species.keys():
             return_str += "%s\n" % (species[element]["numerical_orbital"])
@@ -300,57 +233,7 @@ def STRU_Pymatgen(fname: str,                                   # cif file name
     
     return return_str, [a, b, c, alpha, beta, gamma]
 
-def KPT_generation(mode: str, gamma_centered: bool = True, **kwargs):
-    """KPT file generation
-
-    Args:
-        mode (str): can be "isolated" or "crystal", "isolated" means the calculation is for isolated system, "crystal" means the calculation is for crystal system.
-        gamma_centered (bool, optional): If kpoints sampling is Gamma point centered. Defaults to True.
-        **kwargs: cell_parameters: list, metallic: bool, ...
-
-    Raises:
-        NotImplementedError: Non-Gamma centered kpoints sampling is not implemented yet.
-        ValueError: mode must be "isolated" or "crystal".
-
-    Returns:
-        _type_: readily usable string for KPT file.
-    """
-    if mode == "isolated":
-        if gamma_centered:
-            return_str = "K_POINTS automatic\n0\nGamma\n1 1 1 0 0 0\n"
-        else:
-            raise NotImplementedError
-    elif mode == "crystal":
-        _fold = 35
-        if gamma_centered:
-            if "cell_parameters" in kwargs:
-                cell_parameters = kwargs["cell_parameters"]
-                if isinstance(cell_parameters, list):
-                    a = cell_parameters[0]
-                    b = cell_parameters[1]
-                    c = cell_parameters[2]
-                elif isinstance(cell_parameters, dict):
-                    a = cell_parameters["a"]
-                    b = cell_parameters["b"]
-                    c = cell_parameters["c"]
-                else:
-                    raise TypeError("Not supported data format of cell parameters, must be list or dict.")
-                if "metallic" in kwargs:
-                    if kwargs["metallic"]:
-                        _fold = 35
-                    else:
-                        _fold = 25
-                else:
-                    _fold = 25
-                return_str = "K_POINTS\n0\nGamma\n%d %d %d 0 0 0\n" % (int(_fold/a) + 1, int(_fold/b) + 1, int(_fold/c) + 1)
-        else:
-            raise NotImplementedError
-    else:
-        raise ValueError
-    
-    return return_str
-
-def _KPT_(isolated: bool = False, gamma_centered: bool = True, **kwargs):
+def KPT(isolated: bool = False, gamma_centered: bool = True, **kwargs):
     """new version of KPT file generation
 
     Args:
@@ -381,7 +264,7 @@ def _KPT_(isolated: bool = False, gamma_centered: bool = True, **kwargs):
     
     return return_str
 
-def _KLINE_(fname: str, nkpts_in_line: int = 10):
+def KLINE(fname: str, nkpts_in_line: int = 10):
 
     result = amscif.read_1(fname)
 
@@ -465,62 +348,6 @@ def INPUT(calculation: dict,
         for key in values.keys():
             return_str += "%s %s # %s\n"%(key, values[key], comments[key])
     return return_str
-
-def INPUT_generation(minimal: bool = True,
-                     template: bool = False,
-                     **kwargs):
-    
-    minimal_keys = {
-        "calculation": "scf",
-        "ecutwfc": 100,
-        "basis_type": "pw",
-        "symmetry": 0,
-        "pseudo_dir": "./",
-        "scf_nmax": 100,
-        "scf_thr": 1e-6
-    }
-    values = {}
-    comments = {}
-    for line in INPUT_TEMPLATE.split("\n"):
-        if line == "INPUT_PARAMETERS" or line.startswith("#"):
-            continue
-        # delete contents all behind #
-        words = line.split("#")
-        line = words[0]
-        try:
-            comment = words[1]
-        except IndexError:
-            comment = ""
-        words = line.split()
-        if len(words) == 0:
-            continue
-        key = words[0]
-        value = " ".join(words[1:])
-        values[key] = value
-        comments[key] = comment
-    for key in kwargs:
-        if key not in values:
-            comments[key] = ""
-        values[key] = kwargs[key]
-
-    if template:
-        values["dft_functional"] = "functional_to_test"
-        values["ecutwfc"] = "ecutwfc_to_test"
-        
-    return_str = "INPUT_PARAMETERS\n"
-    for key in kwargs:
-        if key not in minimal_keys:
-            minimal_keys[key] = values[key]
-
-    if minimal:
-        for key in minimal_keys:
-            return_str += "%s %s # %s\n"%(key, values[key], comments[key])
-    else:
-        for key in values:
-            return_str += "%s %s # %s\n"%(key, values[key], comments[key])
-    return return_str
-
-
 
 INPUT_TEMPLATE = """INPUT_PARAMETERS
 #Parameters (1.General)
