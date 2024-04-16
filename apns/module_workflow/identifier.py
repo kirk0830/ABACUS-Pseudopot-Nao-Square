@@ -95,20 +95,15 @@ def pseudopot_nao(pseudopotential: list, numerical_orbital: list = None) -> str:
                 result += words[2]
     return result
 
-def folder(functional: str, system: str, specific_test: str) -> str:
-
-    functional = functional.lower()
-    folder_name_fragments = ["t", functional, system, specific_test]
-    return "_".join(folder_name_fragments)
-
 def r_folder(identifier: str) -> tuple:
 
     return tuple(i for i in identifier.split("_") if i != "")
 
-def _folder_(system: str, 
-             pseudo_nao_identifier: str, 
-             calculation_identifier: str, 
-             extensive_identifier: str) -> str:
+import uuid
+def folder(system: str, 
+           pseudo_nao_identifier: str, 
+           calculation_identifier: str, 
+           extensive_identifier: str) -> str:
     
     """new version of Generate identifier of folder
 
@@ -120,8 +115,13 @@ def _folder_(system: str,
     Returns:
         str: identifier of folder
     """
-    folder_name_fragments = [system, pseudo_nao_identifier, calculation_identifier, extensive_identifier]
-    return "_".join(folder_name_fragments)
+    part1 = "_".join([system, pseudo_nao_identifier])
+    part2 = "_".join([calculation_identifier, extensive_identifier])
+    part2uuid = uuid.uuid3(uuid.NAMESPACE_DNS, part2).hex
+    print(f"""Folder name encoding
+from: {part2} 
+to:   {part2uuid}""")
+    return "_".join([part1, part2uuid])
 
 def qespresso(system: str, template: bool = False):
 
