@@ -46,8 +46,8 @@ def run(input_file: str):
     # , say all information needed for the code to run.
     # DESIGN: INITIALIZE CAN RETURN RUNTIME INFORMATION
     import apns.module_workflow.workflow_test.initialize as amwinit
-    runtime_settings, vupfs, vorbs = amwinit.initialize(input_file) # presently vorbs is empty for
-                                                                    # all elements.
+    runtime_settings, structures, vupfs, vorbs = amwinit.initialize(input_file) # presently vorbs is empty for
+                                                                                # all elements.
     # ---------------------------------------------------------------------------------------------
     """iterate
     1. setup_iterables
@@ -59,12 +59,12 @@ def run(input_file: str):
     # calculation_settings is about INPUT
     # extensive_settings is about "outer" loop, "outer" loop usually is about different systems
     # upforb_settings is about "inner" loop
-    iterable_settings = {"systems": runtime_settings["systems"], "pseudopotentials": vupfs, "numerical_orbitals": vorbs,
+    iterable_settings = {"systems": structures, "pseudopotentials": vupfs, "numerical_orbitals": vorbs,
                          "calculation_settings": runtime_settings["calculation"], "extensive_settings": runtime_settings["extensive"]}
     inner_iter, abacus_inputs, outer_iter = amwai.setup_iterables(**iterable_settings)
     import apns.module_workflow.workflow_test.iterate as amwi
     iterate_setting = {"software": runtime_settings["global"]["software"].lower(),
-                       "systems": runtime_settings["systems"],
+                       "systems": structures,
                        "extensive_settings": outer_iter, "upforb_bundles": inner_iter, 
                        "calculation_settings": abacus_inputs, "upfs": vupfs, "orbs": vorbs, 
                        "test_mode": False}

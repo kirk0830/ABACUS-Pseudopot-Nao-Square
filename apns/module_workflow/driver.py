@@ -3,31 +3,25 @@ import os
 import apns.module_workflow.identifier as amwi
 import apns.module_pseudo.manage as ampm
 import apns.module_nao.manage as amnm
+import apns.module_io.citation as amic
 welcome = "\n"
 welcome += "="*100
 welcome += "\n"
 welcome += """Welcome to ABACUS Pseudopot-Nao Square (APNS) workflow
 
-This workflow collection is for performing tests on pseudopotential (pseudopot) and
-pseudopot-nao (numerical atomic orbital) bundle. It also provides interface with ABACUS
-numerical atomic orbital generation code, called SIAB, presently is also maintained by
+This workflow collection is for performing tests on pseudopotential (pseudopot) and pseudopot-nao (numerical atomic orbital) bundle. It also provides interface with ABACUS numerical atomic orbital generation code, called SIAB, presently is also maintained by
 AISI-ABACUS developers.
 
 If it is the first run of APNS, please make sure your environment configured correctly:
-1. store pseudopotentials in directory and specified in input file the `pseudo_dir`
-, similarly for numerical atomic ortbials, set `orbital_dir`. The APNS workflow will
-check and update the file `pseudo_db.json` everytime when starts. 
+1. store pseudopotentials in directory and specified in input file the `pseudo_dir`, similarly for numerical atomic ortbials, set `orbital_dir`. The APNS workflow will check and update the file `pseudo_db.json` everytime when starts. 
 
-2. Also in `pseudo_dir`, please have a file `rules.json` in it. In this file, user should
-explicitly define three domains to identify one kind of pseudopotential. Apart from
-three domains needed to define for each pseudopotential, another two keys are needed 
-to defined: re.folder and re.file. With these two keys, one can always get pseudopotentials
-identified from mixture of pseudopotentials.
+2. Also in `pseudo_dir`, please have a file `rules.json` in it. In this file, user should explicitly define three domains to identify one kind of pseudopotential. Apart from three domains needed to define for each pseudopotential, another two keys are needed 
+to defined: re.folder and re.file. With these two keys, one can always get pseudopotentials identified from mixture of pseudopotentials.
 
-For more information about setting of input_*.json for different tasks, please refer to
-online documentation.
+For more information about setting of input_*.json for different tasks, please refer to online documentation.
 """
 welcome += "="*100
+welcome = amic.fold_row_tolength(welcome, 100)
 
 class apns_driver:
     """APNS driver abstract class, unifying workflow drivers.
@@ -38,7 +32,8 @@ class apns_driver:
         """setup the driver"""
         print(welcome)
         # 1. initialize cache directory
-        print("Current working directory: {}".format(os.getcwd()))
+        print("""
+Current working directory: {}""".format(os.getcwd()))
         """change id.TEMPORARY_FOLDER to absolute path"""
         amwi.TEMPORARY_FOLDER = os.path.join(os.getcwd(), amwi.TEMPORARY_FOLDER)
         """create cache directory if not exist"""
