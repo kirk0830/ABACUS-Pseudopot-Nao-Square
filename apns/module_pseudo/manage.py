@@ -48,7 +48,6 @@ def valid_pseudo(pseudo_dir: str, elements: list, pseudo_setting: dict):
     """
     with open(os.path.join(pseudo_dir, "pseudo_db.json")) as f:
         pseudo_db = json.load(f)
-    
     result = {element: {} for element in elements}
     for e in elements:
         if pseudo_setting["kinds"][e] == ["all"]:
