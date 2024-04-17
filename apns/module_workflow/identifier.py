@@ -118,7 +118,7 @@ def folder(system: str,
     part1 = "_".join([system, pseudo_nao_identifier])
     part2 = "_".join([calculation_identifier, extensive_identifier])
     part2uuid = uuid.uuid3(uuid.NAMESPACE_DNS, part2).hex
-    print(f"""Folder name encoding
+    print(f"""Folder name encoding with uuid.uuid3 (deterministic)
 from: {part2} 
 to:   {part2uuid}""")
     return "_".join([part1, part2uuid])

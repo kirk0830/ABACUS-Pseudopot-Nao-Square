@@ -25,8 +25,8 @@ def read_acwf_refdata(token: str,
 
 import re
 import apns.module_analysis.postprocess.eos as amape
-def cal_delta_wrtacwf(element: str, bmfit: dict, vmin: float, vmax: float,
-                        refdata_path: str = ACWF_DATAPATH + ACWF_REFJSON) -> float:
+def cal_delta_wrtacwf(element: str, bmfit: dict, vmin: float, vmax: float, bravis: str = "unknown",
+                      refdata_path: str = ACWF_DATAPATH + ACWF_REFJSON) -> float:
     """Search the best fit data from ACWF reference json file,
     because the structural data provided by Materials Project
     does not explicitly include the conventional name of crystal
@@ -38,6 +38,13 @@ def cal_delta_wrtacwf(element: str, bmfit: dict, vmin: float, vmax: float,
     data = data["BM_fit_data"]
 
     phase = ""
+    bravis = bravis.upper() if bravis.lower() != "diamond" else "Diamond"
+    if bravis != "UNKNOWN" and bravis in ["SC", "FCC", "BCC", "Diamond"]:
+        token = f"{element}-X/{bravis}"
+        print("Get data from token", token)
+        value = amape.delta_value(bm_fit1=bmfit, bm_fit2=data[token], vmin=vmin, vmax=vmax)
+        return value, token
+    # else...
     for key in data.keys():
         _match = re.match(syspatn, key)
         if _match is not None:
@@ -48,13 +55,12 @@ def cal_delta_wrtacwf(element: str, bmfit: dict, vmin: float, vmax: float,
                 if value < delta:
                     delta = value
                     phase = key
-
     return delta, phase
 
 import os
 import apns.module_analysis.postprocess.read_abacus_out as amapr
-def is_outdir(files: list):
-    return "running_cell-relax.log" in files and\
+def is_outdir(files: list, fromcal: str):
+    return f"running_{fromcal}.log" and\
            "STRU_ION_D" in files and\
            "INPUT" in files and\
            "STRU_READIN_ADJUST.cif" in files and\
@@ -62,10 +68,12 @@ def is_outdir(files: list):
            "kpoints" in files
 
 def search(path: str, fromcal: str = "cell-relax"):
-    
+    """search the path and return the volume, energy, natom data
+    the value returned is organized by (system, MPID, PNID) tuple,
+    whose value is a list of tuple (volume, energy, natom) sorted by volume"""
     result = {}
     for root, dirs, files in os.walk(path):
-        if is_outdir(files):
+        if is_outdir(files, fromcal):
             natom = amapr.read_natom_fromlog(f"{root}/running_{fromcal}.log")
             eks = amapr.read_etraj_fromlog(f"{root}/running_{fromcal}.log")[-1]
             v = amapr.read_volume_fromstru(f"{root}/STRU_ION_D", "A")
@@ -134,7 +142,7 @@ def plot_eos(sys_mpid_pnid, vs, eks, bm_fit, ref_bm_fit, delta, **kwargs):
     plt.plot(vs_interp, ref_interp, "-", label="AE (averaged over Wien2K and FLEUR)", color=colors[0])
     plt.plot(vs, eks, "o", label=f"DFT: {pspotid}", markersize=markersize, markeredgecolor=colors[1], markerfacecolor="none",
              markeredgewidth=1.5, linestyle="None")
-    #plt.plot(vs_interp, fit_interp, "-", label=f"DFT: {pspotid}", color=colors[1])
+    plt.plot(vs_interp, fit_interp, "-", color=colors[1])
     # turn on grid
     plt.grid()
     # set titles
@@ -157,21 +165,23 @@ def plot_eos(sys_mpid_pnid, vs, eks, bm_fit, ref_bm_fit, delta, **kwargs):
 import apns.module_analysis.postprocess.eos as amape
 def calculate(sys_mpid_pnid_veks: dict):
     """calculate EOS V0, E0, B0, B0', delta refer to All Electron provided by ACWF,
-    plot figure for (system, MPID, PNID) tuple-organized data"""
+    result would be dict whose keys are element symbols, then values are list of dict,
+    means different mpid. For each mpid, the dict contains vols and eks, and the fit result."""
 
     result = {}
     for key in sys_mpid_pnid_veks.keys(): # loop over all (system, MPID, PNID) tuple
-        print("Processing test:", key)
         # get source data
-        ve = sys_mpid_pnid_veks[key][0]
+        vols = sys_mpid_pnid_veks[key][0]
         eks = sys_mpid_pnid_veks[key][1]
         natoms = sys_mpid_pnid_veks[key][2]
+        element, mpid, pnid = key
         assert len(set(natoms)) == 1, "The number of atoms in the cell is not consistent."
         natoms = natoms[0]
         # fit the data
-        bm_fit = amape.birch_murnaghan_eos(ve, eks, as_dict=True)
+        bm_fit = amape.birch_murnaghan_eos(vols, eks, as_dict=True)
         # calculate delta
-        delta, phase = cal_delta_wrtacwf(key[0], bm_fit, min(ve), max(ve))
+        delta, phase = cal_delta_wrtacwf(element=element, bmfit=bm_fit, 
+                                         vmin=min(vols), vmax=max(vols), bravis=mpid)
         delta = delta/natoms
         # read reference data
         bm_fitref = read_acwf_refdata(phase, domain="BM_fit_data")
@@ -179,15 +189,10 @@ def calculate(sys_mpid_pnid_veks: dict):
         sys_mpid_pnid_veks[key] = bm_fit
         sys_mpid_pnid_veks[key]["delta"] = delta
         # save to result
-        element, mpid, pnid = key
-        if element not in result.keys():
-            result[element] = {"mpid": mpid, "AEref": bm_fitref}
-        result[element][pnid] = sys_mpid_pnid_veks[key]
-        result[element][pnid]["volume"] = ve
-        result[element][pnid]["energy"] = eks
-        # plot the EOS
-        # plot_eos(key, ve, eks, bm_fit, bm_fitref, delta)
-        # will save to "eos_[element]_[mpid]_[pnid].png"
+        result.setdefault(element, []).append({"mpid": mpid, "AEref": bm_fitref})
+        result[element][-1][pnid] = sys_mpid_pnid_veks[key]
+        result[element][-1][pnid]["volume"] = vols
+        result[element][-1][pnid]["energy"] = eks
 
     return result
 
@@ -196,8 +201,9 @@ def plot(testresult: dict, ncols: int = 2, **kwargs):
     example:
     ```json
     {
-        "Si": {
-            "mpid": "149",
+        "Si": [
+        {
+            "mpid": "xxx",
             "AEref": {"E0": 0, "bulk_deriv": ..., "bulk_modulus_ev_ang3": ..., "min_volume": ..., "residuals": ...},
             "dojo05": {"E0": ..., "bulk_deriv": ..., "bulk_modulus_ev_ang3": ..., "min_volume": ..., "residuals": ..., 
                        "delta": ...,
@@ -207,7 +213,20 @@ def plot(testresult: dict, ncols: int = 2, **kwargs):
                      "volume": ..., "energy": ...},
             ...
         },
-        "Al": {...}
+        {
+            "mpid": "yyy",
+            "AEref": {"E0": 0, "bulk_deriv": ..., "bulk_modulus_ev_ang3": ..., "min_volume": ..., "residuals": ...},
+            "dojo05": {"E0": ..., "bulk_deriv": ..., "bulk_modulus_ev_ang3": ..., "min_volume": ..., "residuals": ..., 
+                       "delta": ...,
+                       "volume": ..., "energy": ...},
+            "pd04": {"E0": ..., "bulk_deriv": ..., "bulk_modulus_ev_ang3": ..., "min_volume": ..., "residuals": ..., 
+                     "delta": ...,
+                     "volume": ..., "energy": ...},
+            ...
+        },
+        ...
+        ],
+        "Al": [...]
     }
     ```
     """
@@ -225,64 +244,68 @@ def plot(testresult: dict, ncols: int = 2, **kwargs):
     # each element will create one figure
     for element in testresult.keys():
         print("Plotting element:", element)
-        suptitle = f"{element} EOS (mpid: {testresult[element]['mpid']})"
-        # calculate number of subplots and their layout
-        npspots = len(testresult[element].keys()) - 2
-        # however, if the number of subplots is less than ncols, we will set ncols to npspots
-        ncols = min(npspots, ncols)
-        # calculate nrows
-        nrows = npspots // ncols + (npspots % ncols > 0)
-        # calculate the figure size
-        figsize = (subplot_width*ncols, subplot_height*nrows)
-        # create figure
-        fig, axes = plt.subplots(nrows=nrows, ncols=ncols, figsize=figsize, squeeze=False)
+        # result[element] is a list of dicts, for each dict, contains mpid information and
+        # all-electrons reference data, and different pseudopotential data that are value
+        # of different pseudopotential id as key.
+        for result_ibrav in testresult[element]:
+            print("Structure identifier (might be mp-id or bravis lattice):", result_ibrav['mpid'])
+            suptitle = f"{element} EOS ({result_ibrav['mpid']})"
+            # calculate number of subplots and their layout
+            npspots = len(result_ibrav.keys()) - 2
+            # however, if the number of subplots is less than ncols, we will set ncols to npspots
+            ncols = min(npspots, ncols)
+            # calculate nrows
+            nrows = npspots // ncols + (npspots % ncols > 0)
+            # calculate the figure size
+            figsize = (subplot_width*ncols, subplot_height*nrows)
+            # create figure
+            fig, axes = plt.subplots(nrows=nrows, ncols=ncols, figsize=figsize, squeeze=False)
 
-        pnids = [pnid for pnid in testresult[element].keys() if pnid != "mpid" and pnid != "AEref"]
-        for i, pnid in enumerate(pnids):
-            row = i // ncols
-            col = i % ncols
-            print("Plotting:", element, pnid, "at", row, col)
-            ax = axes[row, col]
-            bm_fit = testresult[element][pnid]
-            bm_fitref = testresult[element]["AEref"]
-            ve = bm_fit["volume"]
-            eks = bm_fit["energy"]
-            delta = bm_fit["delta"]
-            ###################
-            # Data operations #
-            ###################
-            vs = np.array(ve)
-            # shift the energy to 0
-            eks = np.array(eks) - min(eks)
-            # do inter/extrapolation on vs to let it evenly distributed in 200 points
-            vs_interp = np.linspace(min(vs)*0.995, max(vs)*1.01, 200)
-            # shift the energy to 0
-            ref_interp = amape.birch_murnaghan(vs_interp, bm_fitref["E0"], bm_fitref["bulk_modulus_ev_ang3"], bm_fitref["bulk_deriv"], bm_fitref["min_volume"])
-            ref_interp = ref_interp - min(ref_interp)
-            # shift the energy to 0
-            fit_interp = amape.birch_murnaghan(vs_interp, bm_fit["E0"], bm_fit["bulk_modulus_ev_ang3"], bm_fit["bulk_deriv"], bm_fit["min_volume"])
-            fit_interp = fit_interp - min(fit_interp)
-            pspotid, _ = amapp.testname_pspotid(element, pnid)
-            # plot
-            ax.plot(vs_interp, ref_interp, "-", label="AE (averaged over Wien2K and FLEUR)", color=colors[0])
-            ax.plot(vs, eks, "o", label=f"DFT: {pspotid}", markersize=markersize, markeredgecolor=colors[1], markerfacecolor="none",
-                    markeredgewidth=1.5, linestyle="None")
-            ax.grid()
-            ax.set_xlabel("Volume ($\AA^3$)", fontsize=fontsize)
-            ax.set_ylabel("Kohn-Sham energy (Shifted, $\Delta E_{KS}$) (eV)", fontsize=fontsize)
-            ax.legend(fontsize=fontsize)
-            ax.annotate(f"$\Delta$ = {delta*1e3:.2f} meV/atom", xy=(0.5, 0.5), xycoords="axes fraction", fontsize=fontsize)
-            # set fontsize of xticks and yticks
-            ax.tick_params(axis="both", labelsize=fontsize*0.9)
-            # set font as Arial
-            plt.rcParams["font.family"] = "Arial"
-            # set super title
-            fig.suptitle(suptitle, fontsize=fontsize*1.2)
+            pnids = [pnid for pnid in result_ibrav.keys() if pnid != "mpid" and pnid != "AEref"]
+            for i, pnid in enumerate(pnids):
+                row = i // ncols
+                col = i % ncols
+                print("Plotting:", element, pnid, "at", row, col)
+                ax = axes[row, col]
+                bm_fit = result_ibrav[pnid]
+                bm_fitref = result_ibrav["AEref"]
+                ve = bm_fit["volume"]
+                eks = bm_fit["energy"]
+                delta = bm_fit["delta"]
+                ###################
+                # Data operations #
+                ###################
+                vs = np.array(ve)
+                # shift the energy to 0
+                eks = np.array(eks) - min(eks)
+                # do inter/extrapolation on vs to let it evenly distributed in 200 points
+                vs_interp = np.linspace(min(vs)*0.995, max(vs)*1.01, 200)
+                # shift the energy to 0
+                ref_interp = amape.birch_murnaghan(vs_interp, bm_fitref["E0"], bm_fitref["bulk_modulus_ev_ang3"], bm_fitref["bulk_deriv"], bm_fitref["min_volume"])
+                ref_interp = ref_interp - min(ref_interp)
+                # shift the energy to 0
+                fit_interp = amape.birch_murnaghan(vs_interp, bm_fit["E0"], bm_fit["bulk_modulus_ev_ang3"], bm_fit["bulk_deriv"], bm_fit["min_volume"])
+                fit_interp = fit_interp - min(fit_interp)
+                pspotid, _ = amapp.testname_pspotid(element, pnid)
+                # plot
+                ax.plot(vs_interp, ref_interp, "-", label="AE (averaged over Wien2K and FLEUR)", color=colors[0])
+                ax.plot(vs, eks, "o", label=f"DFT: {pspotid}", markersize=markersize, markeredgecolor=colors[1], markerfacecolor="none",
+                        markeredgewidth=1.5, linestyle="None")
+                ax.plot(vs_interp, fit_interp, "-", color=colors[1])
+                ax.grid()
+                ax.set_xlabel("Volume ($\AA^3$)", fontsize=fontsize)
+                ax.set_ylabel("Kohn-Sham energy (Shifted, $\Delta E_{KS}$) (eV)", fontsize=fontsize)
+                ax.legend(fontsize=fontsize)
+                ax.annotate(f"$\Delta$ = {delta*1e3:.2f} meV/atom", xy=(0.5, 0.5), xycoords="axes fraction", fontsize=fontsize)
+                # set fontsize of xticks and yticks
+                ax.tick_params(axis="both", labelsize=fontsize*0.9)
+                # set font as Arial
+                plt.rcParams["font.family"] = "Arial"
+                # set super title
+                fig.suptitle(suptitle, fontsize=fontsize*1.2)
 
-        plt.savefig("eos_" + element + ".png")
-        plt.close()
-
-
+            plt.savefig(f"eos_{element}_{result_ibrav['mpid']}.png")
+            plt.close()
 
 import argparse
 def entry():
@@ -293,13 +316,11 @@ def entry():
     args = parser.parse_args()
     return args.input, args.fromcal
 
-
 def run():
 
     path, fromcal = entry()
     print("Search in path:", path, "from calculation:", fromcal)
     ve_data = search(path, fromcal=fromcal)
-    
     data = calculate(ve_data)
     plot(data)
 
@@ -307,13 +328,13 @@ import unittest
 class TestEOS(unittest.TestCase):
     def test_is_outdir(self):
         files = ["running_relax.log", "STRU_ION_D", "INPUT", "STRU_SIMPLE.cif", "STRU_READIN_ADJUST.cif"]
-        self.assertTrue(is_outdir(files))
+        self.assertTrue(is_outdir(files, "relax"))
         files = ["running_relax.log", "STRU_ION_D", "STRU_SIMPLE.cif", "STRU_READIN_ADJUST.cif"]
-        self.assertFalse(is_outdir(files))
+        self.assertFalse(is_outdir(files, "relax"))
         files = ["running_relax.log", "STRU_ION_D", "STRU_SIMPLE.cif", "STRU_READIN_ADJUST.cif", "STRU_READIN_ADJUST.cif"]
-        self.assertFalse(is_outdir(files))
+        self.assertFalse(is_outdir(files, "relax"))
         files = ["running_relax.log", "STRU_ION_D", "STRU_SIMPLE.cif", "STRU_READIN_ADJUST.cif", "STRU_READIN_ADJUST.cif", "STRU_READIN_ADJUST.cif"]
-        self.assertFalse(is_outdir(files))
+        self.assertFalse(is_outdir(files, "relax"))
     def test_calculate(self):
         data = [[37.9098, -214.406018],
                 [38.7163, -214.441355],
@@ -351,8 +372,83 @@ class TestEOS(unittest.TestCase):
         """
     
 if __name__ == "__main__":
-    # path = "../job-abacustest-v0.3.102-4edc4d"
-    # result = run(path)
-    # print(result)
     #unittest.main()
     run()
+
+"""
+elements = ["Li", "Be", "B", "C", "Na", "Mg", "Al", "Si", "S"]
+pseudo_db_path = "./download/pseudopotentials/pseudo_db.json"
+ecutwfc_db_path = "./apns_cache/apns_ecutwfc_db.json"
+template_json = "./ignorethis_input.json"
+
+pseudo_totest = [("dojo", "0.4", "sr"), ("sg15", "1.0", ""), ("pd", "04", "all")]
+import json
+
+with open(pseudo_db_path, "r") as f:
+    pseudo_db = json.load(f)
+with open(ecutwfc_db_path, "r") as f:
+    ecutwfc_db = json.load(f)
+
+import os
+#import time
+for element in elements:
+    fjson = "temp.json"
+    with open(template_json, "r") as f:
+        data = json.load(f)
+    data["systems"] = [f"{element}_{bravis}" for bravis in ["bcc", "fcc", "diamond"]]
+    for pseudo in pseudo_db[element]:
+        result = pseudo.split("_")
+        if len(result) == 3:
+            kind, version, appendix = result
+        elif len(result) == 2:
+            kind, version = result
+            appendix = ""
+        elif len(result) == 1:
+            kind = result[0]
+            version = ""
+            appendix = ""
+        else:
+            print("Error: ", pseudo)
+            continue
+        not_continue = False
+        for pseudo_ in pseudo_totest:
+            k_, v_, a_ = pseudo_
+            if kind == k_ and version == v_ and appendix == a_:
+                not_continue = True
+                break
+        if not not_continue:
+            continue
+        data["pseudopotentials"]["kinds"] = [kind]
+        data["pseudopotentials"]["versions"] = [version]
+        data["pseudopotentials"]["appendices"] = [appendix]
+
+        for pseudo_ in ecutwfc_db[element]:
+            if pseudo.replace("_", "").replace(".", "") == pseudo_:
+                data["calculation"]["ecutwfc"] = ecutwfc_db[element][pseudo_]
+                break
+        with open(fjson, "w") as f:
+            json.dump(data, f, indent=4)
+        os.system("python3 main.py -i {}".format(fjson))
+        os.remove(fjson)
+        #time.sleep(1) # no need to sleep because when call Materials Project,
+        # there will be interative warning that reminds user to confirm if
+        # the number of element acquires is really 1.
+
+# to merge all produced zip files together into one zip file
+import zipfile
+import os
+import re
+import time
+zipfiles = [f for f in os.listdir() if f.endswith(".zip") and f.startswith("apns")]
+zipfiles.sort(key=lambda x: int(re.findall(r"\d+", x)[0]))
+fzip = f"APNS_EOS_testsuite_{time.strftime('%Y%m%d%H%M%S')}.zip"
+# move all files and folders in the zipfiles to the new zip file
+with zipfile.ZipFile(fzip, "w") as z:
+    for f in zipfiles:
+        # get all files and folders in the zip file
+        with zipfile.ZipFile(f, "r") as zf:
+            for info in zf.infolist():
+                z.writestr(info, zf.read(info))
+        os.remove(f)
+print(f"Files are merged into {fzip}")
+"""
