@@ -188,15 +188,15 @@ def calculate(sys_mpid_pnid_veks: dict):
         # write-back the data
         sys_mpid_pnid_veks[key] = bm_fit
         sys_mpid_pnid_veks[key]["delta"] = delta
-        # save to result
-        result.setdefault(element, []).append({"mpid": mpid, "AEref": bm_fitref})
-        result[element][-1][pnid] = sys_mpid_pnid_veks[key]
-        result[element][-1][pnid]["volume"] = vols
-        result[element][-1][pnid]["energy"] = eks
+        # save to result, if there is no element key, create one
+        result.setdefault(element, {}).setdefault(mpid, {"AEref": bm_fitref})
+        result[element][mpid][pnid] = sys_mpid_pnid_veks[key]
+        result[element][mpid][pnid]["volume"] = vols
+        result[element][mpid][pnid]["energy"] = eks
 
     return result
 
-def plot(testresult: dict, ncols: int = 2, **kwargs):
+def plot(testresult: dict, ncols: int = 3, **kwargs):
     """plot all in one-shot, from the output of calculate function
     example:
     ```json
@@ -244,14 +244,13 @@ def plot(testresult: dict, ncols: int = 2, **kwargs):
     # each element will create one figure
     for element in testresult.keys():
         print("Plotting element:", element)
-        # result[element] is a list of dicts, for each dict, contains mpid information and
-        # all-electrons reference data, and different pseudopotential data that are value
-        # of different pseudopotential id as key.
-        for result_ibrav in testresult[element]:
-            print("Structure identifier (might be mp-id or bravis lattice):", result_ibrav['mpid'])
-            suptitle = f"{element} EOS ({result_ibrav['mpid']})"
+        # result[element] is a dict whose keys are mpid. Each mpid-identified structure has its own
+        # all electron reference data, and several pseudopotential data.
+        for mpid, result_ibrav in testresult[element].items():
+            print("Structure identifier (might be mp-id or bravis lattice):", mpid)
+            suptitle = f"{element} EOS ({mpid})"
             # calculate number of subplots and their layout
-            npspots = len(result_ibrav.keys()) - 2
+            npspots = len(result_ibrav.keys()) - 1
             # however, if the number of subplots is less than ncols, we will set ncols to npspots
             ncols = min(npspots, ncols)
             # calculate nrows
@@ -260,12 +259,12 @@ def plot(testresult: dict, ncols: int = 2, **kwargs):
             figsize = (subplot_width*ncols, subplot_height*nrows)
             # create figure
             fig, axes = plt.subplots(nrows=nrows, ncols=ncols, figsize=figsize, squeeze=False)
-
-            pnids = [pnid for pnid in result_ibrav.keys() if pnid != "mpid" and pnid != "AEref"]
+            print(result_ibrav.keys())
+            pnids = [pnid for pnid in result_ibrav.keys() if pnid != "AEref"]
             for i, pnid in enumerate(pnids):
                 row = i // ncols
                 col = i % ncols
-                print("Plotting:", element, pnid, "at", row, col)
+                print(f"Plotting: {element} {pnid} at subfigure ({row}, {col})")
                 ax = axes[row, col]
                 bm_fit = result_ibrav[pnid]
                 bm_fitref = result_ibrav["AEref"]
@@ -304,7 +303,7 @@ def plot(testresult: dict, ncols: int = 2, **kwargs):
                 # set super title
                 fig.suptitle(suptitle, fontsize=fontsize*1.2)
 
-            plt.savefig(f"eos_{element}_{result_ibrav['mpid']}.png")
+            plt.savefig(f"eos_{element}_{mpid}.png")
             plt.close()
 
 import argparse
@@ -312,7 +311,7 @@ def entry():
     parser = argparse.ArgumentParser(description='Calculate EOS from abacus output')
     # add -i
     parser.add_argument("-i", "--input", type=str, help="input json file")
-    parser.add_argument("-f", "--fromcal", type=str, default="cell-relax", help="from calculation type")
+    parser.add_argument("-f", "--fromcal", type=str, default="relax", help="from calculation type")
     args = parser.parse_args()
     return args.input, args.fromcal
 
