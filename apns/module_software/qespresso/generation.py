@@ -11,7 +11,7 @@ Description:
 Useful cases:
     as it is
 """
-import apns.module_structure.crystal_information_file as amscif
+import apns.module_structure.cifparser as amscif
 import apns.module_database.database as amdd
 import seekpath as skps
 
@@ -105,7 +105,7 @@ def _K_POINTS(fname: str = "", nkpoints_in_line: int = 0) -> str:
         result += "%d %d %d %d %d %d\n"%(nkpts[0], nkpts[1], nkpts[2], 0, 0, 0)
     else:
         result += "crystal\n"
-        cell_vectors = amscif.cellparam_to_latvec(cell_parameters)
+        cell_vectors = amscif.to_latvec(**cell_parameters)
         positions = []
         numbers = []
 
@@ -149,7 +149,7 @@ def _CIF(fname: str = "", cell_scaling: float = 0.0, constraints: list = None) -
         raise ValueError("fname should be set")
     result = "CELL_PARAMETERS (angstrom)\n"
     cif = amscif.read_1(fname)
-    cell_vectors = amscif.cellparam_to_latvec(cif["cell_parameters"])
+    cell_vectors = amscif.to_latvec(**cif["cell_parameters"])
     cell_vectors = [[(cell_scaling + 1.0) * cell_vectors[i][j] for j in range(3)] for i in range(3)]
     result += "\n".join(["%12.8f %12.8f %12.8f"%(cell_vectors[i][0], cell_vectors[i][1], cell_vectors[i][2]) for i in range(3)])
     

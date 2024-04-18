@@ -127,16 +127,16 @@ def search(api_key: str,
     if isinstance(formula, str):
         formula = [formula]
     if isinstance(n_structures, int):
-        n_structures = [n_structures]
+        n_structures = [n_structures] * len(formula)
     with_magmom = kwargs.get("with_magmom", True)
     if isinstance(with_magmom, bool):
-        with_magmom = [with_magmom]
+        with_magmom = [with_magmom] * len(formula)
     is_stable = kwargs.get("is_stable", True)
     if isinstance(is_stable, bool):
-        is_stable = [is_stable]
+        is_stable = [is_stable] * len(formula)
     theoretical = kwargs.get("theoretical", False)
     if isinstance(theoretical, bool):
-        theoretical = [theoretical]
+        theoretical = [theoretical] * len(formula)
 
     assert len(formula) == len(n_structures) == len(with_magmom) == len(is_stable) == len(theoretical)
     # because use Materials Project API, must decrease the frequency of query as much as possible

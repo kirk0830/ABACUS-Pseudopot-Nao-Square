@@ -413,8 +413,8 @@ def read_testconfig_fromBohriumpath(path: str):
     """
     path = path.replace("\\", "/")
     frags = path.split("/")
-
-    _tp = r"^([\w]*)(_[\d]+)(_[^_]+)(_.*)$"
+    #         element mpid   pnid    id
+    _tp = r"^([\w]*)(_[^_]*)(_[^_]+)(_.*)$"
     test = ""
     for frag in frags:
         if "_" in frag and "OUT." not in frag and re.match(_tp, frag) is not None:
@@ -507,10 +507,41 @@ LATTICE_VECTORS
 0.0 0.0 1.0
 """)
         result = read_volume_fromstru(fstruiond)
-        result_inAngstrom = read_volume_fromstru(fstruiond, "A")
+        result_inangstrom = read_volume_fromstru(fstruiond, "A")
         os.remove(fstruiond)
         self.assertAlmostEqual(result, 1.0, delta=1e-6)
-        self.assertAlmostEqual(result_inAngstrom, result*unit_conversion(1.0, "Bohr", "A")**3, delta=1e-6)
+        self.assertAlmostEqual(result_inangstrom, result*unit_conversion(1.0, "Bohr", "A")**3, delta=1e-6)
+
+        with open(fstruiond, "w") as f:
+                    f.write("""ATOMIC_SPECIES
+        Si 28.0855 Si_ONCV_PBE-1.0.upf upf201
+                            
+        LATTICE_CONSTANT
+        1.92678975467
+                            
+        LATTICE_VECTORS
+            3.8492784000     0.0000000000     0.0000000000 #latvec1
+            1.9246390700     3.3335741200     0.0000000000 #latvec2
+            1.9246388000     1.1111903900     3.1429226100 #latvec3
+
+        ATOMIC_POSITIONS
+        Direct
+                            
+        Si #label
+        0 #magnetism
+        2 #number of atoms
+            0.8750000000     0.8750000000     0.8750000000 m  1  1  1
+            0.1250000000     0.1250000000     0.1250000000 m  1  1  1
+        """)
+        result_inbohr = read_volume_fromstru(fstruiond)
+        result_inangstrom = read_volume_fromstru(fstruiond, "A")
+        os.remove(fstruiond)
+        vref_inbohr = ((3.8492784000*1.92678975467)*(2**(1/2)))**3 / 4
+        err_rel = (result_inbohr - vref_inbohr) / vref_inbohr
+        self.assertAlmostEqual(err_rel, 0.0, delta=1e-6)
+        vref_inangstrom = vref_inbohr*unit_conversion(1.0, "Bohr", "A")**3
+        err_rel = (result_inangstrom - vref_inangstrom) / vref_inangstrom
+        self.assertAlmostEqual(err_rel, 0.0, delta=1e-6)
 
     def test_read_stru(self):
         fstruiond = "STRU_ION_D"
