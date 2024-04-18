@@ -176,6 +176,8 @@ def l_tosymbol(l: int) -> str:
     data = ["s", "p", "d", "f", "g", "h", "i", "k", "l", "m", "n"]
     if l in range(1, 11):
         return data[l - 1]
+    elif l == 0:
+        return "s"
     else:
         raise RuntimeError("too high angular momentum")
 
@@ -334,3 +336,66 @@ def orbital_configration2list(configuration, lmax):
     for _m in _match:
         _result[l_label.index(_m[1])] = int(_m[0])
     return _result
+
+import unittest
+class TestDatabase(unittest.TestCase):
+    
+        def test_element_index_tolabel(self):
+    
+            self.assertEqual(element_index_tolabel(1), "1_H")
+            self.assertEqual(element_index_tolabel(118), "118_Og")
+    
+        def test_element_label_toindex(self):
+    
+            self.assertEqual(element_label_toindex("H"), 1)
+            self.assertEqual(element_label_toindex("Og"), 118)
+    
+        def test_symbol_tol(self):
+    
+            self.assertEqual(symbol_tol("s"), 0)
+            self.assertEqual(symbol_tol("n"), 10)
+    
+        def test_l_tosymbol(self):
+    
+            self.assertEqual(l_tosymbol(0), "s")
+    
+        def test_element_label_tomass(self):
+    
+            self.assertAlmostEqual(element_label_tomass("H"), 1.00794, places=5)
+            self.assertAlmostEqual(element_label_tomass("Og"), 294, places=5)
+    
+        def test_number_tomultiplicity(self):
+    
+            self.assertEqual(number_tomultiplicity(1), "s")
+            self.assertEqual(number_tomultiplicity(6), "h")
+    
+        def test_multiplicity_tonumber(self):
+    
+            self.assertEqual(multiplicity_tonumber("s"), 1)
+            self.assertEqual(multiplicity_tonumber("h"), 6)
+    
+        def test_radius_interpolation(self):
+    
+            self.assertAlmostEqual(radius_interpolation("H", RVDW_ZERO_CHG), 1.96, places=5)
+    
+        def test_element_label_torvdw(self):
+    
+            self.assertAlmostEqual(element_label_torvdw("H", method="0chg"), 1.96, places=5)
+            
+        def test_unit_conversion(self):
+        
+            self.assertEqual(unit_conversion("Ha", "eV"), 27.21138602)
+            self.assertEqual(unit_conversion("Ha", "kcal/mol"), 627.509469)
+            self.assertEqual(unit_conversion("eV", "Ha"), 1 / 27.21138602)
+            self.assertEqual(unit_conversion("eV", "kcal/mol"), 627.509469 / 27.21138602)
+            self.assertEqual(unit_conversion("kcal/mol", "Ha"), 1 / 627.509469)
+            self.assertEqual(unit_conversion("kcal/mol", "eV"), 27.21138602 / 627.509469)
+        
+        def test_orbital_configration2list(self):
+
+            self.assertListEqual(orbital_configration2list("1s1d", 3), [1, 0, 1, 0])
+            self.assertListEqual(orbital_configration2list("1s1d", 4), [1, 0, 1, 0, 0])
+            self.assertListEqual(orbital_configration2list("1s1d", 5), [1, 0, 1, 0, 0, 0])
+
+if __name__ == "__main__":
+    unittest.main()

@@ -17,7 +17,10 @@ def birch_murnaghan_eos(volumes, energies, as_dict=False):
         b0: bulk_modulus_ev_ang3,
         b0p: bulk_deriv."""
     
-    popt, _ = opt.curve_fit(birch_murnaghan, volumes, energies, p0=(energies[0], 1, 1, volumes[0]))
+    try:
+        popt, _ = opt.curve_fit(birch_murnaghan, volumes, energies, p0=(energies[0], 1, 1, volumes[0]))
+    except RuntimeError:
+        return None, None, None, None
     if as_dict:
         return {
             "min_volume": popt[3],
@@ -126,7 +129,6 @@ class TestEos(unittest.TestCase):
             "min_volume": 41.05145826931731,
             "residuals": 0
         }
-        print(delta_value(result_abacus, reference, min(volumes_abacus), max(volumes_abacus), natom=2))
 
 if __name__ == "__main__":
     unittest.main()

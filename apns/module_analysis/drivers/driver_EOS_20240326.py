@@ -179,6 +179,9 @@ def calculate(sys_mpid_pnid_veks: dict):
         natoms = natoms[0]
         # fit the data
         bm_fit = amape.birch_murnaghan_eos(vols, eks, as_dict=True)
+        if bm_fit == (None, None, None, None):
+            print(f"Failed to fit the data for {element} {mpid} {pnid}")
+            continue
         # calculate delta
         delta, phase = cal_delta_wrtacwf(element=element, bmfit=bm_fit, 
                                          vmin=min(vols), vmax=max(vols), bravis=mpid)
