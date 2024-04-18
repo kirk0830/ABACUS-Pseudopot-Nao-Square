@@ -87,15 +87,20 @@ def search_structure(finp: str):
         for system in isolated:
             element, geometry = system.split("_")
             result.setdefault(element, []).append(("::AUTOGEN::" + geometry.upper(), None))
+        # bravis lattice is reserved for performing EOS test, taking advantage of ACWF all-electron calculation result as reference data
+        bravis = [s for s in inp["systems"] if s.endswith("_sc") or s.endswith("_bcc") or s.endswith("_fcc") or s.endswith("_diamond")]
+        for system in bravis:
+            element, geometry = system.split("_")
+            result.setdefault(element, []).append(("::AUTOGEN::" + geometry.upper(), None))
         # for practical systems
-        crystal = [s for s in inp["systems"] if s not in isolated]
+        practical = [s for s in inp["systems"] if s not in isolated and s not in bravis]
         # number of structures needed to search from Materials Project for each formula
         n_structures = inp["materials_project"]["n_structures"]
         # consider magnetism or not
         consider_magnetism = True if inp["calculation"]["nspin"] == 2 else False
         consider_magnetism = True if consider_magnetism and inp["extensive"]["magnetism"] == "materials_project" else False
         formula_tosearch = [] # always download magnetism information, this would not be harmful
-        for system in crystal:
+        for system in practical:
             record = amsm.lookup(system, n_structures, with_magmom=consider_magnetism)
             if len(record) < n_structures:
                 print("Structure not found in cache, will search from Materials Project: ", system)

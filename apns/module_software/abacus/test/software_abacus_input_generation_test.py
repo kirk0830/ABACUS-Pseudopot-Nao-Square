@@ -1,5 +1,5 @@
 from apns.module_software.abacus.generation import STRU_cif, INPUT_generation, KPT_generation
-from apns.module_structure.crystal_information_file import read_1 as read_cif
+from apns.module_structure.cifparser import read_1 as read_cif
 
 if __name__ == "__main__":
 

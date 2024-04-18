@@ -80,8 +80,7 @@ def iterate_structure(**kwargs):
         fnao = fnao_withpath.replace("\\", "/").split("/")[-1]
         os.system("cp {} {}/{}".format(fnao_withpath, folder, fnao))
         numerical_orbitals[element] = fnao
-    nks = extensive_setting["nkpoints_in_line"]
-    extensive_setting["nkpoints_in_line"] = -1 if token.split("_")[-1].lower() in ["dimer", "trimer", "tetramer"] else nks
+
     software_setting = {"fcif": fcif, "magmom": magmom,                                                     # define structure
                         "token": token, "target_folder": folder,                                            # define test
                         "calculation_setting": calculation_setting,"extensive_setting": extensive_setting,  # define parameters
@@ -133,13 +132,20 @@ def iterate_abacus(**kwargs) -> None:
     with open(target_folder + "/INPUT", "w") as f: f.write(_input)
     # write STRU
     numerical_orbitals = None if numerical_orbitals == [] else numerical_orbitals
+    structure = token.split("_")[-1].lower()
     stru_param = {"fname": fcif, 
-                  "shape": token.split("_")[-1],
+                  "shape": structure,
                   "pseudopotentials": pseudopotentials, "numerical_orbitals": numerical_orbitals, 
                   "cell_scaling": extensive_setting["characteristic_lengths"], 
                   "bond_length": extensive_setting["characteristic_lengths"], 
                   "starting_magnetization": magmom}
-    stru, cell = amsag.STRU_Pymatgen(**stru_param) if extensive_setting["nkpoints_in_line"] >= 0 else amsag.STRU_Molecule(**stru_param)
+    
+    if structure in ["dimer", "trimer", "tetramer"]:
+        stru, cell = amsag.STRU_Molecule(**stru_param)
+    elif structure in ["sc", "bcc", "fcc", "diamond"]:
+        stru, cell = amsag.STRU_ACWFRef(**stru_param)
+    else:
+        stru, cell = amsag.STRU_Pymatgen(**stru_param)
     with open(target_folder + "/STRU", "w") as f: f.write(stru)
     # write KPT
     nks = extensive_setting["nkpoints_in_line"]

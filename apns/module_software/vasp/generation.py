@@ -1,4 +1,4 @@
-import apns.module_structure.crystal_information_file as amscif
+import apns.module_structure.cifparser as amscif
 import seekpath as skps
 import apns.module_database.database as amdd
 
@@ -8,11 +8,11 @@ def KPOINTS(fname: str = "", nkpoints_in_line: int = 0):
         raise ValueError("fname should not be empty")
 
     cif = amscif.read_1(fname)
-    cell_parameters = amscif.cellparam_to_latvec(cif["cell_parameters"])
+    cell_parameters = amscif.to_latvec(**cif["cell_parameters"])
 
     result = ""
     if nkpoints_in_line > 0:
-        cell_vectors = amscif.cellparam_to_latvec(cell_parameters)
+        cell_vectors = amscif.to_latvec(**cell_parameters)
         positions = []
         numbers = []
 
@@ -37,7 +37,7 @@ def POSCAR(fname: str = "", constraints: list = None):
         raise ValueError("fname should not be empty")
     
     cif = amscif.read_1(fname)
-    cell_vectors = amscif.cellparam_to_latvec(cif["cell_parameters"])
+    cell_vectors = amscif.to_latvec(**cif["cell_parameters"])
 
     natom_per_type = {}
     for element in cif["atomic_positions"].keys():
