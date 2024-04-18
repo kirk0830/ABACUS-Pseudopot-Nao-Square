@@ -100,3 +100,13 @@ natom4 (of magmom):       {natom4}
             result[fo] = list(zip(fcifs, magmoms))
             
     return result
+
+import unittest
+class TestMaterialsProjectAPI(unittest.TestCase):
+    
+    def test_nothing(self):
+        print("TestMaterialsProjectAPI: testing nothing")
+        self.assertTrue(True)
+
+if __name__ == "__main__":
+    unittest.main()
