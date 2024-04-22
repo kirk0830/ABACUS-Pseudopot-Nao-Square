@@ -131,6 +131,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import apns.module_analysis.postprocess.pseudopotential as amapp
 import apns.module_analysis.external_frender.styles as amefs
+import apns.module_analysis.external_frender.figure as ameff
 def plot(testresult: dict, ncols: int = 3, **kwargs):
     """plot all in one-shot, from the output of calculate function
     example:
@@ -176,9 +177,13 @@ def plot(testresult: dict, ncols: int = 3, **kwargs):
     subplot_height = kwargs.get("subplot_height", 10)
     subplot_width = kwargs.get("subplot_width", 10)
 
+    feos = {}
     # each element will create one figure
     for element in testresult.keys():
         print("Plotting element:", element)
+        print("Available test results for this element:", testresult[element].keys())
+        # will save fname of each figure
+        feos_element = []
         # result[element] is a dict whose keys are mpid. Each mpid-identified structure has its own
         # all electron reference data, and several pseudopotential data.
         for mpid, result_ibrav in testresult[element].items():
@@ -187,18 +192,20 @@ def plot(testresult: dict, ncols: int = 3, **kwargs):
             # calculate number of subplots and their layout
             npspots = len(result_ibrav.keys()) - 1
             # however, if the number of subplots is less than ncols, we will set ncols to npspots
-            ncols = min(npspots, ncols)
+            ncols_ = min(npspots, ncols)
             # calculate nrows
-            nrows = npspots // ncols + (npspots % ncols > 0)
+            nrows = npspots // ncols_ + (npspots % ncols_ > 0)
             # calculate the figure size
-            figsize = (subplot_width*ncols, subplot_height*nrows)
+            figsize = (subplot_width*ncols_, subplot_height*nrows)
             # create figure
-            fig, axes = plt.subplots(nrows=nrows, ncols=ncols, figsize=figsize, squeeze=False)
+            fig, axes = plt.subplots(nrows=nrows, ncols=ncols_, figsize=figsize, squeeze=False)
             print(result_ibrav.keys())
             pnids = [pnid for pnid in result_ibrav.keys() if pnid != "AEref"]
+            # sort the pnids
+            pnids.sort()
             for i, pnid in enumerate(pnids):
-                row = i // ncols
-                col = i % ncols
+                row = i // ncols_
+                col = i % ncols_
                 print(f"Plotting: {element} {pnid} at subfigure ({row}, {col})")
                 ax = axes[row, col]
                 bm_fit = result_ibrav[pnid]
@@ -238,8 +245,30 @@ def plot(testresult: dict, ncols: int = 3, **kwargs):
                 # set super title
                 fig.suptitle(suptitle, fontsize=fontsize*1.2)
 
-            plt.savefig(f"eos_{element}_{mpid}.png")
+            # save the figure
+            feos_element.append(f"eos_{element}_{mpid}.png")
+            plt.savefig(feos_element[-1])
             plt.close()
+
+        # concenate all figures
+        ftemp = ameff.concenate(feos_element, direction="v", remove_after_quit=True)
+        # rename to eos_{element}.png
+        os.rename(ftemp, f"eos_{element}.png")
+        feos.update({element: f"eos_{element}.png"})
+
+    return feos
+
+import apns.module_analysis.external_frender.htmls as amaeh
+def render_html(feos: dict):
+    for element, file in feos.items():
+        html = amaeh.pseudopotentials(element=element, 
+                                      xc_functional="PBE", 
+                                      software="ABACUS",
+                                      fconv=f"{element}.svg",
+                                      fconvlog=f"{element}_logplot.svg",
+                                      feos=file)
+        with open(f"{element}.md", "w") as f:
+            f.write(html)
 
 import argparse
 def entry():
@@ -256,7 +285,8 @@ def run():
     print("Search in path:", path, "from calculation:", fromcal)
     ve_data = search(path, fromcal=fromcal)
     data = calculate(ve_data)
-    plot(data)
+    feos = plot(data)
+    render_html(feos)
 
 import unittest
 class TestEOS(unittest.TestCase):
@@ -310,6 +340,9 @@ if __name__ == "__main__":
     run()
 
 """
+# to run EOS test, copy-paste the following and run directly
+# remember to check paths of files
+
 elements = ["Li", "Be", "B", "C", "Na", "Mg", "Al", "Si", "S"]
 pseudo_db_path = "./download/pseudopotentials/pseudo_db.json"
 ecutwfc_db_path = "./apns_cache/apns_ecutwfc_db.json"
@@ -385,4 +418,22 @@ with zipfile.ZipFile(fzip, "w") as z:
                 z.writestr(info, zf.read(info))
         os.remove(f)
 print(f"Files are merged into {fzip}")
+"""
+
+"""
+# to merge EOS test result with previous ecutwfc convergence data, copy-paste the following and run directly
+import os
+
+dst_dir = "/root/abacus-develop/ABACUS-Pseudopot-Nao-Square/docs/pseudopotential/results/2024-04-22"
+src_dir = "/root/abacus-develop/ABACUS-Pseudopot-Nao-Square/docs/pseudopotential/results/2024-03-27"
+
+path_backup = os.path.abspath(os.getcwd())
+files_src = os.listdir(src_dir)
+files_dst = os.listdir(dst_dir)
+elements_in_dst = [f.split(".")[0] for f in files_dst if f.endswith(".md")]
+elements_in_dst = set(elements_in_dst)
+# copy all files startswith element in elements_in_dst from src_dir to dst_dir, except {element}.md
+for element in elements_in_dst:
+    os.system(f"cp {src_dir}/{element}_logplot.svg {dst_dir}")
+    os.system(f"cp {src_dir}/{element}.svg {dst_dir}")
 """
