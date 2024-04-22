@@ -4,7 +4,31 @@ import re
 
 import apns.module_workflow.identifier as amwi
 def load(pseudo_dir: str):
-
+    print("""
+rules.json will be loaded on at beginning of test workflow. Once
+new pseudopotentials are added, please update rules.json accordingly.
+Contents in rules are organized as:
+{
+    "rules": [
+        {
+            "kind": "kind",
+            "version": "version",
+            "appendix": "appendix",
+            "re.folder": "regular expression for folder",
+            "re.file": "regular expression for file"
+        },
+        ...
+    ]
+}
+kind: kind of pseudopotential, e.g. sg15, dojo, gbrv, hgh, pd, psl, ...
+version: version of pseudopotential, e.g. 1.0, 1.1, 1.2, 1.3, ...
+appendix: appendix of pseudopotential, e.g. fr, sr, spd, spd-high, ...
+re.folder: regular expression for folder, e.g. "sg15_oncv_upf_2020-02-06"
+           will be matched with "sg15_oncv_upf_2020-02-06"
+re.file: regular expression for file, e.g. "Si_ONCV_PBE-1.0.upf"
+         will be matched with "^([A-Z][a-z]?)(_ONCV_PBE\\-1\\.0\\.upf)$"
+pseudo_db.json will be refreshed after loading rules.json.
+""")
     if not os.path.exists(pseudo_dir):
         raise FileNotFoundError(f"Directory {pseudo_dir} does not exist")
     if not os.path.exists(os.path.join(pseudo_dir, "rules.json")):
@@ -37,14 +61,12 @@ def load(pseudo_dir: str):
     return pseudo_db
 
 def valid_pseudo(pseudo_dir: str, elements: list, pseudo_setting: dict):
-    """pseudo_setting is like:
-    ```python
-    {
-        "kind": [],
-        "version": [],
-        "appendix": []
-    }
-    ```
+    """from `pseudo_db.json`, get available pseudopotentials for each element.
+
+    Args:
+        pseudo_dir (str): directory where pseudopotentials are stored
+        elements (list): list of elements
+        pseudo_setting (dict): setting for pseudopotentials, including kinds, versions, appendices
     """
     with open(os.path.join(pseudo_dir, "pseudo_db.json")) as f:
         pseudo_db = json.load(f)

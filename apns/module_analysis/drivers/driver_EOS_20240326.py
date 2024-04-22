@@ -90,78 +90,6 @@ def search(path: str, fromcal: str = "cell-relax"):
 
     return result
 
-import matplotlib.pyplot as plt
-import numpy as np
-import apns.module_analysis.postprocess.pseudopotential as amapp
-import apns.module_analysis.external_frender.styles as amefs
-def plot_eos(sys_mpid_pnid, vs, eks, bm_fit, ref_bm_fit, delta, **kwargs):
-    """draw the EOS plot for the system
-    
-    Args:
-        sys_mpid_pnid: tuple, (system, MPID and PNID)
-        vs: list, the volume list
-        eks: list, the energy list
-        bm_fit: dict, the fit result
-        ref_bm_fit: dict, the reference fit result
-        delta: float, the delta value, REMEMBER TO DIVIDE BY NATOMS
-    
-    Returns:
-        None
-    """
-    ###################
-    # Styles setting  #
-    ###################
-    fontsize = kwargs.get("fontsize", 15)
-    colors = kwargs.get("colors", amefs.styles_factory(property="color", ndim=2))
-    marker = kwargs.get("marker", amefs.styles_factory(property="marker", ndim=1))[0]
-    markersize = kwargs.get("markersize", 10)
-    ###################
-    # Data operations #
-    ###################
-    vs = np.array(vs)
-    # shift the energy to 0
-    eks = np.array(eks) - min(eks)
-    # do inter/extrapolation on vs to let it evenly distributed in 200 points
-    # v_eksmin = vs[np.argmin(eks)]
-    # deltav_rhs = max(vs) - v_eksmin
-    # deltav_lhs = v_eksmin - min(vs)
-    # deltav = max(deltav_lhs, deltav_rhs)
-    # vs_interp = np.linspace(min(vs) - deltav, max(vs) + deltav, 200)
-    vs_interp = np.linspace(min(vs)*0.995, max(vs)*1.01, 200)
-
-    # shift the energy to 0
-    ref_interp = amape.birch_murnaghan(vs_interp, ref_bm_fit["E0"], ref_bm_fit["bulk_modulus_ev_ang3"], ref_bm_fit["bulk_deriv"], ref_bm_fit["min_volume"])
-    ref_interp = ref_interp - min(ref_interp)
-    # shift the energy to 0
-    fit_interp = amape.birch_murnaghan(vs_interp, bm_fit["E0"], bm_fit["bulk_modulus_ev_ang3"], bm_fit["bulk_deriv"], bm_fit["min_volume"])
-    fit_interp = fit_interp - min(fit_interp)
-
-    pspotid, _ = amapp.testname_pspotid(sys_mpid_pnid[0], sys_mpid_pnid[2])
-
-    fig, ax = plt.subplots(figsize=(10, 8))
-    plt.plot(vs_interp, ref_interp, "-", label="AE (averaged over Wien2K and FLEUR)", color=colors[0])
-    plt.plot(vs, eks, "o", label=f"DFT: {pspotid}", markersize=markersize, markeredgecolor=colors[1], markerfacecolor="none",
-             markeredgewidth=1.5, linestyle="None")
-    plt.plot(vs_interp, fit_interp, "-", color=colors[1])
-    # turn on grid
-    plt.grid()
-    # set titles
-    plt.xlabel("Volume ($\AA^3$)", fontsize=fontsize)
-    plt.ylabel("Kohn-Sham energy (Shifted, $\Delta E_{KS}$) (eV)", fontsize=fontsize)
-    plt.legend(fontsize=fontsize)
-    # add annotation the delta value, with unit meV/atom
-    plt.annotate(f"$\Delta$ = {delta*1e3:.2f} meV/atom", xy=(0.5, 0.5), xycoords="axes fraction", fontsize=fontsize)
-    # set fontsize of xticks and yticks
-    plt.xticks(fontsize=fontsize*0.9)
-    plt.yticks(fontsize=fontsize*0.9)
-    # set font as Arial
-    plt.rcParams["font.family"] = "Arial"
-    # set super title
-    plt.suptitle(f"{sys_mpid_pnid[0]} EOS", fontsize=fontsize*1.2)
-    # save the figure
-    plt.savefig("eos_" + "_".join(sys_mpid_pnid) + ".png")
-    plt.close()
-
 import apns.module_analysis.postprocess.eos as amape
 def calculate(sys_mpid_pnid_veks: dict):
     """calculate EOS V0, E0, B0, B0', delta refer to All Electron provided by ACWF,
@@ -199,6 +127,10 @@ def calculate(sys_mpid_pnid_veks: dict):
 
     return result
 
+import matplotlib.pyplot as plt
+import numpy as np
+import apns.module_analysis.postprocess.pseudopotential as amapp
+import apns.module_analysis.external_frender.styles as amefs
 def plot(testresult: dict, ncols: int = 3, **kwargs):
     """plot all in one-shot, from the output of calculate function
     example:
@@ -295,7 +227,7 @@ def plot(testresult: dict, ncols: int = 3, **kwargs):
                         markeredgewidth=1.5, linestyle="None")
                 ax.plot(vs_interp, fit_interp, "-", color=colors[1])
                 ax.grid()
-                ax.set_xlabel("Volume ($\AA^3$)", fontsize=fontsize)
+                ax.set_xlabel("Volume ($\AA^3$/atom)", fontsize=fontsize)
                 ax.set_ylabel("Kohn-Sham energy (Shifted, $\Delta E_{KS}$) (eV)", fontsize=fontsize)
                 ax.legend(fontsize=fontsize)
                 ax.annotate(f"$\Delta$ = {delta*1e3:.2f} meV/atom", xy=(0.5, 0.5), xycoords="axes fraction", fontsize=fontsize)
