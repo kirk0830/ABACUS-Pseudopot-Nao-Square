@@ -179,7 +179,7 @@ def STRU_Molecule(**kwargs):
     else:
         raise ValueError(f"shape must be dimer, trimer or tetramer: {shape} is not supported.")
 
-    return return_str, [20.0, 20.0, 20.0]
+    return return_str, [20.0, 20.0, 20.0, 90.0, 90.0, 90.0]
 
 def STRU_ACWFRef(**kwargs):
     """for generating STRU file that can take ACWF all-electron calculation results
@@ -332,6 +332,38 @@ def KPT(isolated: bool = False, gamma_centered: bool = True, **kwargs):
         return_str = "K_POINTS automatic\n0\nGamma\n1 1 1 0 0 0\n"
         print("Warning: KPT file generation failed, use default KPT file instead.") if not isolated else None
     
+    return return_str
+
+import numpy as np
+def KSPACING(kspacing: float|list[float], kspc_unit: str = "bohr", cellparam_unit: str = "Angstrom", **kwargs):
+    """for high precision, set kspacing dynamically instead of a fixed fold value
+    (as in KPT)."""
+    kspacing = [kspacing]*3 if isinstance(kspacing, float) else kspacing
+    assert isinstance(kspacing, list) and len(kspacing) == 3, "kspacing must be a list of 3 numbers."
+    kspacing = [kspc/amdd.unit_conversion(1, kspc_unit, "Angstrom") for kspc in kspacing] # convert to Angstrom-1
+    cellparams = kwargs.get("cell", None)
+    if cellparams is not None:
+        if isinstance(cellparams, list):
+            a, b, c = cellparams[0], cellparams[1], cellparams[2]
+            alpha, beta, gamma = cellparams[3], cellparams[4], cellparams[5]
+        elif isinstance(cellparams, dict):
+            a, b, c = cellparams.get("a", 0.0), cellparams.get("b", 0.0), cellparams.get("c", 0.0)
+            assert a != 0.0 and b != 0.0 and c != 0.0, "Cell parameters a, b and c must be specified."
+            alpha, beta, gamma = cellparams.get("alpha", 90.0), cellparams.get("beta", 90.0), cellparams.get("gamma", 90.0)
+        else:
+            raise TypeError("Not supported data format of cell parameters, must be list or dict.")
+    # convert unit of cell parameters
+    a, b, c = [amdd.unit_conversion(cellparam, cellparam_unit, "Angstrom") for cellparam in [a, b, c]]
+    latvecs = amscif.to_latvec(a=a, b=b, c=c, alpha=alpha, beta=beta, gamma=gamma)
+    recip_latvecs = np.linalg.inv(np.array(latvecs)).T
+    # get norm of reciprocal lattice vectors
+    a, b, c = [np.linalg.norm(vec)*2*np.pi for vec in recip_latvecs]
+    # kspacing is in 1/Angstrom
+    nkpts = [max(1, int(a/kspacing[0]) + 1),
+             max(1, int(b/kspacing[1]) + 1),
+             max(1, int(c/kspacing[2]) + 1)]
+    return_str = "K_POINTS\n0\nGamma\n"
+    return_str += f"{nkpts[0]} {nkpts[1]} {nkpts[2]} 0 0 0\n"
     return return_str
 
 def KLINE(fname: str, nkpts_in_line: int = 10):
@@ -1186,7 +1218,14 @@ ACWF_REFVOLUME = """
              Zr-X/SC       24.7431321708
 """
 
+import unittest
+class TestAbacusGeneration(unittest.TestCase):
+    def test_kspacing(self):
+        # provide cell parameter in Angstrom
+        param = {"cell": [4.22798145, 4.22798145, 4.22798145, 60, 60, 60]}
+        # but kspacing is in Bohr-1
+        result = KSPACING(kspacing=0.03, kspc_unit="Bohr", **param)
+        self.assertEqual(result, "K_POINTS\n0\nGamma\n33 33 33 0 0 0\n")
+
 if __name__ == "__main__":
-    print(STRU_ACWFRef(element = "Si",
-                       celldm = 3.86697,
-                       bravis = "diamond")[0])
+    unittest.main()

@@ -1,11 +1,6 @@
-"""ABACUS Pseudopot-Nao Squared (APNS)
-
-APNS is a workflow for testing the pseudopotential and pseudopotential-numerical atomic orbital
-bundle. It also provides interface with ABACUS numerical atomic orbital generation code, called
-SIAB, presently is also maintained by AISI-ABACUS developers.
-
+"""
 Usage:
-    main.py -v <version> -i <input_file>
+    main.py -i <input_file>
 
 Based on different task specified by keyword "global/test_mode", different workflow will be
 executed. Currently available workflows are:
@@ -27,31 +22,38 @@ executed. Currently available workflows are:
     with html test reports for posting on APNS Github Pages.
 """
 import argparse
-def initialize():
-    """initialize the workflow by getting input file and version of the workflow
-    Returns:
-        input_file (str): input file specifying the workflow
-        version (str): version of the workflow
-    """
-    parser = argparse.ArgumentParser(description="APNS")
-    parser.add_argument("-v", "--version", help="Version of the workflow", default="v1")
+def entry():
+    """parse command line arguments"""
+    parser = argparse.ArgumentParser(description="""
+APNS is a workflow for testing the pseudopotential and pseudopotential-numerical atomic orbital
+bundle. It also provides interface with ABACUS numerical atomic orbital generation code, called
+SIAB, presently is also maintained by AISI-ABACUS developers.
+""")
     parser.add_argument("-i", "--input", help="input file specifying the workflow", default="input.json")
-
-    input_file = parser.parse_args().input
-    version = parser.parse_args().version
-    return input_file, version
+    finp = parser.parse_args().input
+    return finp
 
 """main"""
 import apns.module_workflow.driver as amwd
-import apns.module_workflow.workflow_test.driver as amwtd
 def main():
-    # initialize: get input file and version
-    input_file, version = initialize()
-    """I use polymorphism here, because seems each task can really have similar interface
-    But it might be heavy..."""
-    driver = amwd.spawn_driver(input_file)
-    driver.setup() # no matter which driver, run setup
-    driver.run()   # no matter which driver, run the workflow
+    """main function"""
+    finp = entry()
+    driver = amwd.spawn_driver(finp)
+    driver.setup()
+    driver.run()
+
+import unittest
+class TestMain(unittest.TestCase):
+    def test_entry(self):
+        # test default
+        self.assertEqual(entry(), "input.json")
+        # mock command line arguments
+        import sys
+        sys.argv = ["main.py", "-i", "test.json"]
+        self.assertEqual(entry(), "test.json")
+    def test_main(self):
+        print(f"Unittest on {__file__}, no test implemented for this workflow function main().")
 
 if __name__ == "__main__":
+    print(f"Unittest on {__file__} is skipped due to it is pure workflow function.")
     main()
