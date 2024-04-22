@@ -304,19 +304,27 @@ def element_label_toradius(element: str, radius_kind: str = "covalent", **kwargs
     else:
         raise ValueError("Radius kind %s is not supported." % radius_kind)
 
-def unit_conversion(unit1: str = "Ha", unit2: str = "eV"):
+def unit_conversion(val: float, unitfrom: str = "eV", unitto: str = "eV") -> float:
+    # energy unit takes eV as the base
+    eunit = {"eV": 1.0, "meV": 1e3, 
+             "Ry": 1/13.6, "Rydberg": 1/13.6, 
+             "Hartree": 1/27.21138602, "Ha": 1/27.21138602,
+             "a.u.": 1/27.21138602, "au": 1/27.21138602,
+             "J": 1.6e-19, "kJ": 1.6e-22, "kcal/mol": 23.1}
+    # length unit takes Angstrom as the base
+    lunit = {"A": 1.0, "Angstrom": 1.0, 
+             "Bohr": 1.889726877, "bohr": 1.889726877, 
+             "a.u.": 1.889726877, "au": 1.889726877,
+             "fm": 1e5, "pm": 100.0, "nm": 0.1, "um": 1e-4, "mm": 1e-7, "cm": 1e-8, "m": 1e-10, "km": 1e-13}
+    # weight unit takes atomic unit as the base
+    wtunit = {"a.u.": 1.0, "kg": 9.1e-31, "g": 9.1e-28, "me": 0.00054858}
 
-    _DATA = {
-        "Ha": 1, "a.u.": 1, "au": 1, "hartree": 1, "Hartree": 1,
-        "Ry": 0.5, "ry": 0.5, "Rydberg": 0.5, "rydberg": 0.5,
-        "eV": 27.21138602, "ev": 27.21138602, "electronvolt": 27.21138602, "Electronvolt": 27.21138602,
-        "kcal/mol": 627.509469, "kcal": 627.509469, "kcal/mol": 627.509469, "kcal/mole": 627.509469,
-    }
-    if unit1 not in _DATA.keys():
-        raise ValueError("Unit %s is not supported." % unit1)
-    if unit2 not in _DATA.keys():
-        raise ValueError("Unit %s is not supported." % unit2)
-    return _DATA[unit2] / _DATA[unit1]
+    units = [eunit, lunit, wtunit]
+    # both unit should belong to the same category
+    for u in units:
+        if unitfrom in u and unitto in u:
+            return val * u[unitto] / u[unitfrom]
+    raise ValueError("Units are not in the same category")
 
 import re
 def orbital_configration2list(configuration, lmax):
@@ -384,12 +392,12 @@ class TestDatabase(unittest.TestCase):
             
         def test_unit_conversion(self):
         
-            self.assertEqual(unit_conversion("Ha", "eV"), 27.21138602)
-            self.assertEqual(unit_conversion("Ha", "kcal/mol"), 627.509469)
-            self.assertEqual(unit_conversion("eV", "Ha"), 1 / 27.21138602)
-            self.assertEqual(unit_conversion("eV", "kcal/mol"), 627.509469 / 27.21138602)
-            self.assertEqual(unit_conversion("kcal/mol", "Ha"), 1 / 627.509469)
-            self.assertEqual(unit_conversion("kcal/mol", "eV"), 27.21138602 / 627.509469)
+            self.assertEqual(unit_conversion(1, "Hartree", "eV"), 27.21138602)
+            self.assertEqual(unit_conversion(1, "Hartree", "kcal/mol"), 627.509469)
+            self.assertEqual(unit_conversion(1, "eV", "Hartree"), 1 / 27.21138602)
+            self.assertEqual(unit_conversion(1, "eV", "kcal/mol"), 627.509469 / 27.21138602)
+            self.assertEqual(unit_conversion(1, "kcal/mol", "Hartree"), 1 / 627.509469)
+            self.assertEqual(unit_conversion(1, "kcal/mol", "eV"), 27.21138602 / 627.509469)
         
         def test_orbital_configration2list(self):
 
