@@ -150,7 +150,9 @@ def iterate_abacus(**kwargs) -> None:
         stru, cell = amsag.STRU_Pymatgen(**stru_param)
     with open(target_folder + "/STRU", "w") as f: f.write(stru)
     # write KPT
-    kspacing = 0.06/(1 + stru_param["cell_scaling"])**(1/3) # kspacing is hard-coded to be 0.06 Bohr-1
+    # kspacing is hard-coded to be 0.06 Bohr-1
+    # fix kspacing for all scaling factors
+    kspacing = 0.06/(1 + stru_param["cell_scaling"])**(1/3) 
     nks = extensive_setting["nkpoints_in_line"]
     kpt = amsag.KPT(isolated=(structure in molecules), cell_parameters=cell)
     kpt = amsag.KSPACING(kspacing, "Bohr", "Angstrom", cell=cell) if structure in ideal_bravis else kpt
