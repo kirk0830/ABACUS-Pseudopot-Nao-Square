@@ -155,7 +155,7 @@ def iterate_abacus(**kwargs) -> None:
     kspacing = 0.06/(1 + stru_param["cell_scaling"])**(1/3) 
     nks = extensive_setting["nkpoints_in_line"]
     kpt = amsag.KPT(isolated=(structure in molecules), cell_parameters=cell)
-    kpt = amsag.KSPACING(kspacing, "Bohr", "Angstrom", cell=cell) if structure in ideal_bravis else kpt
+    kpt = amsag.KSPACING(kspacing, "Angstrom", "Angstrom", cell=cell) if structure in ideal_bravis else kpt
     kpt = amsag.KLINE(fname=fcif, nkpts_in_line=nks) if nks > 0 else kpt
     with open(target_folder + "/KPT", "w") as f: f.write(kpt)
 
