@@ -191,7 +191,8 @@ def STRU_ACWFRef(**kwargs):
     cell_scaling = kwargs.get("cell_scaling", 0.0)
     starting_magnetization = kwargs.get("starting_magnetization", None)
     bravis = kwargs.get("shape", "sc").lower()
-    assert bravis in ["sc", "bcc", "fcc", "diamond"], "bravis must be one of sc, bcc, fcc, diamond."
+    assert bravis in ["sc", "bcc", "fcc", "diamond",
+                      "X2O", "X2O3", "X2O5", "XO", "XO2", "XO3"], "bravis must be one of sc, bcc, fcc, diamond."
 
     assert len(pseudopotentials) == 1, "Only one element is supported."
     element = list(pseudopotentials.keys())[0]
@@ -204,10 +205,14 @@ def STRU_ACWFRef(**kwargs):
     print(f"Generate with Volume: {volume:.4f} A^3, celldm: {celldm:.4f} A")
 
     # constant maintained inside
-    ALPHA_BETA_GAMMA = {"sc": [90.0, 90.0, 90.0], "bcc": [109.4712206, 109.4712206, 109.4712206], 
-                        "fcc": [60.0, 60.0, 60.0], "diamond": [60.0, 60.0, 60.0]}
-    ATOMIC_POSITIONS = {"sc": [[0.0, 0.0, 0.0]], "bcc": [[0.0, 0.0, 0.0]],
-                        "fcc": [[0.0, 0.0, 0.0]], "diamond": [[0.5, 0.5, 0.5], [0.75, 0.75, 0.75]]}
+    ALPHA_BETA_GAMMA = {"sc": [90.0, 90.0, 90.0], 
+                        "bcc": [109.4712206, 109.4712206, 109.4712206], 
+                        "fcc": [60.0, 60.0, 60.0], 
+                        "diamond": [60.0, 60.0, 60.0]}
+    ATOMIC_POSITIONS = {"sc": [[0.0, 0.0, 0.0]], 
+                        "bcc": [[0.0, 0.0, 0.0]],
+                        "fcc": [[0.0, 0.0, 0.0]], 
+                        "diamond": [[0.5, 0.5, 0.5], [0.75, 0.75, 0.75]]}
     if starting_magnetization is None:
         starting_magnetization = {element: 0.0 for element in pseudopotentials.keys()}
     return_str = "ATOMIC_SPECIES\n"
@@ -411,17 +416,7 @@ def INPUT(calculation: dict,
         "scf_thr": 1e-6,
         "dft_functional": "pbe"
     }
-    values = {}
-    comments = {}
-    # parse input to key, value and comments
-    pattern = r"^([\w_]*)([\s\w\.+-]*)([#]?)(.*)$"
-    for line in INPUT_TEMPLATE.split("\n"):
-        if line == "INPUT_PARAMETERS" or line.startswith("#"):
-            continue
-        _match = re.match(pattern, line)
-        if _match and _match.group(1) != "":
-            values[_match.group(1)] = _match.group(2)
-            comments[_match.group(1)] = _match.group(4)
+    values, comments = abacus_default()
     # for template, change its value to xxx_to_test placeholder, then sed in other functions
     work_status_specified_valid_keys = []
     for key in calculation.keys():
@@ -451,7 +446,21 @@ def INPUT(calculation: dict,
             return_str += "%s %s # %s\n"%(key, values[key], comments[key])
     return return_str
 
-INPUT_TEMPLATE = """INPUT_PARAMETERS
+def abacus_default():
+    values = {}
+    comments = {}
+    # parse input to key, value and comments
+    pattern = r"^([\w_]*)([\s\w\.+-]*)([#]?)(.*)$"
+    for line in ABACUS_INPUT_TEMPLATE.split("\n"):
+        if line == "INPUT_PARAMETERS" or line.startswith("#"):
+            continue
+        _match = re.match(pattern, line)
+        if _match and _match.group(1) != "":
+            values[_match.group(1)] = _match.group(2)
+            comments[_match.group(1)] = _match.group(4)
+    return values, comments
+
+ABACUS_INPUT_TEMPLATE = """INPUT_PARAMETERS
 #Parameters (1.General)
 suffix                         ABACUS #the name of main output directory
 latname                        none #the name of lattice name

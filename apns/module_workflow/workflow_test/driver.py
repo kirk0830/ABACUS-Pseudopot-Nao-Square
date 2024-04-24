@@ -17,9 +17,13 @@ def run(finp: str):
     iterate_setting.update(dict(zip(["software", "systems", "upfs", "orbs"], [software, structures, upfs, orbs])))
     folders = amwi.iterate(**iterate_setting)
 
-    amic.pack(folders, "apns_{}.zip".format(time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime())))
+    jobgroup = f"apns_{time.strftime('%Y-%m-%d_%H-%M-%S', time.localtime())}"
+    fjob = f"{jobgroup}.zip"
+
+    amic.pack(folders, fjob)
     os.system("rm -rf {}".format(" ".join(folders)))
-    amia.image_information(software)
+    abacustest_param = amia.write_abacustest_param(jobgroup_name=jobgroup, bohrium_login={}, rundft={"example": [fjob]})
+    print(abacustest_param)
     amicite.citation(software)
 
 import unittest

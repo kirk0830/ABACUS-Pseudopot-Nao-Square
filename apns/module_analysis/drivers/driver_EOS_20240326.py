@@ -31,6 +31,12 @@ def cal_delta_wrtacwf(element: str, bmfit: dict, vmin: float, vmax: float, bravi
     because the structural data provided by Materials Project
     does not explicitly include the conventional name of crystal
     phase like BCC, FCC, Diamond, ..."""
+    print(f"""Calculate delta value wrt. ACWF all-electron calculation results.
+element: {element}, 
+bravis: {bravis}, 
+vmin: {vmin}, 
+vmax: {vmax}
+""")
     delta = 1e10
     syspatn = r"([A-Z][a-z]*)(-X/)([(SC)(FCC)(BCC)(Diamond)])"
     with open(refdata_path, "r") as f:
