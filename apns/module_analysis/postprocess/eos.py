@@ -20,6 +20,8 @@ def birch_murnaghan_eos(volumes, energies, as_dict=False):
     try:
         popt, _ = opt.curve_fit(birch_murnaghan, volumes, energies, p0=(energies[0], 1, 1, volumes[0]))
     except RuntimeError:
+        data = "\n".join([f"{volumes[i]:.4f} {energies[i]:.4f}" for i in range(len(volumes))])
+        print(f"Failed to fit the Birch-Murnaghan EOS. Source data:\n{data}")
         return None, None, None, None
     if as_dict:
         return {

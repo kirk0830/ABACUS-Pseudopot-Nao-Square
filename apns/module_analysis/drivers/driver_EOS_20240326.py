@@ -31,6 +31,12 @@ def cal_delta_wrtacwf(element: str, bmfit: dict, vmin: float, vmax: float, bravi
     because the structural data provided by Materials Project
     does not explicitly include the conventional name of crystal
     phase like BCC, FCC, Diamond, ..."""
+    print(f"""Calculate delta value wrt. ACWF all-electron calculation results.
+element: {element}, 
+bravis: {bravis}, 
+vmin: {vmin}, 
+vmax: {vmax}
+""")
     delta = 1e10
     syspatn = r"([A-Z][a-z]*)(-X/)([(SC)(FCC)(BCC)(Diamond)])"
     with open(refdata_path, "r") as f:
@@ -103,7 +109,7 @@ def calculate(sys_mpid_pnid_veks: dict):
         eks = sys_mpid_pnid_veks[key][1]
         natoms = sys_mpid_pnid_veks[key][2]
         element, mpid, pnid = key
-        assert len(set(natoms)) == 1, "The number of atoms in the cell is not consistent."
+        assert len(set(natoms)) == 1, "The number of atoms in the cell is not consistent across EOS tests."
         natoms = natoms[0]
         # fit the data
         bm_fit = amape.birch_murnaghan_eos(vols, eks, as_dict=True)
@@ -113,7 +119,6 @@ def calculate(sys_mpid_pnid_veks: dict):
         # calculate delta
         delta, phase = cal_delta_wrtacwf(element=element, bmfit=bm_fit, 
                                          vmin=min(vols), vmax=max(vols), bravis=mpid)
-        delta = delta/natoms
         # read reference data
         bm_fitref = read_acwf_refdata(phase, domain="BM_fit_data")
         # write-back the data
@@ -124,6 +129,7 @@ def calculate(sys_mpid_pnid_veks: dict):
         result[element][mpid][pnid] = sys_mpid_pnid_veks[key]
         result[element][mpid][pnid]["volume"] = vols
         result[element][mpid][pnid]["energy"] = eks
+        result[element][mpid][pnid]["natoms"] = natoms
 
     return result
 
@@ -199,7 +205,6 @@ def plot(testresult: dict, ncols: int = 3, **kwargs):
             figsize = (subplot_width*ncols_, subplot_height*nrows)
             # create figure
             fig, axes = plt.subplots(nrows=nrows, ncols=ncols_, figsize=figsize, squeeze=False)
-            print(result_ibrav.keys())
             pnids = [pnid for pnid in result_ibrav.keys() if pnid != "AEref"]
             # sort the pnids
             pnids.sort()
@@ -210,15 +215,14 @@ def plot(testresult: dict, ncols: int = 3, **kwargs):
                 ax = axes[row, col]
                 bm_fit = result_ibrav[pnid]
                 bm_fitref = result_ibrav["AEref"]
-                ve = bm_fit["volume"]
-                eks = bm_fit["energy"]
-                delta = bm_fit["delta"]
+                natoms = bm_fit["natoms"]
                 ###################
                 # Data operations #
                 ###################
-                vs = np.array(ve)
+                vs = np.array(bm_fit["volume"])
                 # shift the energy to 0
-                eks = np.array(eks) - min(eks)
+                eks = np.array(bm_fit["energy"]) - min(bm_fit["energy"])
+                delta = bm_fit["delta"]/natoms
                 # do inter/extrapolation on vs to let it evenly distributed in 200 points
                 vs_interp = np.linspace(min(vs)*0.995, max(vs)*1.01, 200)
                 # shift the energy to 0
@@ -229,10 +233,10 @@ def plot(testresult: dict, ncols: int = 3, **kwargs):
                 fit_interp = fit_interp - min(fit_interp)
                 pspotid, _ = amapp.testname_pspotid(element, pnid)
                 # plot
-                ax.plot(vs_interp, ref_interp, "-", label="AE (averaged over Wien2K and FLEUR)", color=colors[0])
-                ax.plot(vs, eks, "o", label=f"DFT: {pspotid}", markersize=markersize, markeredgecolor=colors[1], markerfacecolor="none",
+                ax.plot(vs_interp/natoms, ref_interp, "-", label="AE (averaged over Wien2K and FLEUR)", color=colors[0])
+                ax.plot(vs/natoms, eks, "o", label=f"DFT: {pspotid}", markersize=markersize, markeredgecolor=colors[1], markerfacecolor="none",
                         markeredgewidth=1.5, linestyle="None")
-                ax.plot(vs_interp, fit_interp, "-", color=colors[1])
+                ax.plot(vs_interp/natoms, fit_interp, "-", color=colors[1])
                 ax.grid()
                 ax.set_xlabel("Volume ($\AA^3$/atom)", fontsize=fontsize)
                 ax.set_ylabel("Kohn-Sham energy (Shifted, $\Delta E_{KS}$) (eV)", fontsize=fontsize)
