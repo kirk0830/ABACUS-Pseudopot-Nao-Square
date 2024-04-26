@@ -22,7 +22,10 @@ def run(finp: str):
 
     amic.pack(folders, fjob)
     os.system("rm -rf {}".format(" ".join(folders)))
-    abacustest_param = amia.write_abacustest_param(jobgroup_name=jobgroup, bohrium_login={}, rundft={"example": [fjob]})
+    abacustest_param = amia.write_abacustest_param(jobgroup_name=jobgroup, 
+                                                   save_dir = "",
+                                                   bohrium_login = {}, 
+                                                   rundft=[{"example": [fjob]}])
     print(abacustest_param)
     amicite.citation(software)
 
