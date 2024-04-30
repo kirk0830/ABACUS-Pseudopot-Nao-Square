@@ -151,7 +151,7 @@ def main(fecut: str = "./apns_cache/apns_ecutwfc_db.json",
         amic.unpack(fzip, job_folder)
         os.system(f"rm -f {fzip}")
     abacustest_param = amia.write_abacustest_param(jobgroup_name=job_folder, 
-                                                   bohrium_login={"username": "huangyk@bjaisi.com", "password": "Ykirk5620acc@dp", "project_id": "28682"},
+                                                   bohrium_login={"username": "", "password": "", "project_id": ""},
                                                    save_dir=result, 
                                                    rundft=[{"ifrun": True, 
                                                             "command": amia.ABACUS_COMMAND, 
