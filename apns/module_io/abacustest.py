@@ -23,6 +23,37 @@ ABACUS_IMAGE = "registry.dp.tech/deepmodeling/abacus-intel:latest"
 QE_IMAGE = "registry.dp.tech/dptech/prod-471/abacus-vasp-qe:20230116"
 VASP_IMAGE = "registry.dp.tech/dptech/prod-471/abacus-vasp-qe:20230116"
 PYTHON_IMAGE = "python:3.8"
+ABACUS_COMMAND = "OMP_NUM_THREADS=1 mpirun -n 16 abacus | tee out.log"
+
+import os
+import json
+def read_apns_inp(fname: str) -> dict:
+    assert os.path.exists(fname), f"File not found: {fname}"
+    with open(fname, "r") as f:
+        inp = json.load(f)
+    return inp.get("abacustest", {})
+
+import time
+import apns.module_io.compress as amic
+def auto_api(test_setting: dict, folders: list):
+    jobgroup = f"apns_{time.strftime('%Y-%m-%d_%H-%M-%S', time.localtime())}"
+    auto_submit = True
+    # get bohrium_login section, username, password and project_id all required, if not, wont run
+    auto_submit = "username" in test_setting.keys()
+    auto_submit = "password" in test_setting.keys() and auto_submit
+    auto_submit = "project_id" in test_setting.keys() and auto_submit
+    run_dft = [{"ifrun": True, "job_folders": folders, "command": ABACUS_COMMAND,
+                "ncores": test_setting.get("ncores", 32), "memory": test_setting.get("memory", 64)}]
+    if auto_submit:
+        param = write_abacustest_param(jobgroup_name=jobgroup, bohrium_login=test_setting, rundft=run_dft)
+        result_folder = submit(param)
+        return result_folder
+    else:
+        print("Job is not submitted, compress to one zip file instead")
+        fjob = f"{jobgroup}.zip"
+        amic.pack(folders, fjob)
+        os.system("rm -rf {}".format(" ".join(folders)))
+        return None
 
 def bohrium_config(**kwargs):
     """Configure Bohrium account information
@@ -165,9 +196,7 @@ def setup_dft(**kwargs):
         result["metrics"] = metrics
     return result
 
-import os
-import json
-def write_abacustest_param(jobgroup_name: str, bohrium_login: dict, save_dir: str, prepare: dict = {},
+def write_abacustest_param(jobgroup_name: str, bohrium_login: dict, save_dir: str = "", prepare: dict = {},
                            predft: dict = {}, rundft: list = [], postdft: dict = {}, export: bool = False):
     """Generate abacustest param.json contents
 
@@ -182,7 +211,7 @@ def write_abacustest_param(jobgroup_name: str, bohrium_login: dict, save_dir: st
     Returns:
         dict: abacustest param.json contents
     """
-    
+    save_dir = save_dir if len(save_dir) > 0 else f"abacustest-autosubmit-{time.strftime('%Y-%m-%d_%H-%M-%S', time.localtime())}"
     result = {
         "bohrium_group_name": jobgroup_name,
         "config": bohrium_config(**bohrium_login),
@@ -198,6 +227,16 @@ def write_abacustest_param(jobgroup_name: str, bohrium_login: dict, save_dir: st
             json.dump(result, f, indent=4)
         return os.path.abspath("/".join([os.getcwd(), "param.json"]))
     return result
+
+def submit(abacustest_param: dict) -> str:
+    fparam = f"param-{time.strftime('%Y-%m-%d_%H-%M-%S', time.localtime())}.json"
+    with open(fparam, "w") as f:
+        json.dump(abacustest_param, f, indent=4)
+    folder = abacustest_param.get("save_path", "result")
+    flog = fparam.rsplit(".", 1)[0] + ".log"
+    os.system(f"nohup abacustest submit -p {fparam} > {flog}&")
+    print(f"Job submitted, log file is {flog}, results will be downloaded into {folder}")
+    return folder
 
 import unittest
 class TestABACUSTest(unittest.TestCase):

@@ -77,31 +77,7 @@
   <!--                               -->
   <!-- END OF HUMAN READABLE SECTION -->
   <!--                               -->
-    <PP_HEADER
-       generated="Generated using ONCVPSP code by D. R. Hamann"
-       author="anonymous"
-       date="180510"
-       comment=""
-       element="Ir"
-       pseudo_type="NC"
-       relativistic="scalar"
-       is_ultrasoft="F"
-       is_paw="F"
-       is_coulomb="F"
-       has_so="F"
-       has_wfc="F"
-       has_gipaw="F"
-       core_correction="T"
-       functional="PBE"
-       z_valence="   17.00"
-       total_psenergy="  -2.12314076748E+02"
-       wfc_cutoff="60.00"
-       rho_cutoff="   1.30900000000E+01"
-       l_max="3"
-       l_local="-1"
-       mesh_size="  1310"
-       number_of_wfc="4"
-       number_of_proj="8"/>
+<PP_HEADER generated="Generated using ONCVPSP code by D. R. Hamann" author="anonymous" date="180510" comment="" element="Ir" pseudo_type="NC" relativistic="scalar" is_ultrasoft="F" is_paw="F" is_coulomb="F" has_so="F" has_wfc="F" has_gipaw="F" core_correction="T" functional="PBE" z_valence="   17.00" total_psenergy="  -2.12314076748E+02" wfc_cutoff="60.00" rho_cutoff="   1.30900000000E+01" l_max="3" l_local="-1" mesh_size="  1310" number_of_wfc="4" number_of_proj="8"/>
  <PP_MESH>
    <PP_R type="real"  size="1310" columns="8">
     0.0000    0.0100    0.0200    0.0300    0.0400    0.0500    0.0600    0.0700
@@ -767,14 +743,7 @@
    -2.5993881742E+00   -2.5974023931E+00
   </PP_LOCAL>
  <PP_NONLOCAL>
-   <PP_BETA.1
-       type="real"
-       size="1310"
-       columns="4"
-       index="1"
-       angular_momentum="0"
-       cutoff_radius_index=" 232"
-       cutoff_radius="    2.3100000000E+00" >
+<PP_BETA.1 type="real" size="1310" columns="4" index="1" angular_momentum="0" cutoff_radius_index=" 232" cutoff_radius="    2.3100000000E+00" >
    -3.6941871784E-10    7.8909168131E-02    1.5758965220E-01    2.3581381913E-01
     3.1335612916E-01    3.8999416126E-01    4.6550961306E-01    5.3968926752E-01
     6.1232591853E-01    6.8321924845E-01    7.5217665065E-01    8.1901399130E-01
@@ -1104,14 +1073,7 @@
  0. 0. 0. 0.
  0. 0.
    </PP_BETA.1>
-   <PP_BETA.2
-       type="real"
-       size="1310"
-       columns="4"
-       index="2"
-       angular_momentum="0"
-       cutoff_radius_index=" 232"
-       cutoff_radius="    2.3100000000E+00" >
+<PP_BETA.2 type="real" size="1310" columns="4" index="2" angular_momentum="0" cutoff_radius_index=" 232" cutoff_radius="    2.3100000000E+00" >
     4.6487449307E-10   -3.6503174040E-04   -6.0572481086E-04   -5.9875909795E-04
    -2.2284123057E-04    6.4030785579E-04    2.1049959896E-03    4.2806431278E-03
     7.2709142093E-03    1.1172910121E-02    1.6076424728E-02    2.2063275162E-02
@@ -1441,14 +1403,7 @@
  0. 0. 0. 0.
  0. 0.
    </PP_BETA.2>
-   <PP_BETA.3
-       type="real"
-       size="1310"
-       columns="4"
-       index="3"
-       angular_momentum="1"
-       cutoff_radius_index=" 232"
-       cutoff_radius="    2.3100000000E+00" >
+<PP_BETA.3 type="real" size="1310" columns="4" index="3" angular_momentum="1" cutoff_radius_index=" 232" cutoff_radius="    2.3100000000E+00" >
     2.4471595028E-09    1.8797148060E-03    7.5072288198E-03    1.6847759884E-02
     2.9843699878E-02    4.6415153159E-02    6.6460680874E-02    8.9858241817E-02
     1.1646631805E-01    1.4612521121E-01    1.7865849332E-01    2.1387459412E-01
@@ -1778,14 +1733,7 @@
  0. 0. 0. 0.
  0. 0.
    </PP_BETA.3>
-   <PP_BETA.4
-       type="real"
-       size="1310"
-       columns="4"
-       index="4"
-       angular_momentum="1"
-       cutoff_radius_index=" 232"
-       cutoff_radius="    2.3100000000E+00" >
+<PP_BETA.4 type="real" size="1310" columns="4" index="4" angular_momentum="1" cutoff_radius_index=" 232" cutoff_radius="    2.3100000000E+00" >
    -4.6856865263E-09   -9.3777193750E-04   -3.7370510783E-03   -8.3559150635E-03
    -1.4725116181E-02   -2.2749006514E-02   -3.2306814915E-02   -4.3254257887E-02
    -5.5425461761E-02   -6.8635169192E-02   -8.2681199005E-02   -9.7347124886E-02
@@ -2115,14 +2063,7 @@
  0. 0. 0. 0.
  0. 0.
    </PP_BETA.4>
-   <PP_BETA.5
-       type="real"
-       size="1310"
-       columns="4"
-       index="5"
-       angular_momentum="2"
-       cutoff_radius_index=" 232"
-       cutoff_radius="    2.3100000000E+00" >
+<PP_BETA.5 type="real" size="1310" columns="4" index="5" angular_momentum="2" cutoff_radius_index=" 232" cutoff_radius="    2.3100000000E+00" >
    -3.1430859998E-10    2.1997420867E-05    1.7585956785E-04    5.9285200163E-04
     1.4030411774E-03    2.7346930391E-03    4.7136696208E-03    7.4628233731E-03
     1.1101389242E-02    1.5744374911E-02    2.1501950050E-02    2.8478835891E-02
@@ -2452,14 +2393,7 @@
  0. 0. 0. 0.
  0. 0.
    </PP_BETA.5>
-   <PP_BETA.6
-       type="real"
-       size="1310"
-       columns="4"
-       index="6"
-       angular_momentum="2"
-       cutoff_radius_index=" 232"
-       cutoff_radius="    2.3100000000E+00" >
+<PP_BETA.6 type="real" size="1310" columns="4" index="6" angular_momentum="2" cutoff_radius_index=" 232" cutoff_radius="    2.3100000000E+00" >
    -1.2173994477E-09   -1.4683639836E-05   -1.1722210959E-04   -3.9423914034E-04
    -9.2991461203E-04   -1.8048081755E-03   -3.0947366444E-03   -4.8697216206E-03
    -7.1930225957E-03   -1.0120269296E-02   -1.3698705319E-02   -1.7966553192E-02
@@ -2789,14 +2723,7 @@
  0. 0. 0. 0.
  0. 0.
    </PP_BETA.6>
-   <PP_BETA.7
-       type="real"
-       size="1310"
-       columns="4"
-       index="7"
-       angular_momentum="3"
-       cutoff_radius_index=" 232"
-       cutoff_radius="    2.3100000000E+00" >
+<PP_BETA.7 type="real" size="1310" columns="4" index="7" angular_momentum="3" cutoff_radius_index=" 232" cutoff_radius="    2.3100000000E+00" >
    -3.5655017025E-10    3.0293151505E-07    4.8428766910E-06    2.4483110749E-05
     7.7228689669E-05    1.8807649677E-04    3.8880660564E-04    7.1771624883E-04
     1.2192980383E-03    1.9438644310E-03    2.9471207710E-03    4.2896895630E-03
@@ -3126,14 +3053,7 @@
  0. 0. 0. 0.
  0. 0.
    </PP_BETA.7>
-   <PP_BETA.8
-       type="real"
-       size="1310"
-       columns="4"
-       index="8"
-       angular_momentum="3"
-       cutoff_radius_index=" 232"
-       cutoff_radius="    2.3100000000E+00" >
+<PP_BETA.8 type="real" size="1310" columns="4" index="8" angular_momentum="3" cutoff_radius_index=" 232" cutoff_radius="    2.3100000000E+00" >
     2.5486107624E-11    3.2555421620E-09    5.2418494775E-08    2.6814951244E-07
     8.5977630601E-07    2.1375904641E-06    4.5299765831E-06    8.6052868212E-06
     1.5098348507E-05    2.4941466484E-05    3.9299755340E-05    5.9610609558E-05
@@ -3483,15 +3403,7 @@
    </PP_DIJ>
  </PP_NONLOCAL>
  <PP_PSWFC>
-   <PP_CHI.1
-       type="real"
-       size="1310"
-       columns="4"
-       index="1"
-       occupation=" 2.000"
-       pseudo_energy="   -0.7201838747E+01"
-       label="5S"
-       l="0" >
+<PP_CHI.1 type="real" size="1310" columns="4" index="1" occupation=" 2.000" pseudo_energy="   -0.7201838747E+01" label="5S" l="0" >
     2.0945745138E-13    1.1499140982E-02    2.3011257769E-02    3.4549268506E-02
     4.6125976256E-02    5.7754011964E-02    6.9445778042E-02    8.1213392757E-02
     9.3068635639E-02    1.0502289409E-01    1.1708711139E-01    1.2927173627E-01
@@ -3821,15 +3733,7 @@
     3.5020417815E-14    3.4092985417E-14    3.3190112986E-14    3.2311150110E-14
     3.1455463563E-14    3.0622436842E-14
    </PP_CHI.1>
-   <PP_CHI.2
-       type="real"
-       size="1310"
-       columns="4"
-       index="2"
-       occupation=" 6.000"
-       pseudo_energy="   -0.4020286675E+01"
-       label="5P"
-       l="1" >
+<PP_CHI.2 type="real" size="1310" columns="4" index="2" occupation=" 6.000" pseudo_energy="   -0.4020286675E+01" label="5P" l="1" >
     1.9790419303E-13    2.4157918252E-04    9.6613382568E-04    2.1731151380E-03
     3.8616082900E-03    6.0303321628E-03    8.6776389956E-03    1.1801513936E-02
     1.5399574498E-02    1.9469069926E-02    2.4006880478E-02    2.9009516630E-02
@@ -4159,15 +4063,7 @@
     1.0866040060E-10    1.0650110274E-10    1.0438471362E-10    1.0231038058E-10
     1.0027726789E-10    9.8284556412E-11
    </PP_CHI.2>
-   <PP_CHI.3
-       type="real"
-       size="1310"
-       columns="4"
-       index="3"
-       occupation=" 7.000"
-       pseudo_energy="   -0.5253363433E+00"
-       label="5D"
-       l="2" >
+<PP_CHI.3 type="real" size="1310" columns="4" index="3" occupation=" 7.000" pseudo_energy="   -0.5253363433E+00" label="5D" l="2" >
     3.4295266280E-12    2.1039019503E-06    1.6825421922E-05    5.6753225559E-05
     1.3441817032E-04    2.6226464885E-04    4.5262222777E-04    7.1767767618E-04
     1.0694474743E-03    1.5197508887E-03    2.0801836960E-03    2.7620926296E-03
@@ -4497,15 +4393,7 @@
     1.7053217770E-04    1.6926720745E-04    1.6801165610E-04    1.6676545322E-04
     1.6552852893E-04    1.6430081385E-04
    </PP_CHI.3>
-   <PP_CHI.4
-       type="real"
-       size="1310"
-       columns="4"
-       index="4"
-       occupation=" 2.000"
-       pseudo_energy="   -0.4653445565E+00"
-       label="6S"
-       l="0" >
+<PP_CHI.4 type="real" size="1310" columns="4" index="4" occupation=" 2.000" pseudo_energy="   -0.4653445565E+00" label="6S" l="0" >
     2.5869341391E-12    3.2621278900E-03    6.5307177754E-03    9.8121958432E-03
     1.3112916830E-02    1.6439128691E-02    1.9796937737E-02    2.3192274402E-02
     2.6630859780E-02    3.0118173077E-02    3.3659420136E-02    3.7259503141E-02

@@ -97,6 +97,7 @@ def search(path: str, fromcal: str = "cell-relax"):
     return result
 
 import apns.module_analysis.postprocess.eos as amape
+import apns.module_workflow.identifier as amwi
 def calculate(sys_mpid_pnid_veks: dict):
     """calculate EOS V0, E0, B0, B0', delta refer to All Electron provided by ACWF,
     result would be dict whose keys are element symbols, then values are list of dict,
@@ -131,6 +132,16 @@ def calculate(sys_mpid_pnid_veks: dict):
         result[element][mpid][pnid]["energy"] = eks
         result[element][mpid][pnid]["natoms"] = natoms
 
+    # save result to json file
+    feos = amwi.TEMPORARY_FOLDER + "/apns_eos_result.json"
+    if not os.path.exists(feos):
+        with open(feos, "w") as f:
+            json.dump({}, f, indent=4)
+    with open(feos, "r") as f:
+        data = json.load(f)
+    data.update(result)
+    with open(feos, "w") as f:
+        json.dump(data, f, indent=4)
     return result
 
 import matplotlib.pyplot as plt
