@@ -5,6 +5,14 @@ be the process of roll and roll tag-filtering task"""
 FDATABASE = "./download/pseudopotentials/database.json"
 """this file to save all descriptions of pseudopotential files
 is hard-coded as database.json"""
+TAGRULES = "./download/pseudopotentials/tag_rules.json"
+"""this file saves rules to add tags onto various pseudopotential
+files. The rules are in the form of a dictionary, where the value
+of key `rules` is a list of dictionaries, each dictionary contains
+`re.folder`, `re.file` and `tags` keys. The `re.folder` and `re.file`
+are regular expressions to match the folder and file name, respectively.
+If two regular expressions are matched, the tags will be added to the
+pseudopotential file. The `tags` key is a list of tags to be added."""
 import os
 import json
 def initialize():
@@ -59,6 +67,24 @@ def overwrite_tags(folder: str, tag_to_overwrite: str, tags: list, regex: str = 
                 original_tags = database.get(key, [])
                 database[key] = list(set(original_tags + tags))
                 database[key] = [tag for tag in database[key] if tag != tag_to_overwrite]
+
+    with open(FDATABASE, "w") as f:
+        json.dump(database, f, indent=4)
+
+def remove_tags(folder: str, tags: list, regex: str = r".*"):
+    """remove tags for all files in the folder"""
+    assert os.path.exists(folder), "Folder not found"
+    assert os.path.isdir(folder), "Not a folder"
+    assert os.path.exists(FDATABASE), "Database file not found"
+
+    with open(FDATABASE) as f:
+        database = json.load(f)
+    for root, dirs, files in os.walk(folder):
+        for file in files:
+            if file.lower().endswith(".upf") and re.match(regex, file):
+                key = os.path.join(root, file)
+                original_tags = database.get(key, [])
+                database[key] = [tag for tag in original_tags if tag not in tags]
 
     with open(FDATABASE, "w") as f:
         json.dump(database, f, indent=4)
