@@ -413,17 +413,19 @@ def read_testconfig_fromBohriumpath(path: str):
     """
     path = path.replace("\\", "/")
     frags = path.split("/")
+    # assert the last frag must be OUT.*
+    assert frags[-1].startswith("OUT.")
     #         element mpid   pnid    id
     _tp = r"^([\w]*)(_[^_]*)(_[^_]+)(_.*)$"
     test = ""
-    for frag in frags:
-        if "_" in frag and "OUT." not in frag and re.match(_tp, frag) is not None:
-            _match = re.match(_tp, frag)
-            system = _match.group(1)
-            mpid = _match.group(2)[1:]
-            pnid = _match.group(3)[1:]
-            test = _match.group(4)[1:]
-            return frag, system, mpid, pnid, test
+    frag = frags[-2]
+    _match = re.match(_tp, frag)
+    if _match is not None:
+        system = _match.group(1)
+        mpid = _match.group(2)[1:]
+        pnid = _match.group(3)[1:]
+        test = _match.group(4)[1:]
+        return frag, system, mpid, pnid, test
     return None
 
 def read_pressure_fromlog(flog):
