@@ -11,7 +11,7 @@ print("Number of rules: ", nrules)
 
 for root, dirs, files in os.walk(path):
     for file in files:
-        if file.endswith(".upf") or file.endswith(".UPF"):
+        if file.lower().endswith(".upf"):
             folder = root.replace("\\", "/").split("/")[-1]
             print("Folder: ", folder)
             for i in range(nrules):

@@ -1,0 +1,23 @@
+{
+    "description": "this file contains the rules for taging pseudopotential files. All rules will be applied one-by-one to all files. Tags are added by appending instead of replacing. For example the first rule only specifies for all files in this folder, will share sg15, norm-conserving, NC, ONCV, ONCVPSP tags.",
+    "rules": [
+        {
+            "re.folder": "sg15_oncv_upf_2020-02-06",
+            "re.file": "^([A-Z][a-z]?)(_ONCV_PBE\\-1\\.0\\.upf)$",
+            "tags": ["sg15", "norm-conserving", "NC", "ONCV", "ONCVPSP"]
+        },
+        {
+            "re.folder": "sg15_oncv_upf_2020-02-06",
+            "re.file": "^([A-Z][a-z]?)(_ONCV_PBE\\-1\\.0\\.upf)$",
+            "tags": ["1.0", "v1.0"]
+        },
+        {
+            "re.folder": "sg15_oncv_upf_2020-02-06",
+            "re.file": ".*1.1.*",
+            "tags": ["1.1", "v1.1"]
+        },
+        {
+
+        }
+    ]
+}

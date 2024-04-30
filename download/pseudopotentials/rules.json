@@ -43,32 +43,11 @@
             "re.file": "([A-Z][a-z]?)(\\.pbe)(-[spdn]+)?(-kjpaw_psl\\.[\\d\\.]+\\.UPF)"
         },
         {
-            "kind": "pslrrkjus",
-            "version": "0.3.1",
-            "appendix": "",
-            "re.folder": "PSEUDOPOTENTIALS",
-            "re.file": "([A-Z][a-z]?)(\\.pbe)(-[spdn]+)?(-rrkjus_psl\\.[\\d\\.]+\\.UPF)"
-        },
-        {
             "kind": "pslkjpaw",
             "version": "0.3.1",
             "appendix": "alt",
             "re.folder": "PSEUDOPOTENTIALS_ALT",
             "re.file": "([A-Z][a-z]?)(\\.pbe)(-[spdn]+)?(-kjpaw_psl\\.[\\d\\.]+\\.UPF)"
-        },
-        {
-            "kind": "pslrrkjus",
-            "version": "0.3.1",
-            "appendix": "alt",
-            "re.folder": "PSEUDOPOTENTIALS_ALT",
-            "re.file": "([A-Z][a-z]?)(\\.pbe)(-[spdn]+)?(-rrkjus_psl\\.[\\d\\.]+\\.UPF)"
-        },
-        {
-            "kind": "pslnc",
-            "version": "0.3.1",
-            "appendix": "",
-            "re.folder": "PSEUDOPOTENTIALS_NC",
-            "re.file": "([A-Z][a-z]?)(\\.pbe)(-n)?(-nc\\.UPF)"
         },
         {
             "kind": "pslkjpaw",
@@ -78,11 +57,74 @@
             "re.file": "([A-Z][a-z]?)(\\.pbe)(-[spdn]+)?(-kjpaw_psl\\.[\\d\\.]+\\.UPF)"
         },
         {
+            "kind": "pslkjpaw",
+            "version": "1.0.0",
+            "appendix": "",
+            "re.folder": "kjpaw",
+            "re.file": "([A-Z][a-z]?)(\\.pbe)(-[spdfn]+)?(-kjpaw_psl\\.1\\.0\\.0\\.UPF)"
+        },
+        {
+            "kind": "pslkjpaw",
+            "version": "1.0.0",
+            "appendix": "alt",
+            "re.folder": "kjpaw",
+            "re.file": "([A-Z][a-z]?)(\\.pbe)(-[spdfn]+l)?(-kjpaw_psl\\.1\\.0\\.0\\.UPF)"
+        },
+        {
+            "kind": "pslkjpaw",
+            "version": "1.0.0",
+            "appendix": "fr",
+            "re.folder": "kjpaw-rel",
+            "re.file": "([A-Z][a-z]?)(\\.rel-pbe)(-[spdfnl]+)?(-kjpaw_psl\\.1\\.0\\.0\\.UPF)"
+        },
+        {
+            "kind": "pslrrkjus",
+            "version": "0.3.1",
+            "appendix": "",
+            "re.folder": "PSEUDOPOTENTIALS",
+            "re.file": "([A-Z][a-z]?)(\\.pbe)(-[spdn]+)?(-rrkjus_psl\\.[\\d\\.]+\\.UPF)"
+        },
+        {
             "kind": "pslrrkjus",
             "version": "0.3.1",
             "appendix": "alt",
+            "re.folder": "PSEUDOPOTENTIALS_ALT",
+            "re.file": "([A-Z][a-z]?)(\\.pbe)(-[spdn]+)?(-rrkjus_psl\\.[\\d\\.]+\\.UPF)"
+        },
+        {
+            "kind": "pslrrkjus",
+            "version": "0.3.1",
+            "appendix": "fr",
             "re.folder": "PSEUDOPOTENTIALS_TOT",
             "re.file": "([A-Z][a-z]?)(\\.pbe)(-[spdn]+)?(-rrkjus_psl\\.[\\d\\.]+\\.UPF)"
+        },
+        {
+            "kind": "pslrrkjus",
+            "version": "1.0.0",
+            "appendix": "",
+            "re.folder": "rrkjus",
+            "re.file": "([A-Z][a-z]?)(\\.pbe)(-[spdfn]+)?(-rrkjus_psl\\.1\\.0\\.0\\.UPF)"
+        },
+        {
+            "kind": "pslrrkjus",
+            "version": "1.0.0",
+            "appendix": "alt",
+            "re.folder": "rrkjus",
+            "re.file": "([A-Z][a-z]?)(\\.pbe)(-[spdfn]+l)?(-rrkjus_psl\\.1\\.0\\.0\\.UPF)"
+        },
+        {
+            "kind": "pslrrkjus",
+            "version": "1.0.0",
+            "appendix": "fr",
+            "re.folder": "rrkjus-rel",
+            "re.file": "([A-Z][a-z]?)(\\.rel-pbe)(-[spdfnl]+)?(-rrkjus_psl\\.1\\.0\\.0\\.UPF)"
+        },
+        {
+            "kind": "pslnc",
+            "version": "0.3.1",
+            "appendix": "",
+            "re.folder": "PSEUDOPOTENTIALS_NC",
+            "re.file": "([A-Z][a-z]?)(\\.pbe)(-n)?(-nc\\.UPF)"
         },
         {
             "kind": "dojo",
