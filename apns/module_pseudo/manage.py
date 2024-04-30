@@ -132,6 +132,34 @@ def get_attribute(pseudo_dir: str, **kwargs):
     else:
         raise ValueError("Invalid combination of fpseudo, fpseudo_withpath, folder.")
 
+def export(pseudo_dir: str, out_dir: str = "./", included: list = None, excluded: list = None, pseudo_regex: str = None):
+    """export pseudopotentials for included elements"""
+    with open(os.path.join(pseudo_dir, "pseudo_db.json")) as f:
+        pseudo_db = json.load(f)
+    included = included if included else pseudo_db.keys()
+    excluded = excluded if excluded else []
+    pseudo_regex = pseudo_regex if pseudo_regex else ".*"
+    description = {}
+    for element in included:
+        if element in excluded:
+            continue
+        os.makedirs(os.path.join(out_dir, element), exist_ok=True)
+        description[element] = {}
+        # save description for each pseudopotential, key is new name
+        # values are, original name, kind, version, appendix
+        for abbr in pseudo_db[element].keys():
+            if re.match(pseudo_regex, abbr):
+                fpseudo = pseudo_db[element][abbr]
+                words = abbr.split("_")
+                words = [words[0], words[1], "_".join(words[2:])] if len(words) > 2 else words
+                words = words + [""] * (3 - len(words))
+                kind, version, appendix = words
+                new_name = f"{element}_{kind}_{version}_{appendix}.UPF"
+                description[element][new_name] = {"original": abbr, "kind": kind, "version": version, "appendix": appendix}
+                os.system(f"cp {fpseudo} {os.path.join(out_dir, element, new_name)}")
+    with open(os.path.join(out_dir, "description.json"), "w") as f:
+        json.dump(description, f, indent=4)
+    
 import unittest
 class TestPseudo(unittest.TestCase):
     def test_load(self):
