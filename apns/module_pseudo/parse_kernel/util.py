@@ -1,5 +1,5 @@
 import re
-import xml.etree.ElementTree as ET
+from lxml import etree
 
 def is_numeric_data(data):
     """judge if the data line is full of numbers (including scientific notation) separated by spaces, tabs or newlines"""
@@ -88,7 +88,6 @@ def xml_tagchecker(content: str|list[str]):
                 yield True, line
 
 import os
-import xml.etree.ElementTree as ET
 import unittest
 class TestPseudoKernelUtil(unittest.TestCase):
     def test_xml_tagchecker(self):
@@ -519,9 +518,9 @@ class TestPseudoKernelUtil(unittest.TestCase):
         
         # check if unittest.xml has correct XML format
         try:
-            tree = ET.parse("unittest.xml")
-        except ET.ParseError:
-            self.fail("unittest.xml is not a valid XML file")
+            tree = etree.parse("unittest.xml")
+        except etree.XMLSyntaxError as e:
+            self.fail(f"unittest.xml is not a valid XML file: {e}")
         
         os.remove("unittest.xml")
 

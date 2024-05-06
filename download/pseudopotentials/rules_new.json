@@ -68,7 +68,7 @@
         },
         {
             "re.folder": "GBRV_pbe_UPF_v1.5",
-            "re.file": "*.plus4.*",
+            "re.file": ".*plus4.*",
             "tags": ["plus4"]
         },
         {
@@ -84,7 +84,7 @@
         {
             "re.folder": "hgh",
             "re.file": "([A-Z][a-z]?)(.*-hgh\\.UPF)",
-            "tags": ["hgh", "Hartwigsen-Goedecker-Hutter"]
+            "tags": ["hgh", "Hartwigsen-Goedecker-Hutter", "PBE", "Perdew-Burke-Ernzerhof", "NC", "norm-conserving"]
         },
         {
             "re.folder": "hgh",
@@ -134,12 +134,12 @@
         {
             "re.folder": "NCPP-PD04-PBE",
             "re.file": "([A-Z][a-z]?3\\+_f--core.*\\.PD04\\.PBE\\.UPF)",
-            "tags": ["f--core"]
+            "tags": ["f--core", "rare-earth"]
         },
         {
             "re.folder": "NCPP-PD04-PBE",
             "re.file": "([A-Z][a-z]?.*icmod1\\.PD04\\.PBE\\.UPF)",
-            "tags": ["icmod1"]
+            "tags": ["non-collinear correction", "nlcc", "rare-earth"]
         },
         {
             "re.folder": "pbe_s_sr",
@@ -193,7 +193,7 @@
         },
         {
             "re.folder": "ps-library",
-            "re.file": "([A-Z][a-z]?)(\\.(rel-)?([\\w]+)-(\\w*[^n]+\\w*)-.*\\.UPF)",
+            "re.file": "([A-Z][a-z]?)(\\.(rel-)?([\\w]+)-([^n]+)-.*\\.UPF)",
             "tags": ["semicore"]
         }
     ]

@@ -2,10 +2,9 @@
 After 2024 04 30, each pseudopotential file is described by
 a series of tags. Then accessing pseudopotential file would
 be the process of roll and roll tag-filtering task"""
-FDATABASE = "./download/pseudopotentials/database.json"
-"""this file to save all descriptions of pseudopotential files
-is hard-coded as database.json"""
-TAGRULES = "./download/pseudopotentials/tag_rules.json"
+PSEUDO_DIR = "./download/pseudopotentials"
+
+TAGRULES = PSEUDO_DIR + "/rules_new.json"
 """this file saves rules to add tags onto various pseudopotential
 files. The rules are in the form of a dictionary, where the value
 of key `rules` is a list of dictionaries, each dictionary contains
@@ -13,13 +12,47 @@ of key `rules` is a list of dictionaries, each dictionary contains
 are regular expressions to match the folder and file name, respectively.
 If two regular expressions are matched, the tags will be added to the
 pseudopotential file. The `tags` key is a list of tags to be added."""
+FDATABASE = PSEUDO_DIR + "/database.json"
+"""this file to save all descriptions of pseudopotential files
+is hard-coded as database.json"""
+
 import os
 import json
+import apns.module_pseudo.parse as ampp
+import apns.module_pseudo.parse_special.GBRV_Vanderbilt as amppsg
 def initialize():
     """initialize will create a database file if not exists"""
     if not os.path.exists(FDATABASE):
         with open(FDATABASE, "w") as f:
             json.dump({}, f)
+    # refresh the database with TAGRULES
+    database = {}
+    if os.path.exists(TAGRULES):
+        with open(TAGRULES) as f:
+            rules = json.load(f)
+        for root, dirs, files in os.walk(PSEUDO_DIR):
+            for file in files:
+                if file.lower().endswith(".upf"):
+                    folder = root.replace("\\", "/").split("/")[-1]
+                    for rule in rules["rules"]:
+                        re_folder, re_file, tags = rule["re.folder"], rule["re.file"], rule["tags"]
+                        if re.match(re_folder, folder) and re.match(re_file, file):
+                            key = os.path.abspath(os.path.join(root, file))
+                            if not key in database:
+                                pp = ampp.as_dict(key)
+                                ppgencode = ampp.determine_code(pp)
+                                if ppgencode == "GBRV":
+                                    parsed = amppsg.PP_HEADER(pp["PP_HEADER"]["data"])
+                                    element = parsed["attrib"]["element"]
+                                else:
+                                    element = pp["PP_HEADER"]["attrib"]["element"]
+                                database.setdefault(key, []).append(element)
+                            print(f"Add tags {tags} to {key}")
+                            database[key] = list(set(database[key] + tags))
+        with open(FDATABASE, "w") as f:
+            json.dump(database, f, indent=4)
+    else:
+        raise FileNotFoundError("Rules file not found")
 
 import re
 def mark_mutual_tags(folder: str, tags: list, regex: str = r".*", unique_tag: str = "from_name"):
@@ -97,6 +130,8 @@ if __name__ == "__main__":
     #                  unique_tag="from_name")
     # #overwrite_tags("./download/pseudopotentials/pslibrary-pbe.0.3.1", "NC", ["rrkjus", "US", "ultrasoft", "rrkj"], regex=r".*rrkjus.*")
     # print("Database updated")
+    initialize()
+    exit()
     import apns.module_pseudo.tag_search as ts
     searcher = ts.TagSearcher(FDATABASE)
     print(searcher(True, False, "Mn", "psl", "US"))
