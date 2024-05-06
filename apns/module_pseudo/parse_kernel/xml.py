@@ -27,21 +27,22 @@ def preprocess(fname: str):
     i = -1
     while not lines[i].strip() and i > -len(lines):
         i -= 1
-    if not lines[i].strip() == "</UPF>":
-        if lines[i].strip() == "</!-->":
+    if not "</UPF>" in lines[i]:
+        print(f"Warning: {fname} does not end with </UPF>, the last line is {lines[i]}")
+        if "<\!-->" in lines[i]:
             lines[i] = "</UPF>\n"
         else:
             lines.append("</UPF>\n")
     # write the modified lines back to the file
     with open(fname, "w") as f:
         # replace the `&` symbol at the beginning of the line with `&amp;`, this is done by xml_tagchecker
-        for state, line in ampku.xml_tagchecker(lines):
+        #for state, line in ampku.xml_tagchecker(lines):
+        for line in lines:
             _match = re.match(r"^([\s]*)(\&[\w]+)([^;]*)(\s*)$", line)
             line = f"{_match.group(1)}{_match.group(2).replace('&', '&amp;')}{_match.group(3)}{_match.group(4)}\n"\
                    if _match else line
             f.write(line)
-            # will not write the line after </UPF>
-            if line.strip() == "</UPF>":
+            if "</UPF>" in line: # there are some pseudopotential files endswith ppgen file, but will crash the xml parser
                 break
     return None
 
@@ -159,4 +160,5 @@ The correct case but with & symbol at the beginning of the line
         os.remove("test.upf")
 
 if __name__ == "__main__":
-    unittest.main()
+    #unittest.main()
+    preprocess("/root/abacus-develop/ABACUS-Pseudopot-Nao-Square/download/pseudopotentials/ps-library/Ar.pbe-n-rrkjus_psl.1.0.0.UPF")
