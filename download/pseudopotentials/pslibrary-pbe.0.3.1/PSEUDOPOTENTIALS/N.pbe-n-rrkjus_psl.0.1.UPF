@@ -25,7 +25,8 @@
 
     Pseudization used: troullier-martins
 <PP_INPUTFILE>
- &input
+ &amp;input
+
    title='N',
    zed=7.,
    rel=1,
@@ -33,7 +34,8 @@
    iswitch=3,
    dft='PBE'
  /
- &inputp
+ &amp;inputp
+
    pseudotype=3,
    file_pseudopw='N.pbe-n-rrkjus_psl.0.1.UPF',
    author='Lorenzo Paulatto, modified by ADC',

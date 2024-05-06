@@ -25,7 +25,8 @@
 
     Pseudization used: rrkj
 <PP_INPUTFILE>
- &input
+ &amp;input
+
    title='Os q',
    zed=76.,
    rel=1,
@@ -33,7 +34,8 @@
    config='[Xe] 4f14.0 5d6.0 6s2.0 6p0.0',
    dft='PBE'
  /
- &inputp
+ &amp;inputp
+
    lloc=0,
    pseudotype=3,
    file_pseudopw='Os.pbe-n-rrkjus_psl.0.2.3.UPF',

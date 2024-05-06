@@ -29,7 +29,8 @@
 
     Pseudization used: troullier-martins
 <PP_INPUTFILE>
- &input
+ &amp;input
+
    title='Sc',
    zed=21.0,
    rel=1,
@@ -37,7 +38,8 @@
    iswitch=3,
    dft='PBE'
  /
- &inputp
+ &amp;inputp
+
    lpaw=.true.,
    pseudotype=3,
    file_pseudopw='Sc.pbe-spn-kjpaw_psl.0.2.3.UPF',

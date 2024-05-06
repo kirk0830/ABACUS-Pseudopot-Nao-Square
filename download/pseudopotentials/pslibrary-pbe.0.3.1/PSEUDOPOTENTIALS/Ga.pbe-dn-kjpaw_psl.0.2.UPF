@@ -28,7 +28,8 @@
 
     Pseudization used: troullier-martins
 <PP_INPUTFILE>
- &input
+ &amp;input
+
    title='Ga',
    zed=31.,
    rel=1,
@@ -36,7 +37,8 @@
    iswitch=3,
    dft='PBE'
  /
- &inputp
+ &amp;inputp
+
    lpaw=.true.,
    pseudotype=3,
    file_pseudopw='Ga.pbe-dn-kjpaw_psl.0.2.UPF',

@@ -27,7 +27,8 @@ Functional:  SLA  PW   PBX  PBC
     Pseudization used: troullier-martins
 ]]>
     <PP_INPUTFILE><![CDATA[
- &input
+ &amp;input
+
    title='Ca',
    zed=20.,
    rel=1,
@@ -35,7 +36,8 @@ Functional:  SLA  PW   PBX  PBC
    iswitch=3,
    dft='PBE'
  /
- &inputp
+ &amp;inputp
+
    lpaw = .true.,
    use_xsd=.FALSE.,
    pseudotype=3,

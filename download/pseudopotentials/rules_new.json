@@ -193,7 +193,7 @@
         },
         {
             "re.folder": "ps-library",
-            "re.file": "([A-Z][a-z]?)(\\.(rel-)?([\\w]+)-([^n]+)-.*\\.UPF)",
+            "re.file": "([A-Z][a-z]?)(\\.(rel-)?([\\w]+)-([spdf]+n?)-.*\\.UPF)",
             "tags": ["semicore"]
         }
     ]

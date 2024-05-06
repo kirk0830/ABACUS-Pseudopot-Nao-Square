@@ -25,7 +25,8 @@
 
     Pseudization used: rrkj
 <PP_INPUTFILE>
- &input
+ &amp;input
+
    title='F',
    zed=9.0,
    rel=1,
@@ -33,7 +34,8 @@
    iswitch=3,
    dft='PBE'
  /
- &inputp
+ &amp;inputp
+
    pseudotype=3,
    file_pseudopw='F.pbe-n-rrkjus_psl.0.1.UPF',
    author='ADC',

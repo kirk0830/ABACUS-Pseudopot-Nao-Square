@@ -23,7 +23,8 @@
 
     Pseudization used: troullier-martins
 <PP_INPUTFILE>
- &input
+ &amp;input
+
    title='Kr',
    zed=36.,
    rel=1,
@@ -31,7 +32,8 @@
    iswitch=3,
    dft='PBE'
  /
- &inputp
+ &amp;inputp
+
    pseudotype=2,
    file_pseudopw='Kr.pbe-n-nc.UPF',
    author='TM',
