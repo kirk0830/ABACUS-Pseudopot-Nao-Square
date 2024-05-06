@@ -28,32 +28,32 @@ def determine_code(pseudopotential: str|dict):
     """ONCVPSP: Optimized Norm-Conserving Vanderbilt Pseudopotential, developed by Hamann et al.
     ONCVPSP is the format of pseudopotential most seen in norm-conserving pseudopotential,
     such as SG15, PD (developed by PWmat team) and DOJO"""
-    if "ONCVPSP" in parsed["PP_INFO"]["data"]:
+    if "ONCVPSP" in parsed["PP_INFO"].get("data", []):
         return "ONCVPSP"
-    if "ONCVPSP" in parsed["PP_HEADER"]["attrib"]["generated"]:
+    if "ONCVPSP" in parsed["PP_HEADER"]["attrib"].get("generated", ""):
         return "ONCVPSP"
 
     """ADC: Atomic code developed by Dal Corso et al.
     ADC is the format of pseudopotential collected in pslibrary, including
     pslnc, rrkjus and kjpaw, most collected in QE website the pptable"""
-    if "ADC" in parsed["PP_INFO"]["data"]:
+    if "ADC" in parsed["PP_INFO"].get("data", []):
         return "ADC"
-    if "ADC" in parsed["PP_HEADER"]["attrib"]["generated"]:
+    if "ADC" in parsed["PP_HEADER"]["attrib"].get("generated", ""):
         return "ADC"
-    if "ADC" in parsed["PP_HEADER"]["attrib"]["author"]:
+    if "ADC" in parsed["PP_HEADER"]["attrib"].get("author", ""):
         return "ADC"
-    if "Generated using \"atomic\" code by A. Dal Corso" in parsed["PP_INFO"]["data"]:
+    if "Generated using \"atomic\" code by A. Dal Corso" in parsed["PP_INFO"].get("data", []):
         return "ADC"
-    if "Generated using \"atomic\" code by A. Dal Corso" in parsed["PP_HEADER"]["attrib"]["generated"]:
+    if "Generated using \"atomic\" code by A. Dal Corso" in parsed["PP_HEADER"]["attrib"].get("generated", ""):
         return "ADC"
-    if "Generated using \"atomic\" code by A. Dal Corso" in parsed["PP_HEADER"]["attrib"]["author"]:
+    if "Generated using \"atomic\" code by A. Dal Corso" in parsed["PP_HEADER"]["attrib"].get("author", ""):
         return "ADC"
     
     """GTH: Goedecker-Hartwigsen-Hutter-Teter
     this is the kind developed by CP2K developers, Goedecker, Hartwigsen, Hutter and Teter
     et al. However, this kind of pseudopotential has non-diagonal element in DIJ matrices,
     which is not supported by ABACUS yet."""
-    if "Goedecker/Hartwigsen/Hutter/Teter" in parsed["PP_HEADER"]["attrib"]["author"]:
+    if "Goedecker/Hartwigsen/Hutter/Teter" in parsed["PP_HEADER"]["attrib"].get("author", ""):
         return "GTH"
         raise NotImplementedError("GTH pseudopotential is not supported by ABACUS yet because of non-diagonal DIJ matrices")
     
@@ -61,15 +61,15 @@ def determine_code(pseudopotential: str|dict):
     It is one of the most efficient pseudopotential presently, ABACUS pw supports this kind
     of pseudopotential, ABACUS lcao not yet.
     """
-    if "Generated using Vanderbilt code" in parsed["PP_INFO"]["data"]:
+    if "Generated using Vanderbilt code" in parsed["PP_INFO"].get("data", []):
         return "GBRV"
 
     """ATOMPAW
     atompaw looks like ADC but not quite the same in occupation information
     Comparatively the uni_marburg is actually more similar to ADC"""
-    if "ATOMPAW" in parsed["PP_INFO"]["data"]:
+    if "ATOMPAW" in parsed["PP_INFO"].get("data", []):
         return "ATOMPAW"
-    if "ATOMPAW" in parsed["PP_HEADER"]["attrib"]["generated"]:
+    if "ATOMPAW" in parsed["PP_HEADER"]["attrib"].get("generated", ""):
         return "ATOMPAW"
     
     raise ValueError("Pseudopotential type not recognized")
