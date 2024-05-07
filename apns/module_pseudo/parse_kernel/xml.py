@@ -12,6 +12,7 @@ def preprocess(fname: str):
     to the beginning of the file and </UPF> to the end of the file
     3. some of ADC pseudopotentials have `</!-->` at the end of the file, replace it with `</UPF>`
     """
+    print(f"Preprocessing {fname}...")
     # because a pseudopotential file would not be large, directly read all lines into memory
     with open(fname, "r") as f:
         lines = f.readlines()
@@ -22,22 +23,22 @@ def preprocess(fname: str):
             lines[0] = lines[0].strip() + "\n"
         else:
             lines.insert(0, "<UPF version=\"unknown\" comment=\"added to complete xml format\">\n")
-    # from the last line, check if the first line startswith `<` is not </UPF>.
-    # if the last valid line (not empty) is `</!-->`, replace it with `</UPF>
+    # from the last line, check if the first line startswith `<` is not </UPF>. If not, add </UPF> to the end of the file
     i = -1
     while not lines[i].strip() and i > -len(lines):
         i -= 1
     if not "</UPF>" in lines[i]:
-        print(f"Warning: {fname} does not end with </UPF>, the last line is {lines[i]}")
-        if "<\!-->" in lines[i]:
-            lines[i] = "</UPF>\n"
-        else:
-            lines.append("</UPF>\n")
+        lines.append("</UPF>\n")
     # write the modified lines back to the file
+    # there are more than one tasks remain:
+    # for ADC pseudopotential, replace `&` with `&amp;`
+    # for PseudoDojo v1.0 pseudopotential, carefully check consistency between opening and closing tags
+    # for ADC pseudopotential or ld1 generated, replace eliminate both `<![CDATA[` and `]]>` if they exist
+    lines = [line.replace("<![CDATA[", "").replace("]]>", "") for line in lines]
     with open(fname, "w") as f:
-        # replace the `&` symbol at the beginning of the line with `&amp;`, this is done by xml_tagchecker
-        #for state, line in ampku.xml_tagchecker(lines):
-        for line in lines:
+        # replace the `&` symbol at the beginning of the line with `&amp;`, this is done by xml_syntax_filter
+        for _, line in ampku.xml_syntax_filter(lines):
+        #for line in lines:
             _match = re.match(r"^([\s]*)(\&[\w]+)([^;]*)(\s*)$", line)
             line = f"{_match.group(1)}{_match.group(2).replace('&', '&amp;')}{_match.group(3)}{_match.group(4)}\n"\
                    if _match else line
@@ -160,5 +161,5 @@ The correct case but with & symbol at the beginning of the line
         os.remove("test.upf")
 
 if __name__ == "__main__":
-    #unittest.main()
-    preprocess("/root/abacus-develop/ABACUS-Pseudopot-Nao-Square/download/pseudopotentials/ps-library/Ar.pbe-n-rrkjus_psl.1.0.0.UPF")
+    unittest.main()
+    #preprocess("/root/abacus-develop/ABACUS-Pseudopot-Nao-Square/download/pseudopotentials/ps-library/Ar.pbe-n-rrkjus_psl.1.0.0.UPF")

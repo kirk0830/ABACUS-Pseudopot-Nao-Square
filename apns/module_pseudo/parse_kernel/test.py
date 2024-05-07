@@ -6,7 +6,7 @@ import os
 import xml.etree.ElementTree as ET
 import unittest
 class TestPseudoKernelUtil(unittest.TestCase):
-    def test_xml_tagchecker(self):
+    def test_xml_syntax_filter(self):
         content = """<UPF version="2.0.1">
   <PP_INFO>
 
@@ -6361,7 +6361,7 @@ class TestPseudoKernelUtil(unittest.TestCase):
 </UPF>"""
         
         with open("unittest.xml", "w") as f:
-            for state, line in amppku.xml_tagchecker(content):
+            for state, line in amppku.xml_syntax_filter(content):
                 f.write(line + "\n")
         
         # check if unittest.xml has correct XML format

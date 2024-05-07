@@ -1,7 +1,10 @@
 """because the search task of pseudopotential and/or 
 numerical atomic orbitals is becoming more and more
 complicated, it should be based on tag search instead
-of simply filtering on names anymore"""
+of simply filtering on names anymore.
+Note that this searcher is both needed by pseudopotential
+and numerical atomic orbitals management, it should be
+placed elsewhere other than module_pseudo"""
 
 def tag_search(tag: str, database: dict, ignore_case: bool = True):
     """with one single tag, return set of pseudopotential"""
