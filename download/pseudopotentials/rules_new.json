@@ -63,7 +63,7 @@
         },
         {
             "re.folder": "GBRV_pbe_UPF_v1.5",
-            "re.file": "([A-Z][a-z]?)(.*\\.UPF)",
+            "re.file": "([a-z][a-z]?)(_pbe_v.*\\.UPF)",
             "tags": ["GBRV", "US", "ultrasoft", "Garrity-Bennett-Rabe-Vanderbilt", "v1.5", "1.5", "PBE", "Perdew-Burke-Ernzerhof"]
         },
         {
@@ -147,17 +147,17 @@
             "tags": ["PBE", "Perdew-Burke-Ernzerhof", "sr", "scalar-relativistic", "PseudoDojo", "DOJO", "abinit", "v0.3", "0.3", "NC", "norm-conserving", "ONCVPSP"]
         },
         {
-            "re.folder": "pseudos_ac_she",
+            "re.folder": "pseudos_ac_she/\\d+_[A-Z][a-z]?",
             "re.file": "([A-Z][a-z]?)(.*\\.upf)",
             "tags": ["PBE", "Perdew-Burke-Ernzerhof", "PseudoDojo", "DOJO", "abinit", "v1.0", "1.0", "Actinides", "rare-earth", "ONCVPSP", "NC", "norm-conserving"]
         },
         {
-            "re.folder": "pseudos_ac_she",
+            "re.folder": "pseudos_ac_she/\\d+_[A-Z][a-z]?",
             "re.file": "([A-Z][a-z]?)(.*_r\\.upf)",
             "tags": ["fr", "full-relativistic", "rel"]
         },
         {
-            "re.folder": "pseudos_ac_she",
+            "re.folder": "pseudos_ac_she/\\d+_[A-Z][a-z]?",
             "re.file": "([A-Z][a-z]?)(^(_r)*\\.upf)",
             "tags": ["sr", "scalar-relativistic"]
         },
@@ -168,12 +168,12 @@
         },
         {
             "re.folder": "ps-library",
-            "re.file": "([A-Z][a-z]?)(.*-kjpaw\\.UPF)",
+            "re.file": "([A-Z][a-z]?)(.*-kjpaw.*\\.UPF)",
             "tags": ["kjpaw", "paw", "Projector Augmented Wave"]
         },
         {
             "re.folder": "ps-library",
-            "re.file": "([A-Z][a-z]?)(.*-rrkjus\\.UPF)",
+            "re.file": "([A-Z][a-z]?)(.*-rrkjus.*\\.UPF)",
             "tags": ["rrkjus", "rrkj", "ultrasoft", "US"]
         },
         {

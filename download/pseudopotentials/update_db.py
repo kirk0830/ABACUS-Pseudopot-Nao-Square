@@ -20,118 +20,80 @@ import os
 import json
 import apns.module_pseudo.parse as ampp
 import apns.module_pseudo.parse_special.GBRV_Vanderbilt as amppsg
-def initialize():
+def initialize(refresh: bool = False) -> list[str]:
     """initialize will create a database file if not exists"""
     if not os.path.exists(FDATABASE):
         with open(FDATABASE, "w") as f:
             json.dump({}, f)
     # refresh the database with TAGRULES
-    database = {}
+    if not refresh:
+        return []
+    upfs_unclassified = []
+    with open(FDATABASE) as f:
+        database = json.load(f)
     if os.path.exists(TAGRULES):
         with open(TAGRULES) as f:
             rules = json.load(f)
-        for root, dirs, files in os.walk(PSEUDO_DIR):
+        for root, dirs, files in os.walk(PSEUDO_DIR): # big triangle code is a bad practice...
             for file in files:
-                if file.lower().endswith(".upf"):
-                    folder = root.replace("\\", "/").split("/")[-1]
-                    for rule in rules["rules"]:
+                if file.lower().endswith(".upf"): # if there is any pseudopotential file, then add tags
+                    key = os.path.abspath(os.path.join(root, file)) # key is directly the full path of file
+                    for rule in rules["rules"]: # add tags according to rules, iterate over all rules
                         re_folder, re_file, tags = rule["re.folder"], rule["re.file"], rule["tags"]
-                        if re.match(re_folder, folder) and re.match(re_file, file):
-                            key = os.path.abspath(os.path.join(root, file))
-                            if not key in database:
+                        if re.search(re_folder, root) and re.match(re_file, file):
+                            if not key in database: # it is the first time to add tags, so add element tag
+                                # the parse of pseudopotential will be slow, so need to reduce this operation
+                                # as much as possible
                                 pp = ampp.as_dict(key)
                                 ppgencode = ampp.determine_code(pp)
                                 if ppgencode == "GBRV":
                                     parsed = amppsg.PP_HEADER(pp["PP_HEADER"]["data"])
-                                    element = parsed["attrib"]["element"]
+                                    element = parsed["attrib"]["element"].strip().lower().capitalize()
                                 else:
-                                    element = pp["PP_HEADER"]["attrib"]["element"]
+                                    element = pp["PP_HEADER"]["attrib"]["element"].strip().lower().capitalize()
                                 database.setdefault(key, []).append(element)
-                            print(f"Add tags {tags} to {key}")
-                            database[key] = list(set(database[key] + tags))
+                            # check if tags are already in the database by comparing sets
+                            if not set(tags) <= set(database[key]):
+                                print(f"Appending tags {tags} to {key}...")
+                                database[key] = list(set(database[key] + tags))
+                    upfs_unclassified.append(key) if key not in database else None
+        # save the database
         with open(FDATABASE, "w") as f:
             json.dump(database, f, indent=4)
     else:
         raise FileNotFoundError("Rules file not found")
+    print(f"""there are {len(upfs_unclassified)} unclassified pseudopotential files, see returned value for details.
+you can update the rules file to include these files, or manually add tags to them.""")
+    return upfs_unclassified
 
+import unittest
 import re
-def mark_mutual_tags(folder: str, tags: list, regex: str = r".*", unique_tag: str = "from_name"):
-    """mark mutual tags for all files in the folder,
-    and add unique tag to the tags list. The unique tag
-    can be set to `from_name` or `from_file`, for the former,
-    will grep the first one or two elements from the file name (split
-    the file name by `_`, `-`, or `.`), for the latter, will grep element
-    information from file."""
-    assert os.path.exists(folder), "Folder not found"
-    assert os.path.isdir(folder), "Not a folder"
-    assert os.path.exists(FDATABASE), "Database file not found"
-    assert unique_tag in ["from_name", "from_file"], "Invalid unique tag"
+class TestRegularExpression(unittest.TestCase):
+    def test_refolder(self):
+        """test re.folder key in rules"""
+        PseudoDojov10 = "/root/abacus-develop/ABACUS-Pseudopot-Nao-Square/download/pseudopotentials/pseudos_ac_she/116_Lv/Lv-6spd_r.upf"
+        refolder = r"pseudos_ac_she/\d+_[A-Z][a-z]?"
+        refile = r"[A-Z][a-z]?-\d+[a-z]*_r\.upf" 
+        # will have tags ["Lv", 
+        #                 "PseudoDojo", "DOJO", "abinit", 
+        #                 "v1.0", "1.0", 
+        #                 "PBE", "Perdew-Burke-Ernzerhof",
+        #                 "NC", "norm-conserving",
+        #                 "full-relativistic", "rel",
+        #                 ...]
+        self.assertTrue(re.search(refolder, PseudoDojov10))
+        fupf = PseudoDojov10.split("/")[-1]
+        print(fupf)
+        self.assertTrue(re.match(refile, PseudoDojov10.split("/")[-1]))
 
-    with open(FDATABASE) as f:
-        database = json.load(f)
-    for root, dirs, files in os.walk(folder):
-        for file in files:
-            if file.lower().endswith(".upf") and re.match(regex, file):
-                # use the full path of file as the key
-                key = os.path.join(root, file)
-                original_tags = database.get(key, [])
-                database[key] = list(set(original_tags + tags))
-                if unique_tag == "from_name":
-                    element = file.split("_")[0].split("-")[0].split(".")[0]
-                    database[key] = list(set(database[key] + [element.lower().capitalize()]))
-                elif unique_tag == "from_file":
-                    raise NotImplementedError("Not implemented yet")
-
-    with open(FDATABASE, "w") as f:
-        json.dump(database, f, indent=4)
-
-def overwrite_tags(folder: str, tag_to_overwrite: str, tags: list, regex: str = r".*"):
-    """overwrite tags for all files in the folder"""
-    assert os.path.exists(folder), "Folder not found"
-    assert os.path.isdir(folder), "Not a folder"
-    assert os.path.exists(FDATABASE), "Database file not found"
-
-    with open(FDATABASE) as f:
-        database = json.load(f)
-    for root, dirs, files in os.walk(folder):
-        for file in files:
-            if file.lower().endswith(".upf") and re.match(regex, file):
-                key = os.path.join(root, file)
-                original_tags = database.get(key, [])
-                database[key] = list(set(original_tags + tags))
-                database[key] = [tag for tag in database[key] if tag != tag_to_overwrite]
-
-    with open(FDATABASE, "w") as f:
-        json.dump(database, f, indent=4)
-
-def remove_tags(folder: str, tags: list, regex: str = r".*"):
-    """remove tags for all files in the folder"""
-    assert os.path.exists(folder), "Folder not found"
-    assert os.path.isdir(folder), "Not a folder"
-    assert os.path.exists(FDATABASE), "Database file not found"
-
-    with open(FDATABASE) as f:
-        database = json.load(f)
-    for root, dirs, files in os.walk(folder):
-        for file in files:
-            if file.lower().endswith(".upf") and re.match(regex, file):
-                key = os.path.join(root, file)
-                original_tags = database.get(key, [])
-                database[key] = [tag for tag in original_tags if tag not in tags]
-
-    with open(FDATABASE, "w") as f:
-        json.dump(database, f, indent=4)
 
 if __name__ == "__main__":
-    # initialize()
-    # mark_mutual_tags("./download/pseudopotentials/pbe_s_sr", 
-    #                  ["ONCVPSP", "ONCV"], 
-    #                  regex=r".*",
-    #                  unique_tag="from_name")
-    # #overwrite_tags("./download/pseudopotentials/pslibrary-pbe.0.3.1", "NC", ["rrkjus", "US", "ultrasoft", "rrkj"], regex=r".*rrkjus.*")
-    # print("Database updated")
-    initialize()
-    exit()
+
+    # unittest.main()
+    # exit()
+    # fail_upfs = initialize(True)
+    # print(fail_upfs)
+    # exit()
     import apns.module_pseudo.tag_search as ts
     searcher = ts.TagSearcher(FDATABASE)
-    print(searcher(True, False, "Mn", "psl", "US"))
+    print(searcher(True, False, "Fe", "US"))

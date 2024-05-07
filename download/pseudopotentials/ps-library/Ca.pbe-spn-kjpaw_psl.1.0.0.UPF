@@ -1,5 +1,5 @@
 <UPF version="2.0.1">
-  <PP_INFO><![CDATA[
+  <PP_INFO>
 Generated using "atomic" code by A. Dal Corso  v.6.4.1
 Author: ADC
 Generation date:  4May2019
@@ -25,8 +25,8 @@ Functional:  SLA  PW   PBX  PBC
     3D  3  2  0.00      1.200      1.700     0.050000
     3D  3  2  0.00      1.200      1.700     1.000000
     Pseudization used: troullier-martins
-]]>
-    <PP_INPUTFILE><![CDATA[
+
+    <PP_INPUTFILE>
  &amp;input
 
    title='Ca',
@@ -59,7 +59,7 @@ Functional:  SLA  PW   PBX  PBC
 4P  3  1  0.00  0.00  1.40  1.60  0.0
 3D  3  2  0.00  0.05  1.20  1.70  0.0
 3D  3  2  0.00  1.00  1.20  1.70  0.0
-]]></PP_INPUTFILE>
+</PP_INPUTFILE>
   </PP_INFO>
   <!--
  END OF HUMAN READABLE SECTION 
