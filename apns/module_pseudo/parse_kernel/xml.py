@@ -1,7 +1,7 @@
 import re
 import apns.module_pseudo.parse_kernel.util as ampku
-
-def preprocess(fname: str):
+import uuid
+def xml_standardize(fname: str):
     """ Pseudopotential XML file preprocess
 
     preprocess is relatively hard-coded. There are some cases the UPF file is not standard xml, therefore
@@ -10,9 +10,10 @@ def preprocess(fname: str):
     with `&amp;`
     2. GBRV pseudopotential does not startswith <UPF version="2.0.1">, and not endswith </UPF>, add <UPF version="2.0.1">
     to the beginning of the file and </UPF> to the end of the file
-    3. some of ADC pseudopotentials have `</!-->` at the end of the file, replace it with `</UPF>`
+    3. some of ADC pseudopotentials have `CDATA` tag, which is not allowed in xml, remove them
     """
-    print(f"Preprocessing {fname}...")
+    ftemp = f"{str(uuid.uuid3(uuid.NAMESPACE_DNS, fname))}.xml"
+    print(f"Preprocessing {fname}, will write standard XML formatted temporaray file to {ftemp}")
     # because a pseudopotential file would not be large, directly read all lines into memory
     with open(fname, "r") as f:
         lines = f.readlines()
@@ -35,7 +36,7 @@ def preprocess(fname: str):
     # for PseudoDojo v1.0 pseudopotential, carefully check consistency between opening and closing tags
     # for ADC pseudopotential or ld1 generated, replace eliminate both `<![CDATA[` and `]]>` if they exist
     lines = [line.replace("<![CDATA[", "").replace("]]>", "") for line in lines]
-    with open(fname, "w") as f:
+    with open(ftemp, "w") as f:
         # replace the `&` symbol at the beginning of the line with `&amp;`, this is done by xml_syntax_filter
         for _, line in ampku.xml_syntax_filter(lines):
         #for line in lines:
@@ -45,7 +46,7 @@ def preprocess(fname: str):
             f.write(line)
             if "</UPF>" in line: # there are some pseudopotential files endswith ppgen file, but will crash the xml parser
                 break
-    return None
+    return os.path.abspath(ftemp)
 
 def postprocess(parsed: dict):
 
@@ -77,8 +78,8 @@ def parse(fname: str):
     3. iterate through the tree and return a dictionary
     4. postprocess the dictionary, convert the data to the correct type
     """
-    preprocess(fname)
-    tree = etree.parse(fname)
+    ftemp = xml_standardize(fname)
+    tree = etree.parse(ftemp)
     root = tree.getroot()
     # iterate through the tree and return a dictionary
     parsed = {}
@@ -86,6 +87,7 @@ def parse(fname: str):
         if isinstance(child.tag, str):
             parsed[child.tag] = {"data": child.text, "attrib": child.attrib}
     #parsed = postprocess(parsed)
+    os.remove(ftemp)
     return parsed
 
 def to_psp8(fname: str):
@@ -96,28 +98,30 @@ def to_psp8(fname: str):
 import os
 import unittest
 class TestXML(unittest.TestCase):
-    def test_preprocess(self):
+    def test_xml_standardize(self):
         contents = """There is neither a beginning tag nor an ending tag\n"""
         with open("test.upf", "w") as f:
             f.write(contents)
-        preprocess("test.upf")
-        with open("test.upf", "r") as f:
+        ftemp = xml_standardize("test.upf")
+        with open(ftemp, "r") as f:
             lines = f.readlines()
         self.assertEqual(lines[0], "<UPF version=\"unknown\" comment=\"added to complete xml format\">\n")
         self.assertEqual(lines[-1].strip(), "</UPF>")
         os.remove("test.upf")
+        os.remove(ftemp)
         
         contents = """<UPF version="2.0.1">
 There is a beginning tag but not an ending tag
 """
         with open("test.upf", "w") as f:
             f.write(contents)
-        preprocess("test.upf")
-        with open("test.upf", "r") as f:
+        ftemp = xml_standardize("test.upf")
+        with open(ftemp, "r") as f:
             lines = f.readlines()
         self.assertEqual(lines[0], "<UPF version=\"2.0.1\">\n")
         self.assertEqual(lines[-1].strip(), "</UPF>")
         os.remove("test.upf")
+        os.remove(ftemp)
 
         contents = """<UPF version="2.0.1">
 There is a beginning tag but with wrong ending tag
@@ -125,12 +129,13 @@ There is a beginning tag but with wrong ending tag
 """
         with open("test.upf", "w") as f:
             f.write(contents)
-        preprocess("test.upf")
-        with open("test.upf", "r") as f:
+        ftemp = xml_standardize("test.upf")
+        with open(ftemp, "r") as f:
             lines = f.readlines()
         self.assertEqual(lines[0], "<UPF version=\"2.0.1\">\n")
         self.assertEqual(lines[-1].strip(), "</UPF>")
         os.remove("test.upf")
+        os.remove(ftemp)
 
         contents = """      <UPF version="2.0.1">
     The correct case but with accidental indents
@@ -138,12 +143,13 @@ There is a beginning tag but with wrong ending tag
 """
         with open("test.upf", "w") as f:
             f.write(contents)
-        preprocess("test.upf")
-        with open("test.upf", "r") as f:
+        ftemp = xml_standardize("test.upf")
+        with open(ftemp, "r") as f:
             lines = f.readlines()
         self.assertEqual(lines[0], "<UPF version=\"2.0.1\">\n")
         self.assertEqual(lines[-1].strip(), "</UPF>")
         os.remove("test.upf")
+        os.remove(ftemp)
 
         contents = """<UPF version="2.0.1">
 The correct case but with & symbol at the beginning of the line
@@ -152,14 +158,15 @@ The correct case but with & symbol at the beginning of the line
 """
         with open("test.upf", "w") as f:
             f.write(contents)
-        preprocess("test.upf")
-        with open("test.upf", "r") as f:
+        ftemp = xml_standardize("test.upf")
+        with open(ftemp, "r") as f:
             lines = f.readlines()
         self.assertEqual(lines[0], "<UPF version=\"2.0.1\">\n")
         self.assertEqual(lines[-1].strip(), "</UPF>")
         self.assertEqual(lines[2], "&amp;This is a test\n")
         os.remove("test.upf")
+        os.remove(ftemp)
 
 if __name__ == "__main__":
     unittest.main()
-    #preprocess("/root/abacus-develop/ABACUS-Pseudopot-Nao-Square/download/pseudopotentials/ps-library/Ar.pbe-n-rrkjus_psl.1.0.0.UPF")
+    #xml_standardize("/root/abacus-develop/ABACUS-Pseudopot-Nao-Square/download/pseudopotentials/ps-library/Ar.pbe-n-rrkjus_psl.1.0.0.UPF")

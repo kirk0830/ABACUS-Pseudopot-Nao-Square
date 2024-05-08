@@ -74,7 +74,7 @@ def determine_code(pseudopotential: str|dict):
     
     raise ValueError("Pseudopotential type not recognized")
 
-def valence_configuration(pseudopotential: str|dict):
+def valence(pseudopotential: str|dict):
     """extract valence electron configuration from pseudopotential file
     return a list of lists, 
     [
@@ -87,16 +87,16 @@ def valence_configuration(pseudopotential: str|dict):
     pseudo_type = determine_code(parsed)
     if pseudo_type == "ONCVPSP":
         import apns.module_pseudo.parse_special.ONCVPSP_D_R_Hamann as ONCV_parser
-        return ONCV_parser.valence_configuration(parsed)
+        return ONCV_parser.valence(parsed)
     elif pseudo_type == "ADC":
         import apns.module_pseudo.parse_special.Atomic_A_Dal_Corso as ADC_parser
-        return ADC_parser.valence_configuration(parsed)
+        return ADC_parser.valence(parsed)
     elif pseudo_type == "GBRV":
         import apns.module_pseudo.parse_special.GBRV_Vanderbilt as GBRV_parser
-        return GBRV_parser.valence_configuration(parsed)
+        return GBRV_parser.valence(parsed)
     elif pseudo_type == "ATOMPAW":
         import apns.module_pseudo.parse_special.ATOMPAW_wentzcovitch as ATOMPAW_parser
-        return ATOMPAW_parser.valence_configuration(parsed)
+        return ATOMPAW_parser.valence(parsed)
     elif pseudo_type == "GTH":
         raise ValueError("GTH pseudopotential does not have valence electron configuration information")
     else:

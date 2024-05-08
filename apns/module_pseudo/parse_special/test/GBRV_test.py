@@ -4,11 +4,11 @@ import json
 
 class TestGBRV(unittest.TestCase):
 
-    def test_valence_configuration(self):
+    def test_valence(self):
         with open("./apns/module_pseudo/special_parser/test/support/Os_pbe_v1.2.uspp.f.json", "r") as f:
             parsed = json.load(f)
 
-        result = GBRV_parser.valence_configuration(parsed)
+        result = GBRV_parser.valence(parsed)
         self.assertGreater(len(result), 0)
         self.assertEqual(len(result[0]), 2)
         self.assertEqual(len(result[1]), 2)

@@ -1,4 +1,4 @@
-def valence_configuration(parsed: dict) -> list:
+def valence(parsed: dict) -> list:
 
     result = {}
 

@@ -3,11 +3,11 @@ import apns.module_pseudo.parse_special.ONCVPSP_D_R_Hamann as ONCV_test
 import json
 class TestONCV(unittest.TestCase):
 
-    def test_valence_configuration(self):
+    def test_valence(self):
 
         with open("./apns/module_pseudo/special_parser/test/support/Ag.json", "r") as f:
             parsed = json.load(f)
-        result = ONCV_test.valence_configuration(parsed)
+        result = ONCV_test.valence(parsed)
         self.assertGreater(len(result), 0)
         self.assertEqual(len(result[0]), 2)
         self.assertEqual(len(result[1]), 1)
