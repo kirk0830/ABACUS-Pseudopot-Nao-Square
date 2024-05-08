@@ -4,7 +4,7 @@ a series of tags. Then accessing pseudopotential file would
 be the process of roll and roll tag-filtering task"""
 PSEUDO_DIR = "./download/pseudopotentials"
 
-TAGRULES = PSEUDO_DIR + "/rules_new.json"
+TAGRULES = PSEUDO_DIR + "/rules.json"
 """this file saves rules to add tags onto various pseudopotential
 files. The rules are in the form of a dictionary, where the value
 of key `rules` is a list of dictionaries, each dictionary contains
@@ -86,7 +86,6 @@ class TestRegularExpression(unittest.TestCase):
         print(fupf)
         self.assertTrue(re.match(refile, PseudoDojov10.split("/")[-1]))
 
-
 if __name__ == "__main__":
 
     # unittest.main()
@@ -94,6 +93,6 @@ if __name__ == "__main__":
     # fail_upfs = initialize(True)
     # print(fail_upfs)
     # exit()
-    import apns.module_pseudo.tag_search as ts
+    import apns.module_database.search as ts
     searcher = ts.TagSearcher(FDATABASE)
-    print(searcher(True, False, "Fe", "US"))
+    print("\n".join(searcher(True, False, "Fe")))

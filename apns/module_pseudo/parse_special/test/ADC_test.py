@@ -3,10 +3,10 @@ import unittest
 import json
 class Test_ADC_parser(unittest.TestCase):
 
-    def test_valence_configuration(self):
+    def test_valence(self):
         with open("./apns/module_pseudo/special_parser/test/support/Ac.pbe-n-nc.json", "r") as f:
             parsed = json.load(f)
-        result = ADC_parser.valence_configuration(parsed)
+        result = ADC_parser.valence(parsed)
         self.assertGreater(len(result), 0)
         self.assertEqual(len(result[0]), 1)
         self.assertEqual(len(result[1]), 0)

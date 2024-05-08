@@ -131,7 +131,7 @@ def PP_QIJ(data: str) -> dict:
         "attrib": {}
     }
 
-def valence_configuration(parsed: dict) -> list:
+def valence(parsed: dict) -> list:
 
     contents = parsed["PP_HEADER"]["data"]
     lines = [line.strip() for line in contents.split("\n")]

@@ -37,11 +37,11 @@ Current working directory: {os.getcwd()}""")
         os.makedirs(amwi.TEMPORARY_FOLDER, exist_ok=True)
         # treat pseudopotentials and numerical atomic orbitals equally
         # therefore both are loaded
-        print("Refreshing pseudopotential and numerical orbital archive.")
-        with open(self.finp, "r") as f:
-            inp = json.load(f)
-        ampm.load(inp["global"]["pseudo_dir"])
-        amnm.load(inp["global"]["orbital_dir"])
+        # print("Refreshing pseudopotential and numerical orbital archive.")
+        # with open(self.finp, "r") as f:
+        #     inp = json.load(f)
+        # ampm.load(inp["global"]["pseudo_dir"])
+        # amnm.load(inp["global"]["orbital_dir"])
         
     def run(self):
         """run the driver"""

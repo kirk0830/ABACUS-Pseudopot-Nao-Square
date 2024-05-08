@@ -43,7 +43,7 @@ pseudopotentials param here is the list of pseudopotential identifiers.
 
 In principle the other param can also be list of numerical orbital identifiers, but will implement in
 the future."""
-def pseudopot_nao(pseudopotentials: list, numerical_orbitals: list = None) -> list:
+def pseudopot_nao(pseudopotentials: list, numerical_orbitals: list) -> list:
     """seperate valid pseudopotentials (and numerical orbitals) into different combinations for one single element
     
     Args:
@@ -142,6 +142,9 @@ def systems(systems: dict, vupfs: dict, vorbs: dict = None) -> list:
         system, in sequence of system_list
     """
     #vorbs = {} if vorbs is None else vorbs
+    print(f"systems: \n{systems}")
+    print(f"vupfs: \n{vupfs}")
+    print(f"vorbs: \n{vorbs}")
     upforb_settings = []
     for formula in systems.keys():
         elements = amsb.scan_elements(formula)
@@ -149,13 +152,11 @@ def systems(systems: dict, vupfs: dict, vorbs: dict = None) -> list:
         # for each element, return a list by function pseudopot_nao
         # the .keys() method is used to get all pseudopotentials and numerical orbitals'
         # identifiers, which are used to make Cartesian direct product
-        vupf_ids = [list(vupfs[element].keys()) for element in elements]
-        vorb_ids = [list(vorbs[element].keys()) if len(vorbs[element].keys()) > 0 \
-                    else None for element in elements] if vorbs is not None else None
-        element_wise_combinations = [pseudopot_nao(pseudopotentials=vupf_ids[i], 
-                                                   numerical_orbitals=None) 
-                                     for i in range(len(elements))]
-        upforb_settings.append(system(element_wise_combinations))
+        vupfs_sys = [list(vupfs.get(element, [])) for element in elements]
+        vorbs_sys = [list(vorbs.get(element, [])) for element in elements]
+        elementwise_combinations = [pseudopot_nao(vupfs_sys[i], vorbs_sys[i]) 
+                                    for i in range(len(elements))]
+        upforb_settings.append(system(elementwise_combinations))
     return upforb_settings
 
 """calculation parameters combination for global """

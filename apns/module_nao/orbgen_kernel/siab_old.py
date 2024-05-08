@@ -346,7 +346,7 @@ def autoset(fpseudo: str,
             orbital_configurations: list):
     fpseudo = pseudo_dir + "/" + fpseudo
     if minimal_basis is None:
-        minimal_basis = ampgp.valence_configuration(fpseudo)
+        minimal_basis = ampgp.valence(fpseudo)
         minimal_basis = [len(item) for item in minimal_basis]
     
     z_val = -1
