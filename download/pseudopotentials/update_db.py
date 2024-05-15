@@ -60,11 +60,32 @@ def initialize(refresh: bool = False) -> list[str]:
         # save the database
         with open(FDATABASE, "w") as f:
             json.dump(database, f, indent=4)
+        complete_tag(["fr", "full-relativistic"], ["sr", "scalar-relativistic"], FDATABASE)
     else:
         raise FileNotFoundError("Rules file not found")
     print(f"""there are {len(upfs_unclassified)} unclassified pseudopotential files, see returned value for details.
 you can update the rules file to include these files, or manually add tags to them.""")
     return upfs_unclassified
+
+def complete_tag(if_without: list, add: list, fdb: str):
+    """for all pseudopotential files, if without tags in `if_without`, add tags in `add`
+    useful for some pseudopotentials marked as "fr" and "full-relativistic", while those
+     not fr, add "sr" and "scalar-relativistic" """
+    assert os.path.exists(fdb), "database file not found"
+    with open(fdb) as f:
+        database = json.load(f)
+    
+    record = []
+    for fpp in database.keys():
+        if not set(if_without) <= set(database[fpp]):
+            print(f"Appending tags {add} to {fpp}...")
+            record.append(fpp)
+            database[fpp] = list(set(database[fpp] + add))
+
+    with open(fdb, "w") as f:
+        json.dump(database, f, indent=4)
+
+    return record 
 
 import unittest
 import re
@@ -95,4 +116,4 @@ if __name__ == "__main__":
     # exit()
     import apns.module_database.search as ts
     searcher = ts.TagSearcher(FDATABASE)
-    print("\n".join(searcher(True, False, "Fe")))
+    print("\n".join(searcher(False, False, "Sr", "sr", "DOJO")))

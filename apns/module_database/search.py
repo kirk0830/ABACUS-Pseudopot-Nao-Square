@@ -30,7 +30,6 @@ class TagSearcher:
     result = set()
     database = dict()
     def __init__(self, fdatabase: str):
-        assert os.path.exists(fdatabase), "Database file not found"
         with open(fdatabase) as f:
             self.database = json.load(f)
 
