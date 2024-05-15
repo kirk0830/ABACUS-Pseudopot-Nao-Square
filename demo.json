@@ -1,0 +1,15 @@
+{
+    "input": [
+        ["", // defines path of the template file, default is empty
+         {}],// defines parameters to overwrite
+        ["", 
+         {}] 
+        // more...
+    ], // ABACUS INPUT file defined here
+    "kpt": [ // similar with input
+        ["mpmesh", "G", 6, 6, 6, 0, 0, 0], // Monkhorst-Pack mesh starting from Gamma point, 6*6*6
+        ["mpmesh", "MP", 7, 7, 7, 1, 1, 1], // Monkhorst-Pack mesh centered at Gamma point, 7*7*7, shift (1, 1, 1)
+        ["line", 10] // for band structure calculation, will
+    ],
+    "cases": [] // here place test cases
+}
