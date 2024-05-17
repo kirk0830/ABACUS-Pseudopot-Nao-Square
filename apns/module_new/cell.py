@@ -1,3 +1,9 @@
+"""
+Refactor notes:
+this is the file involved in refactor project of APNS for dealing with the more and more
+complicated pseudopot-nao test cases.
+"""
+
 class AtomSpecies:
     """
     WHAT IS AN ATOMSPECIES?
@@ -10,7 +16,7 @@ class AtomSpecies:
 
     the magmom on the fly, the position of one specific atom, or everything related to the
     simulation. Because it is not the property of one atom species, but the property of one
-    object called "atom" in simulation.
+    object (but as coincidience) called "atom" in simulation.
     """
     name, fullname, symbol, index, rcovalent, mass, magmom = \
         None, None, None, None, None, None, None
@@ -106,18 +112,20 @@ class Cell:
 
         import seekpath as skps
         cell = Cell._abc_angles_to_vec([self.a, self.b, self.c, self.alpha, self.beta, self.gamma], True)
-        positions = self.coords.tolist()
-        numbers = self.species_map
-        self.sym_ks = skps.get_path((cell, positions, numbers), **kwargs)['point_coords']
+        self.sym_ks = skps.get_path((cell, self.coords.tolist(), self.species_map), **kwargs)['point_coords']
 
     def ideal_build(self, config: str, characteristic: float):
         """build structures with simple shapes, such as ideal Bravis lattices,
         including SimpleCubic (SC), FaceCenteredCubic (FCC), BodyCenteredCubic (BCC),
         Diamond (diamond) and simple molecules such as dimer, trimer, tetramer, etc.
         """
+        import re
+        symbol, config = config.split('_')
         pure = config.lower() in ['sc', 'fcc', 'bcc', 'diamond', 'dimer', 'trimer', 'tetramer']
         periodic = config.lower() in ['sc', 'fcc', 'bcc', 'diamond', 'x2y', 'x2y3', 'x2y5', 'xy', 'xy2', 'xy3']
         composite = not pure and periodic
+        assert (re.match(r'^[A-Z][a-z]?$', symbol) and pure) or (re.match(r'^[A-Z][a-z]?[A-Z][a-z]?$', symbol) and composite), \
+            f'symbol not supported for ideal_build: {symbol}'
         config = config.lower() if pure else config.upper()
         assert (config == config.upper() and composite) or (config == config.lower() and pure)
         self.periodic = periodic
@@ -131,6 +139,8 @@ class Cell:
         assert characteristic > 0, f'characteristic should be positive: {characteristic}'
         abc_angles, species_map, coords = Cell._structure(config, characteristic)
         self.kernel_build(abc_angles, coords, species_map)
+        self.symbols = re.findall(r'([A-Z][a-z]?)', symbol)
+        assert (len(self.symbols) == 2 and composite) or (len(self.symbols) == 1 and pure)
 
     def bravis_angles(config: str):
         """get the angles of the simple perodic structures"""
@@ -413,11 +423,11 @@ class Cell:
             np.array([[0, 0, 0], 
                         [0.5, 0, 0], [0, 0.5, 0], [0, 0, 0.5]])
 
-
 class StructureManager:
     """structure manager is for managing structures, including downloading, generating, etc."""
-    atom_species = None
-    structures = []
+    atom_species: list[AtomSpecies] = []
+    structures: list[Cell] = []
+    desc = []
     
     def __init__(self, atom_species) -> None:
         """initialize the structure manager with a list of atom species
@@ -437,32 +447,106 @@ class StructureManager:
         assert isinstance(atom_species, list), f'atom_species should be a list: {atom_species}'
         self.atom_species = atom_species
     
-    def add_structure(self, cell: Cell, attrib: str, scale_range: list):
-        """add a structure to the structure manager, attribute must be specified, can be
-        `cif`, `bravis`, `molecule`. The scale_range is the range of the scaling factors.
+    #######################
+    # structure prototype #
+    #######################
+    """fucntions in this part is for importing structures without additional scalling, say
+    not for EOS, not for varying bond lengths, ..."""
+    def describe_structure(self, desc):
         """
-        assert isinstance(cell, Cell), f'cell should be a Cell object: {cell}'
-        assert attrib in ['cif', 'bravis', 'molecule'], f'attrib should be cif, bravis, or molecule: {attrib}'
-        assert isinstance(scale_range, list), f'scale_range should be a list: {scale_range}'
-        self.structures.append((cell, attrib, scale_range))
+        For lazy build. First describe, then build explicitly and output instantly.
+        : if the cell can be built with several parameters, then those parameters are
+        representation of those exact structures. Calculate on those parameters means
+        to vary and generate structures.
+        
+        NEED A UNIFIED INTERFACE TO CREATE CELL:
+        1. standard_build: fcif
+        2. ideal_build: config, characteristic_length
+        ```python
+        # descriptor
+        #         str                str                    list[float]                list[str] list[str]
+        # (cif/bravis/molecule, fcif/sc/dimer, EOS_scalings/EOS_scalings/bond_lengths, pptags,   naotags)
+        # pptags and naotags are associated.
+        # once from pptags determines a list of pseudopotentials, 
+        # for each pseudopotential, search numerical atomic orbital according to naotags.
+        # example
+        desc = [('cif', '/root/abacus-develop/ABACUS-Pseudopot-Nao-Square/download/structures/Si.cif',
+                [0.95, 0.97, 0.99, 1.01, 1.03], ['Si', 'PBE', 'NC', 'sg15', 'sr'], 
+                ['6au', '100Ry' , '2s2p1d']),
+                ('bravis', 'sc', [0.95, 0.97, 0.99, 1.01, 1.03], ['Si', 'PBE', 'NC', 'sg15', 'sr'], 
+                None),
+                ('molecule', 'dimer', [1.0, 1.02, 1.04, 1.06, 1.08], ['Si', 'PBE', 'NC', 'sg15', 'sr'], 
+                ['6au', '100Ry' , '2s2p1d'])]
+        sm = StructureManager(species)
+        sm.describe_structure(desc)
+        ```
+        """
+        import re
+        import os
+        assert isinstance(desc, list), f'desc should be a list: {desc}'
+        assert all([isinstance(d, tuple) for d in desc]), f'each element in desc should be a tuple: {desc}'
+        assert all([len(d) == 5 for d in desc]), f'each element in desc should be a tuple of 5 elements: {desc}'
+        assert all([isinstance(d[0], str) and d[0] in ['cif', 'bravis', 'molecule'] for d in desc])
+        assert all([isinstance(d[1], str) and \
+               (re.match(r'([A-Z][a-z]?_[dimer|trimer|tetramer|sc|bcc|fcc|diamond])|([A-Z][a-z]?[A-Z][a-z]?_[xy2|xy3|x2y|x2y3|x2y5])'\
+                or os.path.exists(d[1]))) for d in desc]), f'descriptor is neither a cif file nor a bravis/molecule type: {desc}'
+        assert all([isinstance(d[2], list) and all([isinstance(x, float) for x in d[2]]) for d in desc]), \
+            f'characteristic scaling should be list of floats: {desc}'
+        assert all([isinstance(d[3], list) and all([isinstance(x, str) for x in d[3]]) for d in desc]), \
+            f'pptags should be list of strings: {desc}'
+        assert all([\
+            (isinstance(d[4], list) and all([isinstance(x, str) for x in d[4]])) or (d[4] is None) \
+                for d in desc]), f'naotags should be list of strings: {desc} or None in basis_type pw calculation'
+        self.desc = desc
+        """will add replace, pop and append functionalities later"""
+    
+    def inject_atomspecies(self, icell: int):
+        """This function estabilishes the actual connection between the abstract Cell object whose
+        "atom(s)" are just names of points rather than physically meaningful atom (in real world),
+        while the AtomSpecies' are the "real" one: inject specific AtomSpecies instances to Cell, 
+        which reads both symbols and species_map. Create a composited tuple, the first is desc and 
+        the second is list of AtomSpecies."""
+        # first find the AtomSpecies of the structure
+        _cell = self.structures[icell]
+        symbols = _cell.symbols
+        assert len(symbols) == len(_cell.species_map), f'symbols and species_map should have the same length: {symbols}, {_cell.species_map}'
+        # then find the AtomSpecies of the structure
+        atom_species = [s for s in self.atom_species if s.symbol in symbols]
+        assert len(atom_species) == len(symbols), f'atom_species should have the same length as symbols: {atom_species}, {symbols}'
+        # then inject the AtomSpecies to the Cell
+        self.structures[icell] = (_cell, atom_species)
 
-    def amplificate(self, i: int):
-        """
-        def inflate(self, orbital_dir: str, naotags: dict):
-            import itertools as itools
-            pps = [list(s.pp) for s in self.species]
-            pps = list(itools.product(*pps)) # convert to combinations of pps of different species
-            for pp in pps: # for each combination of pps, dispatch the pp and call species.set_nao to get the nao to combine
-                for i, s in enumerate(self.species):
-                    s.set_nao(orbital_dir, pp[i], *(naotags[s.symbol] + [s.symbol]))
-                naos = [list(s.nao) for s in self.species]
-                naos = list(itools.product(*naos)) # might be None?
-                for nao in naos:
-                    _cell = Cell()
-                    if self.periodic:
-                        _cell.kernel_build(self.species, [self.a, self.b, self.c, self.alpha, self.beta, self.gamma], self.coords, self.species_map)
-        """
-        pass
+    def build(self, pseudo_dir: str, orbital_dir: str):
+        """expand all tests, this function is unique in APNS, but should not appear in
+        ABACUS newly-refactored UnitCell module, becuase StructureManager is not exactly
+        the StructureIterator or something, while it is less necessary to implement such
+        a class or function."""
+        # check all elements in self.desc are tuples of three elements, the first
+        # is str, the second is str and the third is list of float
+        # build should be based on each Cell. For one cell, iterate to generate set of AtomSpecies
+        # then save and inject them after the exact cell is built
+        import itertools as itools
+        lcao = [d[4] for d in self.desc if d[4] is not None]
+        assert len(lcao) == 0 or len(lcao) == len(self.desc), f'naotags should be all None or all not None: {lcao}'
+        lcao = (len(lcao) == len(self.desc))
+        for d in self.desc: # for each structure prototype
+            # build AtomSpecies: search pseudopotential first
+            map(lambda s: s.set_pp(pseudo_dir, d[3]), self.atom_species)
+            pps_comb = [list(s.pp) for s in self.atom_species]
+            pps_comb = list(itools.product(*pps)) # convert to combinations of pps of different species
+            for pps in pps_comb: # for each AtomSpecies, one pseudopotential
+                assert len(pps) == len(self.atom_species), f'pps should be a list of pseudopotentials: {pps}'
+                if lcao:
+                    for i, s in enumerate(self.atom_species):
+                        s.set_nao(pps[i], orbital_dir, d[4])
+                    naos_comb = [list(s.nao) for s in self.atom_species]
+                    naos_comb = list(itools.product(*naos_comb)) # for each AtomSpecies, one nao
+                else:
+                    naos_comb = [[None] * len(pps)] # only one possibility of naos: all is none
+                assert all([len(naos) == len(pps) for naos in naos_comb]), f'naos should be a list of naos: {naos_comb}'
+                # then for each pps-naos, inject AtomSpecies information into Cell.
+
+
 
 import unittest
 class TestAtomSpecies(unittest.TestCase):
@@ -571,7 +655,7 @@ loop_
     
     def test_easy_build(self):
         cell = Cell()
-        cell.ideal_build('sc', 5.43)
+        cell.ideal_build('Si_sc', 5.43)
         self.assertEqual(cell.a, 5.43)
         self.assertEqual(cell.b, 5.43)
         self.assertEqual(cell.c, 5.43)
@@ -580,12 +664,55 @@ loop_
         self.assertEqual(cell.gamma, 90)
         self.assertEqual(cell.coords.shape, (1, 3))
         self.assertEqual(cell.species_map, [0])
+        self.assertEqual(cell.symbols, ['Si'])
+
+        with self.assertRaises(AssertionError):
+            cell.ideal_build('SiO_diamond', 5.43)
+        with self.assertRaises(AssertionError):
+            cell.ideal_build('Si_x2y3', 5.43)
+        with self.assertRaises(AssertionError):
+            cell.ideal_build('Si_imagination', 5.43)
+        cell.ideal_build('SiO_xy2', 5.43) # SiO2
+        self.assertEqual(cell.a, 5.43)
+        self.assertEqual(cell.b, 5.43)
+        self.assertEqual(cell.c, 5.43)
+        self.assertEqual(cell.alpha, 60)
+        self.assertEqual(cell.beta, 60)
+        self.assertEqual(cell.gamma, 60)
+        self.assertEqual(cell.coords.shape, (3, 3))
+        self.assertEqual(cell.species_map, [0, 1, 1])
+        self.assertEqual(cell.symbols, ['Si', 'O'])
 
     def test_kspacing(self):
         cell = Cell()
         cell.kernel_build([4.22798145, 4.22798145, 4.22798145, 60, 60, 60], [[0, 0, 0]], [0])
         cell.kmeshgen(0.03*cell.lat0)
         self.assertEqual(cell.mpmesh_nks, [33, 33, 33])
+
+class TestStructureManager(unittest.TestCase):
+
+    def test_describe_structure_re(self):
+        """regular expression in StructureManager.build function"""
+        import re
+        _re = r'([A-Z][a-z]?_[dimer|trimer|tetramer|sc|bcc|fcc|diamond])|([A-Z][a-z]?[A-Z][a-z]?_[xy2|xy3|x2y|x2y3|x2y5])'
+        _match = re.match(_re, 'Si_dimer')
+        self.assertIsNotNone(_match)
+        _match = re.match(_re, 'O_sc')
+        self.assertIsNotNone(_match)
+        _match = re.match(_re, 'SiO_xy2')
+        self.assertIsNotNone(_match)
+        _match = re.match(_re, 'SiO_x2y5')
+        self.assertIsNotNone(_match)
+        _match = re.match(_re, 'SiO_x2y')
+        self.assertIsNotNone(_match)
+        _match = re.match(_re, 'CO_x2y3')
+        self.assertIsNotNone(_match)
+        _match = re.match(_re, 'Si_x2y3')
+        self.assertIsNone(_match)
+        _match = re.match(_re, 'SiO_x2y3')
+        self.assertIsNotNone(_match) # indicating preset Si2O3 structure
+        _match = re.match(_re, 'SiO_diamond')
+        self.assertIsNone(_match) # SiO2 in diamond-like Bravis lattice is not defined in this way
 
 if __name__ == "__main__":
     unittest.main()
