@@ -1,15 +1,61 @@
 {
-    "input": [
-        ["", // defines path of the template file, default is empty
-         {}],// defines parameters to overwrite
-        ["", 
-         {}] 
-        // more...
-    ], // ABACUS INPUT file defined here
-    "kpt": [ // similar with input
-        ["mpmesh", "G", 6, 6, 6, 0, 0, 0], // Monkhorst-Pack mesh starting from Gamma point, 6*6*6
-        ["mpmesh", "MP", 7, 7, 7, 1, 1, 1], // Monkhorst-Pack mesh centered at Gamma point, 7*7*7, shift (1, 1, 1)
-        ["line", 10] // for band structure calculation, will
+    "global": {
+        "mode": "test",
+        "pseudo_dir": "./download/pseudopotentials",
+        "orbital_dir": "./download/numerical_orbitals"
+    },
+    "abacus": [
+        {
+            "ecutwfc": 30,
+            "calculation": "cell-relax",
+            "nspin": 2
+        },
+        {
+            "ecutwfc": [30, 40, 50],
+            "calculation": "scf",
+            "cal_force": 1,
+            "cal_stress": 1
+        },
+        {
+            "ecutwfc|ecutrho": [[30, 300], [40, 400], [50, 500]],
+            "calculation": "scf"
+        },
+        {
+            "ecutwfc": [30, 40, 50],
+            "ecutrho": [300, 400, 500],
+            "calculation": "scf"
+        }
     ],
-    "cases": [] // here place test cases
+    "atomsets": [
+        {
+            "H": [[],
+                  []],
+            "O": [[],
+                  []]
+        },
+        {
+            "H": [[],
+                  []],
+            "O": [[],
+                  []],
+            "Na": [[],
+                   []]
+        }
+    ],
+    "structures": [
+        {
+            "calculator": "abacus",
+            "calcset": 3,
+            "atomset": 2,
+            "desc": [["mp", "Li3ErCl6", [1.0]],
+                     ["scratch", "ErCl_xy3", [0.94, 0.96, 0.98, 1.00, 1.02, 1.04, 1.06]],
+                     ["scratch", "Er_dimer", [2.1, 2.4, 2.7, 3.0, 3.3]]]
+        },
+        {
+            "calculator": "abacus",
+            "calcset": 1,
+            "atomset": 0,
+            "desc": [["mp", "Li3DyCl6", [0.94, 0.96, 0.98, 1.00, 1.02, 1.04, 1.06]]]
+        }
+    ]
 }
