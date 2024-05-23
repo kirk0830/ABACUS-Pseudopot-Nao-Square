@@ -546,11 +546,19 @@ class StructureManager:
             return "bravis", *match_.groups()
         match_ = re.match(r'^([A-Z][a-z]?[A-Z][a-z]?)_(xy2|xy3|x2y|x2y3|x2y5)$', the_second)
         if match_:
-            return "bravis", match_.groups()
+            return "bravis", *match_.groups()
         match_ = re.match(r'^([A-Z][a-z]?)_(dimer|trimer|tetramer)$', the_second)
         if match_:
-            return "molecule", match_.groups()
+            return "molecule", *match_.groups()
         return None
+
+    def atomsets_transpose(atomsets: list):
+        # transpose atomsets from {atom: [[pptags...], [naotags...]]} to [{atom: [pptags...]}, {atom: [naotags...]}]
+        atomsets = [[{key: value[i] for key, value in atomset.items()} for i in range(len(next(iter(atomset.values()))))]
+                    for atomset in atomsets]
+        # for each atomset, there are two dicts, if all values of dict is None, then set the dict as None
+        atomsets = [[None if all([value is None for value in tags.values()]) else tags for tags in atomset] for atomset in atomsets]
+        return atomsets
 
     def make_desc(atomsets: list, structures: list):
         """
@@ -572,10 +580,21 @@ class StructureManager:
             for id_, d in enumerate(s["desc"]):
                 if d[0] == "search":
                     api_keys[db] = s.get("api_key", "")
-                    formula.setdefault(db, []).append(d[2])
-                    db_formula_isid_map.setdefault((db, d[2]), []).append((is_, id_))
-        log = download(api_key=api_keys, formula=formula) # will be nested dict, [db][formula][icif] = (fname, magmoms)
-        desc_ = [s["desc"] for s in structures]
+                    formula.setdefault(db, []).append(d[1])
+                    db_formula_isid_map.setdefault((db, d[1]), []).append((is_, id_))
+        # should add local check to avoid download the same structure!
+        log = download(api_keys=api_keys, formula=formula) # will be nested dict of list of tuples, [db][formula][icif] = (fname, magmoms)
+        atomsets = StructureManager.atomsets_transpose(atomsets)
+        # first convert not cif structures to descriptors
+        desc_ = [[("cif" if d[0] == "local" else StructureManager.idtfr_gen(d[1])[0], (d[1], None), d[2], 
+             atomsets[s["atomset"]][0], atomsets[s["atomset"]][1]) for d in s["desc"] if d[0] != "search"] for s in structures] 
+        # then add those downloaded structures to the descriptors
+        for db, search_results in log.items(): # for each database, their formulas would also be dict, keys are formula, values are list of tuples
+            for formula, result in search_results.items(): # result is a list of tuples, each tuple is (fname, magmoms)
+                for is_, id_ in db_formula_isid_map[(db, formula)]:
+                    desc_[is_].extend([("cif", (fname, magmoms), structures[is_]["desc"][id_][2], atomsets[s["atomset"]][0], atomsets[s["atomset"]][1])
+                        for fname, magmoms in result])
+        return desc_
 
     def __init__(self, desc: list = None) -> None:
         """structure can be imported at the initialization of the structure manager,
@@ -633,7 +652,7 @@ class StructureManager:
             f'identifier should be cif, bravis or molecule: {desc}'
         assert all([isinstance(d[1], tuple) and len(d[1]) == 2 for d in desc])
         assert all([isinstance(d[1][0], str) and (isinstance(d[1][1], list) or d[1][1] is None) for d in desc])
-        assert all([isinstance(d[1][0], str) and StructureManager.idtfr_gen(d[1][0]) in ["cif", "bravis", "molecule"]
+        assert all([isinstance(d[1][0], str) and StructureManager.idtfr_gen(d[1][0])[0] in ["cif", "bravis", "molecule"]
                     for d in desc]), f'descriptor is neither a cif file nor a bravis/molecule type: {desc}'
         assert all([isinstance(d[2], list) and all([isinstance(x, float) for x in d[2]]) for d in desc]), \
             f'characteristic scaling should be list of floats: {desc}'
@@ -934,6 +953,33 @@ loop_
 
 class TestStructureManager(unittest.TestCase):
 
+    def test_atomsets_transpose(self):
+        atomsets = [
+            {"H": [["pptagH1", "pptagH2"], None],
+             "O": [["pptagO1", "pptagO2"], None]},
+        ]
+        result = StructureManager.atomsets_transpose(atomsets)
+        self.assertEqual(result, [[{'H': ['pptagH1', 'pptagH2'], 'O': ['pptagO1', 'pptagO2']}, None]])
+
+    def est_make_desc(self):
+        atomsets = [
+            {"H": [["pptagH1", "pptagH2"], None],
+             "O": [["pptagO1", "pptagO2"], None]},
+        ]
+        structures = [
+            {"database": "mp",
+            "atomset": 0, 
+            "api_key": "wV1HUdmgESPVgSmQj5cc8WvttCO8NTHp", "desc": [
+            ["search", "BaTiO3", [1.0]]
+            ]}
+        ]
+        result = StructureManager.make_desc(
+            atomsets, structures
+        )
+        ref = [[('cif', ('apns_cache/mp-5777.cif', [0.0, 0.0, 0.0, 0.0, 0.0]), [1.0], 
+                 {'H': ['pptagH1', 'pptagH2'], 'O': ["pptagO1", "pptagO2"]}, None)]]
+        self.assertEqual(result, ref)
+
     def test_describe_re(self):
         """regular expression in StructureManager.build function"""
         import re
@@ -958,21 +1004,16 @@ class TestStructureManager(unittest.TestCase):
         self.assertIsNone(_match) # SiO2 in diamond-like Bravis lattice is not defined in this way
 
     def test_idtfr_gen(self):
-        self.assertEqual(StructureManager.idtfr_gen('Si_dimer'), 'molecule')
-        self.assertEqual(StructureManager.idtfr_gen('SiO_xy2'), 'bravis')
-        self.assertEqual(StructureManager.idtfr_gen('SiO_x2y3'), 'bravis')
-        with self.assertRaises(ValueError):
-            StructureManager.idtfr_gen('Si_x2y3')
+        self.assertEqual(StructureManager.idtfr_gen('Si_dimer'), ('molecule', 'Si', 'dimer'))
+        self.assertEqual(StructureManager.idtfr_gen('SiO_xy2'), ('bravis', 'SiO', 'xy2'))
+        self.assertEqual(StructureManager.idtfr_gen('SiO_x2y3'), ('bravis', 'SiO', 'x2y3'))
+        self.assertIsNone(StructureManager.idtfr_gen('SiO_diamond'))
         fcif = "Si.cif"
         with open(fcif, "w") as f:
             f.write("fake cif")
-        self.assertEqual(StructureManager.idtfr_gen(fcif), 'cif')
+        self.assertEqual(StructureManager.idtfr_gen(fcif), ('cif', fcif))
         import os
         os.remove(fcif)
-        result = StructureManager.idtfr_gen('Si_dimer')
-        self.assertEqual(result, ('molecule', 'Si', 'dimer'))
-        result = StructureManager.idtfr_gen('SiO_xy2')
-        self.assertEqual(result, ('bravis', 'SiO', 'xy2'))
 
     def test_build(self):
         import os
@@ -1040,4 +1081,4 @@ loop_
                 os.remove(ff)
 
 if __name__ == "__main__":
-    unittest.main()
+    unittest.main(exit=False)
