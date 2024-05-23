@@ -2,7 +2,12 @@
     "global": {
         "mode": "test",
         "pseudo_dir": "./download/pseudopotentials",
-        "orbital_dir": "./download/numerical_orbitals"
+        "orbital_dir": "./download/numerical_orbitals",
+        "cache_dir": "./apns_cache"
+    },
+    "abacustest": {
+        "bohrium.account": "test",
+        "bohrium.password": "test"
     },
     "abacus": [
         {
@@ -26,6 +31,75 @@
             "calculation": "scf"
         }
     ],
+    "qespresso": [
+        {
+            "calculation": {
+                "outdir": "./out",
+                "prefix": "test",
+                "pseudo_dir": "./pseudo",
+                "wf_collect": ".true.",
+                "disk_io": "low",
+                "verbosity": "high",
+                "restart_mode": "from_scratch"
+            },
+            "system": {
+                "ibrav": 0,
+                "celldm(1)": 10.0,
+                "nat": 2,
+                "ntyp": 1,
+                "ecutwfc|ecutrho": [[30, 300], [40, 400], [50, 500]],
+                "occupations": "smearing",
+                "smearing": "gaussian",
+                "degauss": 0.01
+            },
+            "electrons": {
+                "mixing_mode": "plain",
+                "mixing_beta": [0.3, 0.7],
+                "conv_thr": 1.0e-6,
+                "diagonalization": "david"
+            },
+            "ions": {
+                "ion_dynamics": "bfgs"
+            },
+            "cell": {
+                "cell_dynamics": "bfgs"
+            }
+        },
+        {
+            "calculation": {
+                "outdir": "./out",
+                "prefix": "test",
+                "pseudo_dir": "./pseudo",
+                "wf_collect": ".true.",
+                "disk_io": "low",
+                "verbosity": "high",
+                "restart_mode": "from_scratch"
+            },
+            "system": {
+                "ibrav": 0,
+                "celldm(1)": 10.0,
+                "nat": 2,
+                "ntyp": 1,
+                "ecutwfc": [30, 40, 50],
+                "ecutrho": [300, 400, 500],
+                "occupations": "smearing",
+                "smearing": "gaussian",
+                "degauss": 0.01
+            },
+            "electrons": {
+                "mixing_mode": "plain",
+                "mixing_beta": [0.3, 0.7],
+                "conv_thr": 1.0e-6,
+                "diagonalization": "david"
+            },
+            "ions": {
+                "ion_dynamics": "bfgs"
+            },
+            "cell": {
+                "cell_dynamics": "bfgs"
+            }
+        }
+    ],
     "atomsets": [
         {
             "H": [[],
@@ -47,15 +121,32 @@
             "calculator": "abacus",
             "calcset": 3,
             "atomset": 2,
-            "desc": [["mp", "Li3ErCl6", [1.0]],
+            "database": "mp",
+            "search_filter": {
+                "n_structures": 1,
+                "is_stable": true,
+                "theoretical": false
+            },
+            "api_key": "test",
+            "desc": [["search", "Li3ErCl6", [1.0]],
                      ["scratch", "ErCl_xy3", [0.94, 0.96, 0.98, 1.00, 1.02, 1.04, 1.06]],
                      ["scratch", "Er_dimer", [2.1, 2.4, 2.7, 3.0, 3.3]]]
         },
         {
-            "calculator": "abacus",
+            "calculator": "qespresso",
             "calcset": 1,
             "atomset": 0,
-            "desc": [["mp", "Li3DyCl6", [0.94, 0.96, 0.98, 1.00, 1.02, 1.04, 1.06]]]
+            "database": "mv",
+            "n_structures": 1,
+            "api_key": "test",
+            "desc": [["search", "Li3DyCl6", [0.94, 0.96, 0.98, 1.00, 1.02, 1.04, 1.06]]]
+        },
+        {
+            "calculator": "abacus",
+            "calcset": 0,
+            "atomset": 1,
+            "database": "cod",
+            "desc": [["local", "/example/structure/only/cif/supported.cif", [1.0]]]
         }
     ]
 }
