@@ -535,13 +535,35 @@ class StructureManager:
     # structures generated
     structures: list[tuple[Cell, list[AtomSpecies]]] = []
 
-    def make_desc(src: list):
-        """make descriptors of structures"""
+    def make_desc(atomsets: list, structures: list):
+        """
+        iterate on the `structures` section in input, in-on-shot download all structures
+        needed, and return the descriptors of the structures for calling `describe()`.
+        This function is called like:
+        ```python
+        atomsets = inp["atomsets"]
+        structures = inp["structures"]
+        desc = StructureManager.make_desc(atomsets, structures)
+        ```
+        """
+        from apns.module_structure.api import download
+        api_keys = {}
+        formula = {}
+        db_formula_isid_map = {}
+        for is_, s in enumerate(structures):
+            db = s.get("database", "mp") # default structure database is Materials Project
+            for id_, d in enumerate(s["desc"]):
+                if d[0] == "search":
+                    api_keys[db] = s.get("api_key", "")
+                    formula.setdefault(db, []).append(d[2])
+                    db_formula_isid_map.setdefault((db, d[2]), []).append((is_, id_))
+        log = download(api_key=api_keys, formula=formula) # will be nested dict, [db][formula][icif] = (fname, magmoms)
+
 
     def __init__(self, desc: list = None) -> None:
         """structure can be imported at the initialization of the structure manager,
         but can also be imported/overwritten later if call the describe() method."""
-        if desc is not None: 
+        if desc is not None:
             self.describe(desc)
     
     """fucntions in this part is for importing structures without additional scalling, say
