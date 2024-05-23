@@ -535,6 +535,23 @@ class StructureManager:
     # structures generated
     structures: list[tuple[Cell, list[AtomSpecies]]] = []
 
+    def idtfr_gen(the_second: str) -> str:
+        """generate the identifier of the structure from the second arg of the descriptor"""
+        import os
+        if os.path.exists(the_second) and os.path.isfile(the_second) and the_second.endswith(".cif"):
+            return "cif", the_second
+        import re
+        match_ = re.match(r'^([A-Z][a-z]?)_(sc|bcc|fcc|diamond)$', the_second)
+        if match_:
+            return "bravis", *match_.groups()
+        match_ = re.match(r'^([A-Z][a-z]?[A-Z][a-z]?)_(xy2|xy3|x2y|x2y3|x2y5)$', the_second)
+        if match_:
+            return "bravis", match_.groups()
+        match_ = re.match(r'^([A-Z][a-z]?)_(dimer|trimer|tetramer)$', the_second)
+        if match_:
+            return "molecule", match_.groups()
+        return None
+
     def make_desc(atomsets: list, structures: list):
         """
         iterate on the `structures` section in input, in-on-shot download all structures
@@ -558,7 +575,7 @@ class StructureManager:
                     formula.setdefault(db, []).append(d[2])
                     db_formula_isid_map.setdefault((db, d[2]), []).append((is_, id_))
         log = download(api_key=api_keys, formula=formula) # will be nested dict, [db][formula][icif] = (fname, magmoms)
-
+        desc_ = [s["desc"] for s in structures]
 
     def __init__(self, desc: list = None) -> None:
         """structure can be imported at the initialization of the structure manager,
@@ -577,8 +594,8 @@ class StructureManager:
         
         ```python
         # descriptor
-        #       str                    list[float]                    list[str] list[str]
-        # (fcif/X_sc/X_dimer, EOS_scalings/EOS_scalings/bond_lengths, pptags,   naotags)
+        #        identifier               str                         list[float]                    list[str] list[str]
+        # (cif/bravis/molecule, (fcif/X_sc/X_dimer, magmoms), EOS_scalings/EOS_scalings/bond_lengths, pptags,   naotags)
         # pptags and naotags are associated.
         # once from pptags determines a list of pseudopotentials, 
         # for each pseudopotential, search numerical atomic orbital according to naotags.
@@ -609,8 +626,6 @@ class StructureManager:
         sm.describe(desc)
         ```
         """
-        import re
-        import os
         assert isinstance(desc, list), f'desc should be a list: {desc}'
         assert all([isinstance(d, tuple) for d in desc]), f'each element in desc should be a tuple: {desc}'
         assert all([len(d) == 5 for d in desc]), f'each element in desc should be a tuple of 5 elements: {desc}'
@@ -618,9 +633,8 @@ class StructureManager:
             f'identifier should be cif, bravis or molecule: {desc}'
         assert all([isinstance(d[1], tuple) and len(d[1]) == 2 for d in desc])
         assert all([isinstance(d[1][0], str) and (isinstance(d[1][1], list) or d[1][1] is None) for d in desc])
-        assert all([isinstance(d[1][0], str) and \
-               (re.match(r'([A-Z][a-z]?_[dimer|trimer|tetramer|sc|bcc|fcc|diamond])|([A-Z][a-z]?[A-Z][a-z]?_[xy2|xy3|x2y|x2y3|x2y5])'\
-                , d[1][0])) or os.path.exists(d[1][0]) for d in desc]), f'descriptor is neither a cif file nor a bravis/molecule type: {desc}'
+        assert all([isinstance(d[1][0], str) and StructureManager.idtfr_gen(d[1][0]) in ["cif", "bravis", "molecule"]
+                    for d in desc]), f'descriptor is neither a cif file nor a bravis/molecule type: {desc}'
         assert all([isinstance(d[2], list) and all([isinstance(x, float) for x in d[2]]) for d in desc]), \
             f'characteristic scaling should be list of floats: {desc}'
         assert all([isinstance(d[3], dict) and all([all([isinstance(tag, str) for tag in tags]) for tags in d[3].values()]) for d in desc]), \
@@ -942,6 +956,23 @@ class TestStructureManager(unittest.TestCase):
         self.assertIsNotNone(_match) # indicating preset Si2O3 structure
         _match = re.match(_re, 'SiO_diamond')
         self.assertIsNone(_match) # SiO2 in diamond-like Bravis lattice is not defined in this way
+
+    def test_idtfr_gen(self):
+        self.assertEqual(StructureManager.idtfr_gen('Si_dimer'), 'molecule')
+        self.assertEqual(StructureManager.idtfr_gen('SiO_xy2'), 'bravis')
+        self.assertEqual(StructureManager.idtfr_gen('SiO_x2y3'), 'bravis')
+        with self.assertRaises(ValueError):
+            StructureManager.idtfr_gen('Si_x2y3')
+        fcif = "Si.cif"
+        with open(fcif, "w") as f:
+            f.write("fake cif")
+        self.assertEqual(StructureManager.idtfr_gen(fcif), 'cif')
+        import os
+        os.remove(fcif)
+        result = StructureManager.idtfr_gen('Si_dimer')
+        self.assertEqual(result, ('molecule', 'Si', 'dimer'))
+        result = StructureManager.idtfr_gen('SiO_xy2')
+        self.assertEqual(result, ('bravis', 'SiO', 'xy2'))
 
     def test_build(self):
         import os
