@@ -1,4 +1,27 @@
+"""Generator enpowers everything
+"abacus": [
+    Generator[Calc], Generator[Calc], Generator[Calc], ...
+]
+"qespresso": [
+    Generator[Calc], Generator[Calc], Generator[Calc], ...
+]
+"atomsets": [
+    list[AtomSpeciesGenerator], list[AtomSpeciesGenerator], list[AtomSpeciesGenerator], ...
+]
+"strusets": [
+    ["abacus",    0, 0, list[CellGenerator]], 
+    ["qespresso", 1, 0, list[CellGenerator]], 
+    ["abacus",    0, 2, list[CellGenerator]], ...
+]
 
+for struset in strusets:
+    calculator, icalc, iatomset, cellgens = struset
+    Generator[Calc] <- (calculator, icalc) # from these two, can determine one generator
+    # level 0: (Generator[Calc], list[AtomSpeciesGenerator], list[CellGenerator])
+    
+
+list[AtomSpecies] <- itertools.product(*list[AtomSpeciesGenerator])
+"""
 class AtomSpeciesGeneartor:
     name, fullname, symbol, index, rcovalent, mass, magmom, u_minus_j = \
         None, None, None, None, None, None, None, None
@@ -83,6 +106,11 @@ class AtomSpecies:
         self.pp = pp
         self.nao = nao
 
+    def __str__(self) -> str:
+        return f"""AtomSpecies:\nname: {self.name}, \nfullname: {self.fullname},
+symbol: {self.symbol}, \nindex: {self.index}, \ncovalent radius: {self.rcovalent},
+mass: {self.mass}, \nmagmom: {self.magmom}, \npseudopotential: {self.pp}, \nnumerical atomic orbital: {self.nao}"""
+
 class CellGenerator:
 
     # basic
@@ -117,7 +145,7 @@ class CellGenerator:
         for scale in self.scales:
             params = self.build(self.identifier, self.config, scale, self.kspacing)
             params["labels"] = CellGenerator.divide_subset(
-                params["kinds"], params["labels"], self.magmoms, params["coords"])\
+                params["coords"], params["kinds"], self.magmoms, params["labels_kinds_map"])\
                     if self.magmoms is not None else params["labels"]
             cell = Cell(**params)
             yield cell
@@ -142,18 +170,18 @@ class CellGenerator:
 
         from pymatgen.io.cif import CifParser
         parser = CifParser(fname)
-        structure = parser.parse_structures(primitive=True)[0]
+        structure = parser.parse_structures(primitive=False)[0]
         labels = [site.species.elements[0].symbol for site in structure]
         kinds = list(dict.fromkeys(labels)) # find unique set but keep the sequence
         labels_kinds_map = [kinds.index(lable) for lable in labels]
-        coords = structure.cart_coords
+        coords = structure.frac_coords.tolist()
         magmoms = [0] * len(coords)
         a, b, c = [i*scale**(1/3) for i in structure.lattice.abc]
         alpha, beta, gamma = structure.lattice.angles
 
         import seekpath
         cell = CellGenerator._abc_angles_to_vec([a, b, c, alpha, beta, gamma], True)
-        seekpath_result = seekpath.get_path((cell, coords.tolist(), labels_kinds_map))
+        seekpath_result = seekpath.get_path((cell, coords, labels_kinds_map))
         sym_ks = seekpath_result['point_coords']
         possible_kpath = seekpath_result['path']
         mpmesh_nks = CellGenerator.kmeshgen(a, b, c, alpha, beta, gamma, kspacing) if kspacing > 0 else [1] * 3
@@ -189,8 +217,8 @@ class CellGenerator:
             if characteristic < 0 and periodic else characteristic
         assert characteristic > 0, f'characteristic should be positive: {characteristic}'
         abc_angles, labels_kinds_map, coords = CellGenerator._structure(config, characteristic)
+        coords = coords.tolist()
         a, b, c, alpha, beta, gamma = abc_angles
-        coords = np.array(coords)
         kinds = re.findall(r'([A-Z][a-z]?)', kind)
         labels = [kinds[i] for i in labels_kinds_map]
         assert (len(kinds) == 2 and composite) or (len(kinds) == 1 and pure)
@@ -200,14 +228,14 @@ class CellGenerator:
         vals = [a, b, c, alpha, beta, gamma, labels, kinds, labels_kinds_map, coords, mpmesh_nks]
         return dict(zip(keys, vals))
 
-    def divide_subset(fullset: list, dividee: list, divider: list, fullset_dividee_map: list):
+    def divide_subset(fullset: list, dividee: list, divider: list, dividee_fullset_map: list):
         """divide the labels into more piece"""
         if divider is None: return
         if divider == []: return
         assert isinstance(divider, list), f'identifiers should be a list: {divider}'
-        assert len(divider) == len(fullset), f"everytime identifiers should be defined for each atom: {divider}"
+        assert len(divider) == len(fullset), f"everytime identifiers should be defined for each atom: {len(divider)} vs {len(fullset)}"
         idx_sp_, unique_, kind_count_, labels_ = 0, [], [0]*len(dividee), []
-        for idx_sp, idtf in zip(fullset_dividee_map, divider):
+        for idx_sp, idtf in zip(dividee_fullset_map, divider):
             if (idx_sp, idtf) not in unique_:
                 unique_.append((idx_sp, idtf))
                 idx_sp_ += 1
@@ -540,12 +568,23 @@ class Cell:
         self.kinds = kwargs.get('kinds', None)
         self.labels_kinds_map = kwargs.get('labels_kinds_map', None)
 
+    def __str__(self) -> str:
+        return f"""Cell
+Real space lattice: \na: {self.a}, b: {self.b}, c: {self.c},
+alpha: {self.alpha}, beta: {self.beta}, gamma: {self.gamma},
+lattice constant: {self.lat0} Bohr/Angstrom\n
+Reciprocal space lattice:
+symmetry k-points: {self.sym_ks}, \npossible k-path: {self.possible_kpath},
+Monkhorst-Pack mesh: {self.mpmesh_nks}\n
+Structure:
+coords: {self.coords}, \nvelocities: {self.vels}, \nmagnetic moments: {self.magmoms}, \noccupations: {self.mobs}
+labels: {self.labels}, \nkinds: {self.kinds}, \nlabels_kinds_map: {self.labels_kinds_map}"""
 
 import unittest
 class TestAtomSpeciesGenerator(unittest.TestCase):
 
     def test_constructor(self):
-        asg = AtomSpeciesGeneartor('Si', None)
+        asg = AtomSpeciesGeneartor('Si', [])
         self.assertEqual(asg.name, 'Si')
         self.assertEqual(asg.fullname, 'Silicon')
         self.assertEqual(asg.symbol, 'Si')
@@ -565,7 +604,7 @@ class TestAtomSpeciesGenerator(unittest.TestCase):
         times = 0
         for as_ in asg("./"):
             times += 1
-            self.assertEqual(as_.pp, {"the_file_name_with_path"})
+            self.assertEqual(as_.pp, "the_file_name_with_path")
         self.assertEqual(times, 1)
         os.remove(fdatabase)
 
@@ -574,9 +613,12 @@ class TestAtomSpeciesGenerator(unittest.TestCase):
         ref = {'/root/abacus-develop/ABACUS-Pseudopot-Nao-Square/download/pseudopotentials/sg15_oncv_upf_2020-02-06/Si_ONCV_PBE-1.2.upf', 
                '/root/abacus-develop/ABACUS-Pseudopot-Nao-Square/download/pseudopotentials/sg15_oncv_upf_2020-02-06/Si_ONCV_PBE-1.0.upf', 
                '/root/abacus-develop/ABACUS-Pseudopot-Nao-Square/download/pseudopotentials/sg15_oncv_upf_2020-02-06/Si_ONCV_PBE-1.1.upf'}
+        result = []
         for as_ in asg("./download/pseudopotentials/"):
-            self.assertEqual(as_.pp, ref)
+            result.append(as_.pp)
             times += 1
+        result = set(result)
+        self.assertEqual(result, ref)
         self.assertEqual(times, 3)
 
 class TestCellGeneartor(unittest.TestCase):
@@ -584,10 +626,11 @@ class TestCellGeneartor(unittest.TestCase):
     def test_constructor(self):
         with self.assertRaises(AssertionError):
             CellGenerator('cif', 'Si', 1.0) # raise error because scales must be list
-
-        cg = CellGenerator('cif', 'Si', [1.0])
-        self.assertEqual(cg.identifier, 'cif')
-        self.assertEqual(cg.config, 'Si')
+        with self.assertRaises(AssertionError):
+            CellGenerator('cif', 'Si', [1.0])
+        cg = CellGenerator('molecule', 'Si_dimer', [1.0])
+        self.assertEqual(cg.identifier, 'molecule')
+        self.assertEqual(cg.config, 'Si_dimer')
         self.assertEqual(cg.scales, [1.0])
 
     def test_kspacing(self):
@@ -626,37 +669,37 @@ loop_
   Ac  Ac1  1  0.25000000  0.25000000  0.25000000  1
   O  O2  1  0.00000000  0.00000000  0.00000000  1"""
         fcif = 'Ac2O.cif'
-        cg = CellGenerator('cif', fcif, [1.0])
         with open(fcif, "w") as f:
             f.write(cif)
+        cg = CellGenerator('cif', fcif, [1.0])
         times = 0
         for cell in cg():
-            self.assertEqual(cell.a, 4.84451701)
-            self.assertEqual(cell.b, 4.84451701)
-            self.assertEqual(cell.c, 4.84451701)
-            self.assertEqual(cell.alpha, 60.0)
-            self.assertEqual(cell.beta, 60.0)
-            self.assertEqual(cell.gamma, 60.0)
+            self.assertAlmostEqual(cell.a, 4.84451701, delta=1e-6)
+            self.assertAlmostEqual(cell.b, 4.84451701, delta=1e-6)
+            self.assertAlmostEqual(cell.c, 4.84451701, delta=1e-6)
+            self.assertAlmostEqual(cell.alpha, 60.0, delta=1e-6)
+            self.assertAlmostEqual(cell.beta, 60.0, delta=1e-6)
+            self.assertAlmostEqual(cell.gamma, 60.0, delta=1e-6)
             self.assertEqual(cell.labels, ["Ac", "Ac", "O"])
             self.assertEqual(cell.kinds, ["Ac", "O"])
             self.assertEqual(cell.labels_kinds_map, [0, 0, 1])
-            self.assertEqual(cell.coords, [[0, 0, 0], [0.75, 0.75, 0.75], [0.25, 0.25, 0.25]])
+            self.assertEqual(cell.coords, [[0.75, 0.75, 0.75], [0.25, 0.25, 0.25], [0, 0, 0]])
             times += 1
         self.assertEqual(times, 1)
 
         cg = CellGenerator('cif', fcif, [1.0, 1.02, 1.04, 1.06, 1.08])
         times = 0
         for cell in cg():
-            self.assertEqual(cell.a, 4.84451701 * cg.scales[times]**(1/3))
-            self.assertEqual(cell.b, 4.84451701 * cg.scales[times]**(1/3))
-            self.assertEqual(cell.c, 4.84451701 * cg.scales[times]**(1/3))
-            self.assertEqual(cell.alpha, 60.0)
-            self.assertEqual(cell.beta, 60.0)
-            self.assertEqual(cell.gamma, 60.0)
+            self.assertAlmostEqual(cell.a, 4.84451701 * cg.scales[times]**(1/3), delta=1e-6)
+            self.assertAlmostEqual(cell.b, 4.84451701 * cg.scales[times]**(1/3), delta=1e-6)
+            self.assertAlmostEqual(cell.c, 4.84451701 * cg.scales[times]**(1/3), delta=1e-6)
+            self.assertAlmostEqual(cell.alpha, 60.0, delta=1e-6)
+            self.assertAlmostEqual(cell.beta, 60.0, delta=1e-6)
+            self.assertAlmostEqual(cell.gamma, 60.0, delta=1e-6)
             self.assertEqual(cell.labels, ["Ac", "Ac", "O"])
             self.assertEqual(cell.kinds, ["Ac", "O"])
             self.assertEqual(cell.labels_kinds_map, [0, 0, 1])
-            self.assertEqual(cell.coords, [[0, 0, 0], [0.75, 0.75, 0.75], [0.25, 0.25, 0.25]])
+            self.assertEqual(cell.coords, [[0.75, 0.75, 0.75], [0.25, 0.25, 0.25], [0, 0, 0]])
             times += 1
         self.assertEqual(times, 5)
 
@@ -664,16 +707,16 @@ loop_
         cg = CellGenerator('cif', fcif, [1.0], magmoms = [1.0, -1.0, 0.0])
         times = 0
         for cell in cg():
-            self.assertEqual(cell.a, 4.84451701)
-            self.assertEqual(cell.b, 4.84451701)
-            self.assertEqual(cell.c, 4.84451701)
-            self.assertEqual(cell.alpha, 60.0)
-            self.assertEqual(cell.beta, 60.0)
-            self.assertEqual(cell.gamma, 60.0)
+            self.assertAlmostEqual(cell.a, 4.84451701, delta=1e-6)
+            self.assertAlmostEqual(cell.b, 4.84451701, delta=1e-6)
+            self.assertAlmostEqual(cell.c, 4.84451701, delta=1e-6)
+            self.assertAlmostEqual(cell.alpha, 60.0, delta=1e-6)
+            self.assertAlmostEqual(cell.beta, 60.0, delta=1e-6)
+            self.assertAlmostEqual(cell.gamma, 60.0, delta=1e-6)
             self.assertEqual(cell.labels, ["Ac1", "Ac2", "O1"])
             self.assertEqual(cell.kinds, ["Ac", "O"])
             self.assertEqual(cell.labels_kinds_map, [0, 0, 1])
-            self.assertEqual(cell.coords, [[0, 0, 0], [0.75, 0.75, 0.75], [0.25, 0.25, 0.25]])
+            self.assertEqual(cell.coords, [[0.75, 0.75, 0.75], [0.25, 0.25, 0.25], [0, 0, 0]])
             self.assertEqual(cell.magmoms, [1.0, -1.0, 0.0])
             times += 1
 
@@ -693,23 +736,23 @@ loop_
             self.assertEqual(cell.labels, ["Si"])
             self.assertEqual(cell.kinds, ["Si"])
             self.assertEqual(cell.labels_kinds_map, [0])
-            self.assertEqual(cell.coords, [[0, 0, 0]])
+            self.assertEqual(cell.coords[0], [0, 0, 0])
             times += 1
         self.assertEqual(times, 1)
 
         cg = CellGenerator('bravis', 'Si_sc', [1.0, 1.02, 1.04, 1.06, 1.08])
         times = 0
         for cell in cg():
-            self.assertEqual(cell.a, 1.0 * cg.scales[times]**(1/3))
-            self.assertEqual(cell.b, 1.0 * cg.scales[times]**(1/3))
-            self.assertEqual(cell.c, 1.0 * cg.scales[times]**(1/3))
+            self.assertEqual(cell.a, 1.0 * cg.scales[times])
+            self.assertEqual(cell.b, 1.0 * cg.scales[times])
+            self.assertEqual(cell.c, 1.0 * cg.scales[times])
             self.assertEqual(cell.alpha, 90.0)
             self.assertEqual(cell.beta, 90.0)
             self.assertEqual(cell.gamma, 90.0)
             self.assertEqual(cell.labels, ["Si"])
             self.assertEqual(cell.kinds, ["Si"])
             self.assertEqual(cell.labels_kinds_map, [0])
-            self.assertEqual(cell.coords, [[0, 0, 0]])
+            self.assertEqual(cell.coords[0], [0, 0, 0])
             times += 1
         self.assertEqual(times, 5)
 
