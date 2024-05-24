@@ -1,8 +1,49 @@
-"""
-Refactor notes:
-this is the file involved in refactor project of APNS for dealing with the more and more
-complicated pseudopot-nao test cases.
-"""
+
+class AtomSpeciesGeneartor:
+    name, fullname, symbol, index, rcovalent, mass, magmom, u_minus_j = \
+        None, None, None, None, None, None, None, None
+    pptags, naotags = None, None
+
+    def __init__(self, symbol: str, pptags: list, naotags: list = None, **kwargs) -> None:
+        assert isinstance(symbol, str), f'symbol should be a string: {symbol}'
+        from apns.module_database import database
+        self.name = kwargs.get('name', symbol)
+        assert isinstance(self.name, str), f'name should be a string: {self.name}'
+        self.fullname = database.PERIODIC_TABLE_TOFULLNAME[symbol]
+        self.symbol = symbol
+        assert self.symbol in database.PERIODIC_TABLE_TOINDEX, f'symbol not supported: {self.symbol}'
+        self.index = database.PERIODIC_TABLE_TOINDEX[symbol]
+        self.rcovalent = database.RCOVALENT[symbol]
+        self.mass = database.ATOMIC_MASS[symbol]
+        self.magmom = kwargs.get('magmom', 0.0)
+        assert isinstance(pptags, list), f'pseudopotential tags should be a list: {pptags}'
+        assert all([isinstance(tag, str) for tag in pptags]), f'pseudopotential tags should be a list of strings: {pptags}'
+        self.pptags = pptags
+        assert isinstance(naotags, list) or naotags is None, f'nao tags should be a list or None: {naotags}'
+        assert naotags is None or all([isinstance(tag, str) for tag in naotags]), f'nao tags should be a list of strings: {naotags}'
+        self.naotags = naotags
+        self.u_minus_j = kwargs.get('u_minus_j', None)
+        assert self.u_minus_j is None or isinstance(self.u_minus_j, list), f'u_minus_j should be a list of floats: {self.u_minus_j}'
+        assert self.u_minus_j is None or all([isinstance(u, float) for u in self.u_minus_j]), f'u_minus_j should be a list of floats: {self.u_minus_j}'
+
+    def __call__(self, pseudo_dir, orbital_dir = None):
+        """iteratively create AtomSpecies instances"""
+        import itertools as it
+        from os.path import join as pjoin
+        from apns.module_database.search import TagSearcher
+        searcher = TagSearcher(pjoin(pseudo_dir, 'database.json'))
+        pps = searcher(False, False, *(list(set(self.pptags + [self.symbol]))))
+        
+        for pp in pps:
+            if orbital_dir is not None:
+                searcher = TagSearcher(pjoin(orbital_dir, 'database.json'))
+                naos = searcher(False, False, *(list(set(self.naotags + [pp]))))
+                for pp, nao in it.product(pps, naos):
+                    yield AtomSpecies(name=self.name, fullname=self.fullname, symbol=self.symbol, index=self.index,
+                                      rcovalent=self.rcovalent, mass=self.mass, magmom=self.magmom, pp=pp, nao=nao)
+            else:
+                yield AtomSpecies(name=self.name, fullname=self.fullname, symbol=self.symbol, index=self.index,
+                                  rcovalent=self.rcovalent, mass=self.mass, magmom=self.magmom, pp=pp, nao=None)
 
 class AtomSpecies:
     """# AtomSpecies
@@ -31,119 +72,103 @@ class AtomSpecies:
         None, None, None, None, None, None, None
     pp, nao = None, None
     
-    def __init__(self, symbol: str, **kwargs) -> None:
-        assert isinstance(symbol, str), f'symbol should be a string: {symbol}'
-        from apns.module_database import database
-        self.name = kwargs.get('name', symbol)
-        self.fullname = database.PERIODIC_TABLE_TOFULLNAME[symbol]
+    def __init__(self, name, fullname, symbol, index, rcovalent, mass, magmom, pp, nao) -> None:
+        self.name = name
+        self.fullname = fullname
         self.symbol = symbol
-        self.index = database.PERIODIC_TABLE_TOINDEX[symbol]
-        self.rcovalent = database.RCOVALENT[symbol]
-        self.mass = database.ATOMIC_MASS[symbol]
-        self.magmom = kwargs.get('magmom', 0.0)
-    
-    def set_pp(self, pseudo_dir: str, pptags: list):
-        """set the pseudopotentials of this atom species by the tags"""
-        from os.path import join as pjoin
-        from apns.module_database.search import TagSearcher
-        searcher = TagSearcher(pjoin(pseudo_dir, 'database.json'))
-        pptags = [] if pptags is None else pptags
-        self.pp = searcher(False, False, *(list(set(pptags + [self.symbol]))))
-    
-    def set_nao(self, pp: str, orbital_dir: str, naotags: list):
-        """set the numerical atomic orbitals of this atom species by the tags"""
-        import os
-        from apns.module_database.search import TagSearcher
-        searcher = TagSearcher(os.path.join(orbital_dir, 'database.json'))
-        naotags = [] if naotags is None else naotags
-        self.nao = searcher(False, False, *(naotags + [pp]))
+        self.index = index
+        self.rcovalent = rcovalent
+        self.mass = mass
+        self.magmom = magmom
+        self.pp = pp
+        self.nao = nao
 
-    # allow visit like a dict
-    def __getitem__(self, key):
-        return getattr(self, key)
+class CellGenerator:
 
-class Cell:
-    """# Cell
-    A prototype decoupling static AtomSpecies information with the dynamic structure information
-    from practical simulation. Hope would be helpful for ABACUS `UnitCell` class refactor plan
-
-    ### WHAT IS A CELL?
-    
-    A cell is such a object that know its structure and lattice parameters, but this is just the
-    half part, it also knows its reciprocal lattice information, such as the high symmetry k-points.
-    From a kspacing, it can also know how its Monkhorst-Pack mesh should be.
-
-    ### WHAT IS NOT REALLY A CELL KNOWS?
-    
-    the atom species. Actually the cell only knows there are many atomic sites and for each site, 
-    there is a symbol. Or more abstractly, it knows symbols and kinds of sites that occupied by
-    different atoms. The cell, does not own any AtomSpecies!
-    """
     # basic
-    periodic = None
-    # real space lattice information
-    a, b, c, alpha, beta, gamma = None, None, None, None, None, None
-    lat0 = 1.8897259886
+    identifier, config = None, None
     # reciprocal space lattice information
-    sym_ks, possible_kpath, mpmesh_nks = None, None, None
+    kspacing = None
     # "points" information
-    coords, vels, magmoms, mobs = None, None, None, None
-    labels, kinds, labels_kinds_map = None, None, None
-    
-    def __init__(self) -> None:
+    magmoms = None
+    # generator specific
+    scales = None
+
+    def __init__(self, identifier: str, config: str, scales: list, **kwargs) -> None:
         """create one cell instance with the scaling factors"""
-        pass
-
-    def build(self, identifier: str, config: str, scale: float, kspacing: float = -1.0):
         assert identifier in ["cif", "bravis", "molecule"], f'config should be cif, bravis or molecule: {config}'
-        self.standard_build(config, scale, kspacing) if identifier == "cif" else self.ideal_build(config, scale, kspacing)
-        self.vels = [[0.0] * 3] * len(self.coords)
-        self.magmoms = [0.0] * len(self.coords)
-        self.mobs = [[1] * 3] * len(self.coords)
+        self.identifier = identifier
+        import re
+        import os
+        _match = re.match(r'^([A-Z][a-z]?)_(dimer|trimer|tetramer|sc|bcc|fcc|diamond)$', config) or \
+            re.match(r'^([A-Z][a-z]?[A-Z][a-z]?)_(xy2|xy3|x2y|x2y3|x2y5)$', config)
+        assert _match or os.path.exists(config), f'config should be a file or a simple structure: {config}'
+        self.config = config
+        assert isinstance(scales, list), f'scales should be a list of floats: {scales}'
+        assert all([isinstance(scale, float) for scale in scales]), f'scales should be a list of floats: {scales}'
+        self.scales = scales
+        self.kspacing = kwargs.get('kspacing', -1.0)
+        assert isinstance(self.kspacing, float), f'kspacing should be a float: {self.kspacing}'
+        self.magmoms = kwargs.get('magmoms', None)
+        assert self.magmoms is None or isinstance(self.magmoms, list), f'magmoms should be a list of floats: {self.magmoms}'
 
-    def kernel_build(self, lat: list, coords: list, labels_kinds_map: list):
-        """build structure(s) from given species, lattice, and coordinates
+    def __call__(self):
+        """iteratively create Cell instances"""
+        for scale in self.scales:
+            params = self.build(self.identifier, self.config, scale, self.kspacing)
+            params["labels"] = CellGenerator.divide_subset(
+                params["kinds"], params["labels"], self.magmoms, params["coords"])\
+                    if self.magmoms is not None else params["labels"]
+            cell = Cell(**params)
+            yield cell
 
-        Args:
-            lat (list): a, b, c and alpha, beta, gamma
-            coords (list): coordinates of atoms, size = (n_atoms, 3)
-            kinds_map (list): mapping the index of coords to kinds, size = n_atoms
-        """
-        import numpy as np
-        self.a, self.b, self.c, self.alpha, self.beta, self.gamma = lat
-        self.coords = np.array(coords)
-        self.labels_kinds_map = labels_kinds_map
+    def build(self, identifier: str, config: str, scale: float, kspacing: float) -> dict:
+        assert identifier in ["cif", "bravis", "molecule"], f'config should be cif, bravis or molecule: {config}'
+        build_func = CellGenerator.standard_build if identifier == "cif" else CellGenerator.ideal_build
+        build_result = build_func(config, scale, kspacing)
+        vels = [[0.0] * 3] * len(build_result["coords"])
+        magmoms = [0.0] * len(build_result["coords"]) if self.magmoms is None else self.magmoms
+        mobs = [[1] * 3] * len(build_result["coords"])
 
-    def standard_build(self, fname: str, scale: float, kspacing: float = -1.0, **kwargs):
+        keys = ["vels", "magmoms", "mobs"]
+        vals = [vels, magmoms, mobs]
+        build_result.update(dict(zip(keys, vals)))
+        return build_result
+
+    def standard_build(fname: str, scale: float, kspacing: float = -1.0):
         """read structure file from external, and construct the structure.
         Currently only support CIF file.
         """
-        self.periodic = True
+
         from pymatgen.io.cif import CifParser
         parser = CifParser(fname)
         structure = parser.parse_structures(primitive=True)[0]
-        self.labels = [site.species.elements[0].symbol for site in structure]
-        self.kinds = list(dict.fromkeys(self.labels)) # find unique set but keep the sequence
-        self.labels_kinds_map = [self.kinds.index(lable) for lable in self.labels]
-        self.coords = structure.cart_coords
-        self.magmoms = [0] * len(self.coords)
-        self.a, self.b, self.c = [i*scale**(1/3) for i in structure.lattice.abc]
-        self.alpha, self.beta, self.gamma = structure.lattice.angles
+        labels = [site.species.elements[0].symbol for site in structure]
+        kinds = list(dict.fromkeys(labels)) # find unique set but keep the sequence
+        labels_kinds_map = [kinds.index(lable) for lable in labels]
+        coords = structure.cart_coords
+        magmoms = [0] * len(coords)
+        a, b, c = [i*scale**(1/3) for i in structure.lattice.abc]
+        alpha, beta, gamma = structure.lattice.angles
 
         import seekpath
-        cell = Cell._abc_angles_to_vec([self.a, self.b, self.c, self.alpha, self.beta, self.gamma], True)
-        seekpath_result = seekpath.get_path((cell, self.coords.tolist(), self.labels_kinds_map), **kwargs)
-        self.sym_ks = seekpath_result['point_coords']
-        self.possible_kpath = seekpath_result['path']
-        if kspacing > 0: self.kmeshgen(kspacing)
-        else: self.mpmesh_nks = [1] * 3
+        cell = CellGenerator._abc_angles_to_vec([a, b, c, alpha, beta, gamma], True)
+        seekpath_result = seekpath.get_path((cell, coords.tolist(), labels_kinds_map))
+        sym_ks = seekpath_result['point_coords']
+        possible_kpath = seekpath_result['path']
+        mpmesh_nks = CellGenerator.kmeshgen(a, b, c, alpha, beta, gamma, kspacing) if kspacing > 0 else [1] * 3
+
+        keys = ['a', 'b', 'c', 'alpha', 'beta', 'gamma', 'labels', 'kinds', 'labels_kinds_map', 'coords', 'magmoms', 'sym_ks', 'possible_kpath', 'mpmesh_nks']
+        vals = [a, b, c, alpha, beta, gamma, labels, kinds, labels_kinds_map, coords, magmoms, sym_ks, possible_kpath, mpmesh_nks]
+        return dict(zip(keys, vals))
         
-    def ideal_build(self, config: str, characteristic: float, kspacing: float = -1.0):
+    def ideal_build(config: str, characteristic: float, kspacing: float = -1.0):
         """build structures with simple shapes, such as ideal Bravis lattices,
         including SimpleCubic (SC), FaceCenteredCubic (FCC), BodyCenteredCubic (BCC),
         Diamond (diamond) and simple molecules such as dimer, trimer, tetramer, etc.
         """
         import re
+        import numpy as np
         match_ = re.match(r'^([A-Z][a-z]?)_(dimer|trimer|tetramer|sc|bcc|fcc|diamond)$', config) or \
             re.match(r'^([A-Z][a-z]?[A-Z][a-z]?)_(xy2|xy3|x2y|x2y3|x2y5)$', config)
         assert match_, f'config not supported for ideal_build: {config}'
@@ -155,39 +180,40 @@ class Cell:
             f'atomic symbol not supported for ideal_build: {kind}'
         config = config.lower() if pure else config.upper()
         assert (config == config.upper() and composite) or (config == config.lower() and pure)
-        self.periodic = periodic
         # True, True: ideal sc, fcc, bcc, diamond
         # True, False: dimer, trimer, tetramer
         # False, True: X2Y, X2Y3, X2Y5, XY, XY2, XY3
         # False, False: not supported
         assert pure or periodic, f'config not supported for ideal_build: {config}'
-        characteristic = Cell._vcell_to_celldm(self.bravis_angles(config), -characteristic)\
+        characteristic = CellGenerator._vcell_to_celldm(CellGenerator.bravis_angles(config), -characteristic)\
             if characteristic < 0 and periodic else characteristic
         assert characteristic > 0, f'characteristic should be positive: {characteristic}'
-        abc_angles, labels_kinds_map, coords = Cell._structure(config, characteristic)
-        self.kernel_build(abc_angles, coords, labels_kinds_map)
-        self.kinds = re.findall(r'([A-Z][a-z]?)', kind)
-        self.labels = [self.kinds[i] for i in self.labels_kinds_map]
-        assert (len(self.kinds) == 2 and composite) or (len(self.kinds) == 1 and pure)
-        if kspacing > 0: self.kmeshgen(kspacing)
-        else: self.mpmesh_nks = [1] * 3
+        abc_angles, labels_kinds_map, coords = CellGenerator._structure(config, characteristic)
+        a, b, c, alpha, beta, gamma = abc_angles
+        coords = np.array(coords)
+        kinds = re.findall(r'([A-Z][a-z]?)', kind)
+        labels = [kinds[i] for i in labels_kinds_map]
+        assert (len(kinds) == 2 and composite) or (len(kinds) == 1 and pure)
+        mpmesh_nks = CellGenerator.kmeshgen(a, b, c, alpha, beta, gamma, kspacing) if kspacing > 0 else [1] * 3
 
-    def divide_subset(self, identifiers: list, by: str = "magmom"):
-        """divide the labels_kinds_map into more piece, by the identifiers"""
-        if identifiers is None: return
-        if identifiers == []: return
-        assert isinstance(identifiers, list), f'identifiers should be a list: {identifiers}'
-        assert len(identifiers) == len(self.coords), f"everytime identifiers should be defined for each atom: {identifiers}"
-        idx_sp_, unique_, kind_count_, labels_ = 0, [], [0]*len(self.kinds), []
-        for idx_sp, idtf in zip(self.labels_kinds_map, identifiers):
+        keys = ['a', 'b', 'c', 'alpha', 'beta', 'gamma', 'labels', 'kinds', 'labels_kinds_map', 'coords', 'mpmesh_nks']
+        vals = [a, b, c, alpha, beta, gamma, labels, kinds, labels_kinds_map, coords, mpmesh_nks]
+        return dict(zip(keys, vals))
+
+    def divide_subset(fullset: list, dividee: list, divider: list, fullset_dividee_map: list):
+        """divide the labels into more piece"""
+        if divider is None: return
+        if divider == []: return
+        assert isinstance(divider, list), f'identifiers should be a list: {divider}'
+        assert len(divider) == len(fullset), f"everytime identifiers should be defined for each atom: {divider}"
+        idx_sp_, unique_, kind_count_, labels_ = 0, [], [0]*len(dividee), []
+        for idx_sp, idtf in zip(fullset_dividee_map, divider):
             if (idx_sp, idtf) not in unique_:
                 unique_.append((idx_sp, idtf))
                 idx_sp_ += 1
                 kind_count_[idx_sp] += 1
-            labels_.append(self.kinds[idx_sp] + str(kind_count_[idx_sp]))
-        self.labels = labels_
-        if by == "magmom":
-            self.magmoms = identifiers
+            labels_.append(dividee[idx_sp] + str(kind_count_[idx_sp]))
+        return labels_
 
     def bravis_angles(config: str):
         """get the angles of the simple perodic structures"""
@@ -200,17 +226,17 @@ class Cell:
         else:
             raise NotImplementedError(f'easy_angle not supported: {config}')
 
-    def kmeshgen(self, kspacing: float|list[float]):
+    def kmeshgen(a, b, c, alpha, beta, gamma, kspacing: float|list[float]):
         """get the Monkhorst-Pack mesh"""
         import numpy as np
         kspacing = kspacing if isinstance(kspacing, list) else [kspacing] * 3
-        vecs = np.array(Cell._abc_angles_to_vec([self.a, self.b, self.c, self.alpha, self.beta, self.gamma], True))
+        vecs = np.array(CellGenerator._abc_angles_to_vec([a, b, c, alpha, beta, gamma], True))
         recvecs = np.linalg.inv(vecs).T
         recvecs = 2*np.pi * recvecs
         norms = np.linalg.norm(recvecs, axis=1).tolist()
         assert len(norms) == len(kspacing), f'kspacing should be a list of 3 floats: {kspacing}'
         norms = [int(norm / kspac) for norm, kspac in zip(norms, kspacing)]
-        self.mpmesh_nks = list(map(lambda x: max(1, x + 1), norms))
+        return list(map(lambda x: max(1, x + 1), norms))
 
     #############################
     #  private static methods   #
@@ -245,31 +271,31 @@ class Cell:
 
     def _structure(config: str, characteristic: float):
         if config == 'sc':
-            return Cell._simple_cubic(characteristic)
+            return CellGenerator._simple_cubic(characteristic)
         elif config == 'fcc':
-            return Cell._face_centered_cubic(characteristic)
+            return CellGenerator._face_centered_cubic(characteristic)
         elif config == 'bcc':
-            return Cell._body_centered_cubic(characteristic)
+            return CellGenerator._body_centered_cubic(characteristic)
         elif config == 'diamond':
-            return Cell._diamond(characteristic)
+            return CellGenerator._diamond(characteristic)
         elif config == 'dimer':
-            return Cell._dimer(characteristic)
+            return CellGenerator._dimer(characteristic)
         elif config == 'trimer':
-            return Cell._trimer(characteristic)
+            return CellGenerator._trimer(characteristic)
         elif config == 'tetramer':
-            return Cell._tetramer(characteristic)
+            return CellGenerator._tetramer(characteristic)
         elif config == 'X2Y':
-            return Cell._X2Y(characteristic)
+            return CellGenerator._X2Y(characteristic)
         elif config == 'X2Y3':
-            return Cell._X2Y3(characteristic)
+            return CellGenerator._X2Y3(characteristic)
         elif config == 'X2Y5':
-            return Cell._X2Y5(characteristic)
+            return CellGenerator._X2Y5(characteristic)
         elif config == 'XY':
-            return Cell._XY(characteristic)
+            return CellGenerator._XY(characteristic)
         elif config == 'XY2':
-            return Cell._XY2(characteristic)
+            return CellGenerator._XY2(characteristic)
         elif config == 'XY3':
-            return Cell._XY3(characteristic)
+            return CellGenerator._XY3(characteristic)
         else:
             raise NotImplementedError(f'config not supported: {config}')
         
@@ -470,330 +496,64 @@ class Cell:
             np.array([[0, 0, 0], 
                         [0.5, 0, 0], [0, 0.5, 0], [0, 0, 0.5]])
 
-class StructureManager:
-    """# StructureManager
-    structure manager is for managing structures, including downloading, generating, etc.
+class Cell:
+    """# Cell
+    A prototype decoupling static AtomSpecies information with the dynamic structure information
+    from practical simulation. Hope would be helpful for ABACUS `UnitCell` class refactor plan
+
+    ### WHAT IS A CELL?
     
-    See unittest for its usage. Most of time it is easy:
-    ```python
-    sm = StructureManager() # but can also describe structures at this step
-    ```
-    The second step is to describe the structures, which is to provide the information of the
-    structures, including the type of the structure, the parameters of the structure, the
-    pseudopotentials and numerical atomic orbitals used in the structure.
-    - The type of the structure can be 'cif', 'bravis', 'molecule'.
-    - The second arg is a tuple composed of fname of cif file or the name of the structure,
-    then if provided, the magnetic moment of EACH atom in the structure.
-    - The third arg is a list of scalings, which will be used to scale the structure, will be
-    useful when doing EOS and varying bond lengths.
-    - Pseudopotentials and numerical atomic orbitals will be searched by tags specified.
+    A cell is such a object that know its structure and lattice parameters, but this is just the
+    half part, it also knows its reciprocal lattice information, such as the high symmetry k-points.
+    From a kspacing, it can also know how its Monkhorst-Pack mesh should be.
 
-    ```python
-    desc = [(
-                'cif',
-                ('/root/abacus-develop/ABACUS-Pseudopot-Nao-Square/download/structures/Si.cif',
-                [0.00, 1.00]),
-                [0.95, 0.97, 0.99, 1.01, 1.03], 
-                {"Si": ['PBE', 'NC', 'sg15', 'sr']}, 
-                {"Si": ['6au', '100Ry' , '2s2p1d']}
-            ),
-            (
-                'bravis',
-                ('SiO_xy2', None), 
-                [0.95, 0.97, 0.99, 1.01, 1.03], 
-                {"Si": ['PBE', 'NC', 'sg15', 'sr'], "O": ['PBE', 'US', 'GBRV', '1.4']}, 
-                None
-            ),
-            (
-                'molecule',
-                ('Ba_dimer', None), 
-                [1.0, 1.02, 1.04, 1.06, 1.08], 
-                {"Ba": ['PBE', 'NC', 'sg15', 'sr']}, 
-                {"Ba": ['6au', '100Ry' , '2s2p1d']}
-            )]
-    sm.describe(desc) # enough information has been provided to build the structures
-    ```
-    then to build the structures, according to the description
-    ```python
-    sm.build(pseudo_dir, orbital_dir)
-    ```
-    at this step, all structures have been built, along with their AtomSpecies, can be
-    accessed by `sm.structures`
-
-    Then export the structures to the abacus input file
-    ```python
-    result = sm.export(fmt='abacus')
-    ```
-    if the `save` is not None, then the result will be saved to the file, otherwise
-    result will contain the content of files.
-
-    `StructureManager` allows decoupling between the DFT calculation setting and the structure
-    definition.
+    ### WHAT IS NOT REALLY A CELL KNOWS?
+    
+    the atom species. Actually the cell only knows there are many atomic sites and for each site, 
+    there is a symbol. Or more abstractly, it knows symbols and kinds of sites that occupied by
+    different atoms. The cell, does not own any AtomSpecies!
     """
-    # descriptors of structures
-    desc: list[tuple[str, str, list[float], list[str], list[str]|None]] = []
-    # structures generated
-    structures: list[tuple[Cell, list[AtomSpecies]]] = []
+    # real space lattice information
+    a, b, c, alpha, beta, gamma = None, None, None, None, None, None
+    lat0 = 1.8897259886
+    # reciprocal space lattice information
+    sym_ks, possible_kpath, mpmesh_nks = None, None, None
+    # "points" information
+    coords, vels, magmoms, mobs = None, None, None, None
+    labels, kinds, labels_kinds_map = None, None, None
 
-    def idtfr_gen(the_second: str) -> str:
-        """generate the identifier of the structure from the second arg of the descriptor"""
-        import os
-        if os.path.exists(the_second) and os.path.isfile(the_second) and the_second.endswith(".cif"):
-            return "cif", the_second
-        import re
-        match_ = re.match(r'^([A-Z][a-z]?)_(sc|bcc|fcc|diamond)$', the_second)
-        if match_:
-            return "bravis", *match_.groups()
-        match_ = re.match(r'^([A-Z][a-z]?[A-Z][a-z]?)_(xy2|xy3|x2y|x2y3|x2y5)$', the_second)
-        if match_:
-            return "bravis", *match_.groups()
-        match_ = re.match(r'^([A-Z][a-z]?)_(dimer|trimer|tetramer)$', the_second)
-        if match_:
-            return "molecule", *match_.groups()
-        return None
+    def __init__(self, **kwargs) -> None:
+        self.a = kwargs.get('a', None)
+        self.b = kwargs.get('b', None)
+        self.c = kwargs.get('c', None)
+        self.alpha = kwargs.get('alpha', None)
+        self.beta = kwargs.get('beta', None)
+        self.gamma = kwargs.get('gamma', None)
+        self.sym_ks = kwargs.get('sym_ks', None)
+        self.possible_kpath = kwargs.get('possible_kpath', None)
+        self.mpmesh_nks = kwargs.get('mpmesh_nks', None)
+        self.coords = kwargs.get('coords', None)
+        self.vels = kwargs.get('vels', None)
+        self.magmoms = kwargs.get('magmoms', None)
+        self.mobs = kwargs.get('mobs', None)
+        self.labels = kwargs.get('labels', None)
+        self.kinds = kwargs.get('kinds', None)
+        self.labels_kinds_map = kwargs.get('labels_kinds_map', None)
 
-    def atomsets_transpose(atomsets: list):
-        # transpose atomsets from {atom: [[pptags...], [naotags...]]} to [{atom: [pptags...]}, {atom: [naotags...]}]
-        atomsets = [[{key: value[i] for key, value in atomset.items()} for i in range(len(next(iter(atomset.values()))))]
-                    for atomset in atomsets]
-        # for each atomset, there are two dicts, if all values of dict is None, then set the dict as None
-        atomsets = [[None if all([value is None for value in tags.values()]) else tags for tags in atomset] for atomset in atomsets]
-        return atomsets
-
-    def make_desc(atomsets: list, structures: list):
-        """
-        iterate on the `structures` section in input, in-on-shot download all structures
-        needed, and return the descriptors of the structures for calling `describe()`.
-        This function is called like:
-        ```python
-        atomsets = inp["atomsets"]
-        structures = inp["structures"]
-        desc = StructureManager.make_desc(atomsets, structures)
-        ```
-        """
-        from apns.module_structure.api import download
-        api_keys = {}
-        formula = {}
-        db_formula_isid_map = {}
-        for is_, s in enumerate(structures):
-            db = s.get("database", "mp") # default structure database is Materials Project
-            for id_, d in enumerate(s["desc"]):
-                if d[0] == "search":
-                    api_keys[db] = s.get("api_key", "")
-                    formula.setdefault(db, []).append(d[1])
-                    db_formula_isid_map.setdefault((db, d[1]), []).append((is_, id_))
-        # should add local check to avoid download the same structure!
-        log = download(api_keys=api_keys, formula=formula) # will be nested dict of list of tuples, [db][formula][icif] = (fname, magmoms)
-        atomsets = StructureManager.atomsets_transpose(atomsets)
-        # first convert not cif structures to descriptors
-        desc_ = [[("cif" if d[0] == "local" else StructureManager.idtfr_gen(d[1])[0], (d[1], None), d[2], 
-             atomsets[s["atomset"]][0], atomsets[s["atomset"]][1]) for d in s["desc"] if d[0] != "search"] for s in structures] 
-        # then add those downloaded structures to the descriptors
-        for db, search_results in log.items(): # for each database, their formulas would also be dict, keys are formula, values are list of tuples
-            for formula, result in search_results.items(): # result is a list of tuples, each tuple is (fname, magmoms)
-                for is_, id_ in db_formula_isid_map[(db, formula)]:
-                    desc_[is_].extend([("cif", (fname, magmoms), structures[is_]["desc"][id_][2], atomsets[s["atomset"]][0], atomsets[s["atomset"]][1])
-                        for fname, magmoms in result])
-        return desc_
-
-    def __init__(self, desc: list = None) -> None:
-        """structure can be imported at the initialization of the structure manager,
-        but can also be imported/overwritten later if call the describe() method."""
-        if desc is not None:
-            self.describe(desc)
-    
-    """fucntions in this part is for importing structures without additional scalling, say
-    not for EOS, not for varying bond lengths, ..."""
-    def describe(self, desc, overwrite: bool = True):
-        """
-        For lazy build. First describe, then build explicitly and output instantly.
-        : if the cell can be built with several parameters, then those parameters are
-        representation of those exact structures. Calculate on those parameters means
-        to vary and generate structures.
-        
-        ```python
-        # descriptor
-        #        identifier               str                         list[float]                    list[str] list[str]
-        # (cif/bravis/molecule, (fcif/X_sc/X_dimer, magmoms), EOS_scalings/EOS_scalings/bond_lengths, pptags,   naotags)
-        # pptags and naotags are associated.
-        # once from pptags determines a list of pseudopotentials, 
-        # for each pseudopotential, search numerical atomic orbital according to naotags.
-        # example
-        desc = [(
-                    'cif',
-                    ('/root/abacus-develop/ABACUS-Pseudopot-Nao-Square/download/structures/Si.cif',
-                    [0.00, 1.00]),
-                    [0.95, 0.97, 0.99, 1.01, 1.03], 
-                    {"Si": ['PBE', 'NC', 'sg15', 'sr']}, 
-                    {"Si": ['6au', '100Ry' , '2s2p1d']}
-                ),
-                (
-                    'bravis',
-                    ('SiO_xy2', None), 
-                    [0.95, 0.97, 0.99, 1.01, 1.03], 
-                    {"Si": ['PBE', 'NC', 'sg15', 'sr'], "O": ['PBE', 'US', 'GBRV', '1.4']}, 
-                    None
-                ),
-                (
-                    'molecule',
-                    ('Ba_dimer', None), 
-                    [1.0, 1.02, 1.04, 1.06, 1.08], 
-                    {"Ba": ['PBE', 'NC', 'sg15', 'sr']}, 
-                    {"Ba": ['6au', '100Ry' , '2s2p1d']}
-                )]
-        sm = StructureManager()
-        sm.describe(desc)
-        ```
-        """
-        assert isinstance(desc, list), f'desc should be a list: {desc}'
-        assert all([isinstance(d, tuple) for d in desc]), f'each element in desc should be a tuple: {desc}'
-        assert all([len(d) == 5 for d in desc]), f'each element in desc should be a tuple of 5 elements: {desc}'
-        assert all([isinstance(d[0], str) and d[0] in ['cif', 'bravis', 'molecule'] for d in desc]), \
-            f'identifier should be cif, bravis or molecule: {desc}'
-        assert all([isinstance(d[1], tuple) and len(d[1]) == 2 for d in desc])
-        assert all([isinstance(d[1][0], str) and (isinstance(d[1][1], list) or d[1][1] is None) for d in desc])
-        assert all([isinstance(d[1][0], str) and StructureManager.idtfr_gen(d[1][0])[0] in ["cif", "bravis", "molecule"]
-                    for d in desc]), f'descriptor is neither a cif file nor a bravis/molecule type: {desc}'
-        assert all([isinstance(d[2], list) and all([isinstance(x, float) for x in d[2]]) for d in desc]), \
-            f'characteristic scaling should be list of floats: {desc}'
-        assert all([isinstance(d[3], dict) and all([all([isinstance(tag, str) for tag in tags]) for tags in d[3].values()]) for d in desc]), \
-            f'pptags should be dict of lists of strings: {desc}'
-        assert all([\
-            (isinstance(d[4], dict) and all([all([isinstance(tag, str) for tag in tags]) for tags in d[4].values])) or (d[4] is None) \
-                for d in desc]), f'naotags should be dict of lists of strings: {desc} or None in basis_type pw calculation'
-        self.desc = desc if overwrite else self.desc + desc
-        """will add replace, pop and append functionalities later"""
-    
-    def build(self, pseudo_dir: str, orbital_dir: str):
-        """expand all tests, this function is unique in APNS, but should not appear in
-        ABACUS newly-refactored UnitCell module, becuase StructureManager is not exactly
-        the StructureIterator or something, while it is less necessary to implement such
-        a class or function."""
-        import itertools as itools
-        lcao = [d[4] for d in self.desc if d[4] is not None]
-        assert len(lcao) == 0 or len(lcao) == len(self.desc), f'naotags should be all None or all not None: {lcao}'
-        lcao = (len(lcao) != 0)
-        # print(f"Build {len(self.desc)} structures for ABACUS-LCAO calculation: {lcao}")
-        self.structures = [] # everytime refresh all structures?
-        for idtfir, stru, scales, pptags, naotags in self.desc: # for each structure prototype
-            proto = Cell()
-            config, magmom = stru
-            proto.build(idtfir, config, 1.0) # leaves d[3] the pptags and d[4] the naotags apart
-            on_the_fly_species = [AtomSpecies(symbol) for symbol in proto.kinds] # it is the way how AtomSpecies bind with Cell
-            pptags = [pptags[k] for k in proto.kinds]
-            for i, s in enumerate(on_the_fly_species): s.set_pp(pseudo_dir, pptags[i])
-            pps_scale_comb = [s.pp for s in on_the_fly_species] + [scales]
-            assert pps_scale_comb is not None, f'pps_scale_comb should not be None: {pps_scale_comb}'
-            pps_scale_comb = list(itools.product(*pps_scale_comb))
-            for pps_scale in pps_scale_comb:
-                pps, scale = pps_scale[:-1], pps_scale[-1]
-                specific = Cell()
-                specific.build(idtfir, config, scale)
-                specific.divide_subset(magmom)
-                for i, s in enumerate(on_the_fly_species): s.pp = pps[i] # inject the pseudopotentials
-                naotags = None if not lcao else [naotags[k] for k in proto.kinds]
-                for s in on_the_fly_species: s.set_nao(pps, orbital_dir, naotags)
-                naos_comb = [s.nao for s in on_the_fly_species]
-                assert naos_comb is not None, f'naos_comb should not be None: {naos_comb}'
-                naos_comb = list(itools.product(*naos_comb)) if lcao else [None]
-                for naos in naos_comb:
-                    for i, s in enumerate(on_the_fly_species): s.nao = naos[i] if lcao else None # inject the numerical atomic orbitals
-                    self.structures.append((specific, on_the_fly_species))
-
-    def export(self, fmt: str = "abacus", save: str = None):
-        """export the structures to files. If save is given, the the value given to save would be the prefix.
-        Return list of tuple of three strings, if save is specified, then return the file name, otherwise the
-        content of the files. The first string is the structure file, the second is the kline file, and the third
-        is the kpt file. The content of the files are in the order of the structures."""
-        import uuid
-        result = []
-        assert fmt == "abacus", f'fmt should be abacus: {fmt}'
-        for s in self.structures:
-            assert isinstance(s[0], Cell) and isinstance(s[1], list) and all([isinstance(x, AtomSpecies) for x in s[1]]), \
-                f'structure should be a tuple of Cell and list of AtomSpecies.'
-            stru = StructureManager.write_abacus_stru(s[0], s[1])
-            kline, kpt = StructureManager.write_abacus_kpt(s[0])
-            if save is not None:
-                stamp = uuid.uuid4().hex
-                fstru, fkline, fkpt = f"{stamp}.STRU", f"{stamp}.KLINE", f"{stamp}.KPT"
-                with open(fstru, "w") as f: f.write(stru)
-                with open(fkline, "w") as f: f.write(kline if kline is not None else "")
-                with open(fkpt, "w") as f: f.write(kpt)
-                result.append((fstru, fkline, fkpt))
-            else:
-                result.append((stru, kline, kpt))
-        return result
-    #######################
-    #      utilities      #
-    #######################
-    def write_abacus_stru(cell: Cell, species: list[AtomSpecies]):
-        """write a single ABACUS STRU file with Cell and list of AtomSpecies instances"""
-        assert max(cell.labels_kinds_map) + 1 == len(species), f'cell.labels_kinds_map should be consistent with species. {cell.labels_kinds_map} vs {len(species)}'
-        result = "ATOMIC_SPECIES\n"
-        for label in list(dict.fromkeys(cell.labels)):
-            s = species[cell.labels_kinds_map[cell.labels.index(label)]]
-            fpp = s.pp.replace("\\", "/").split("/")[-1]
-            result += f"{label:4s} {s.mass:8.4f} {fpp}\n"
-        if all([s.nao is not None for s in species]):
-            result += "\nNUMERICAL_ORBITAL\n"
-            for label in list(dict.fromkeys(cell.labels)):
-                s = species[cell.labels_kinds_map[cell.labels.index(label)]]
-                result += s.nao.replace("\\", "/").split("/")[-1] + "\n"
-        # else:
-        #     print(f"Warning: not all species have numerical atomic orbitals, ignore if PW calculation")
-        result += f"\nLATTICE_CONSTANT\n{cell.lat0:<20.10f}\n"
-        result += f"\nLATTICE_VECTOR\n"
-        latv = Cell._abc_angles_to_vec([cell.a, cell.b, cell.c, cell.alpha, cell.beta, cell.gamma], True)
-        for i in range(3):
-            result += f"{latv[i][0]:<20.10f} {latv[i][1]:<20.10f} {latv[i][2]:<20.10f}\n"
-        result += f"\nATOMIC_POSITIONS\n"
-        result += "Cartesian_angstrom\n" if not cell.periodic else "Direct\n"
-        for label in list(dict.fromkeys(cell.labels)):
-            ias = [il for il, lbl in enumerate(cell.labels) if lbl == label] # indices of atoms with the same label
-            result += f"{label}\n{cell.magmoms[ias[0]]:<4.2f}\n{len(ias)}\n"
-            for j in ias:
-                result += f"{cell.coords[j][0]:<20.10f} {cell.coords[j][1]:<20.10f} {cell.coords[j][2]:<20.10f} m "
-                result += f"{cell.mobs[j][0]:<1d} {cell.mobs[j][1]:<1d} {cell.mobs[j][2]:<1d}\n"
-        return result
-
-    def write_abacus_kpt(cell: Cell):
-        """write both KLINE and KPT file with Cell"""
-        if cell.possible_kpath is not None and cell.sym_ks is not None:
-            nks_each = 20
-            nks_tot = len(cell.possible_kpath) * nks_each + 1
-            kline = f"KPOINTS\n{nks_tot}\nLine\n"
-            # merge all consecutive segments connecting high symmetrical kpoints
-            segs = []
-            for seg in cell.possible_kpath:
-                b, e = seg
-                if not segs or b != segs[-1][-1]:
-                    segs.append([b, e])
-                else:
-                    segs[-1].append(e)
-
-            for seg in segs:
-                for ik, k in enumerate(seg):
-                    nks = nks_each if ik != len(seg) - 1 else 1
-                    kline += f"{cell.sym_ks[k][0]:13.10f} {cell.sym_ks[k][1]:13.10f} {cell.sym_ks[k][2]:13.10f} {nks}\n"
-        else:
-            kline = None
-        kpt = f"KPOINTS\n0\nGAMMA\n"
-        kpt += f"{cell.mpmesh_nks[0]:<d} {cell.mpmesh_nks[1]:<d} {cell.mpmesh_nks[2]:<d} 0 0 0\n"
-        return kline, kpt
 
 import unittest
-class TestAtomSpecies(unittest.TestCase):
+class TestAtomSpeciesGenerator(unittest.TestCase):
 
     def test_constructor(self):
-        Si = AtomSpecies('Si')
-        self.assertEqual(Si.name, 'Si')
-        self.assertEqual(Si.fullname, 'Silicon')
-        self.assertEqual(Si.symbol, 'Si')
-        self.assertEqual(Si.index, 14)
-        self.assertEqual(Si.rcovalent, 1.11)
-        self.assertEqual(Si.mass, 28.0855)
+        asg = AtomSpeciesGeneartor('Si', None)
+        self.assertEqual(asg.name, 'Si')
+        self.assertEqual(asg.fullname, 'Silicon')
+        self.assertEqual(asg.symbol, 'Si')
+        self.assertEqual(asg.index, 14)
+        self.assertEqual(asg.rcovalent, 1.11)
+        self.assertEqual(asg.mass, 28.0855)
     
-    def test_set_pp(self):
+    def test_oncall(self):
         import os
         import json
         # prepare a fake database
@@ -801,31 +561,38 @@ class TestAtomSpecies(unittest.TestCase):
         fdatabase = "./database.json"
         with open(fdatabase, "w") as f:
             json.dump(database, f)
-        # test the search
-        Si = AtomSpecies('Si')
-        Si.set_pp(os.getcwd(), ["tag1", "tag2"])
-        self.assertEqual(Si.pp, {"the_file_name_with_path"})
+        asg = AtomSpeciesGeneartor('Si', ["tag1", "tag2"])
+        times = 0
+        for as_ in asg("./"):
+            times += 1
+            self.assertEqual(as_.pp, {"the_file_name_with_path"})
+        self.assertEqual(times, 1)
         os.remove(fdatabase)
 
-        Si.set_pp("./download/pseudopotentials/", ["Si", "PBE", "NC", "sg15", "sr"])
-        self.assertEqual(Si.pp, {'/root/abacus-develop/ABACUS-Pseudopot-Nao-Square/download/pseudopotentials/sg15_oncv_upf_2020-02-06/Si_ONCV_PBE-1.2.upf', 
-                                 '/root/abacus-develop/ABACUS-Pseudopot-Nao-Square/download/pseudopotentials/sg15_oncv_upf_2020-02-06/Si_ONCV_PBE-1.0.upf', 
-                                 '/root/abacus-develop/ABACUS-Pseudopot-Nao-Square/download/pseudopotentials/sg15_oncv_upf_2020-02-06/Si_ONCV_PBE-1.1.upf'})
+        asg = AtomSpeciesGeneartor('Si', ["Si", "PBE", "NC", "sg15", "sr"])
+        times = 0
+        ref = {'/root/abacus-develop/ABACUS-Pseudopot-Nao-Square/download/pseudopotentials/sg15_oncv_upf_2020-02-06/Si_ONCV_PBE-1.2.upf', 
+               '/root/abacus-develop/ABACUS-Pseudopot-Nao-Square/download/pseudopotentials/sg15_oncv_upf_2020-02-06/Si_ONCV_PBE-1.0.upf', 
+               '/root/abacus-develop/ABACUS-Pseudopot-Nao-Square/download/pseudopotentials/sg15_oncv_upf_2020-02-06/Si_ONCV_PBE-1.1.upf'}
+        for as_ in asg("./download/pseudopotentials/"):
+            self.assertEqual(as_.pp, ref)
+            times += 1
+        self.assertEqual(times, 3)
 
-class TestCell(unittest.TestCase):
+class TestCellGeneartor(unittest.TestCase):
 
     def test_constructor(self):
-        cell = Cell()
-        self.assertIsNone(cell.a)
-        self.assertIsNone(cell.b)
-        self.assertIsNone(cell.c)
-        self.assertIsNone(cell.alpha)
-        self.assertIsNone(cell.beta)
-        self.assertIsNone(cell.gamma)
-        self.assertIsNone(cell.coords)
-        self.assertIsNone(cell.labels_kinds_map)
-        self.assertIsNone(cell.periodic)
-        self.assertIsNone(cell.sym_ks)
+        with self.assertRaises(AssertionError):
+            CellGenerator('cif', 'Si', 1.0) # raise error because scales must be list
+
+        cg = CellGenerator('cif', 'Si', [1.0])
+        self.assertEqual(cg.identifier, 'cif')
+        self.assertEqual(cg.config, 'Si')
+        self.assertEqual(cg.scales, [1.0])
+
+    def test_kspacing(self):
+        result = CellGenerator.kmeshgen(4.22798145, 4.22798145, 4.22798145, 60, 60, 60, 0.03*1.889725989)
+        self.assertEqual(result, [33, 33, 33])
 
     def test_standard_build(self):
         import os
@@ -859,226 +626,125 @@ loop_
   Ac  Ac1  1  0.25000000  0.25000000  0.25000000  1
   O  O2  1  0.00000000  0.00000000  0.00000000  1"""
         fcif = 'Ac2O.cif'
-        cell = Cell()
+        cg = CellGenerator('cif', fcif, [1.0])
         with open(fcif, "w") as f:
             f.write(cif)
-        cell.standard_build(fcif, 1.0)
-        self.assertAlmostEqual(cell.a, 4.84451701, delta=1e-5)
-        self.assertAlmostEqual(cell.b, 4.84451701, delta=1e-5)
-        self.assertAlmostEqual(cell.c, 4.84451701, delta=1e-5)
-        self.assertAlmostEqual(cell.alpha, 60.00000000, delta=1e-5)
-        self.assertAlmostEqual(cell.beta, 60.00000000, delta=1e-5)
-        self.assertAlmostEqual(cell.gamma, 60.00000000, delta=1e-5)
-        self.assertEqual(cell.coords.shape, (3, 3))
-        self.assertEqual(cell.labels_kinds_map, [0, 0, 1])
+        times = 0
+        for cell in cg():
+            self.assertEqual(cell.a, 4.84451701)
+            self.assertEqual(cell.b, 4.84451701)
+            self.assertEqual(cell.c, 4.84451701)
+            self.assertEqual(cell.alpha, 60.0)
+            self.assertEqual(cell.beta, 60.0)
+            self.assertEqual(cell.gamma, 60.0)
+            self.assertEqual(cell.labels, ["Ac", "Ac", "O"])
+            self.assertEqual(cell.kinds, ["Ac", "O"])
+            self.assertEqual(cell.labels_kinds_map, [0, 0, 1])
+            self.assertEqual(cell.coords, [[0, 0, 0], [0.75, 0.75, 0.75], [0.25, 0.25, 0.25]])
+            times += 1
+        self.assertEqual(times, 1)
+
+        cg = CellGenerator('cif', fcif, [1.0, 1.02, 1.04, 1.06, 1.08])
+        times = 0
+        for cell in cg():
+            self.assertEqual(cell.a, 4.84451701 * cg.scales[times]**(1/3))
+            self.assertEqual(cell.b, 4.84451701 * cg.scales[times]**(1/3))
+            self.assertEqual(cell.c, 4.84451701 * cg.scales[times]**(1/3))
+            self.assertEqual(cell.alpha, 60.0)
+            self.assertEqual(cell.beta, 60.0)
+            self.assertEqual(cell.gamma, 60.0)
+            self.assertEqual(cell.labels, ["Ac", "Ac", "O"])
+            self.assertEqual(cell.kinds, ["Ac", "O"])
+            self.assertEqual(cell.labels_kinds_map, [0, 0, 1])
+            self.assertEqual(cell.coords, [[0, 0, 0], [0.75, 0.75, 0.75], [0.25, 0.25, 0.25]])
+            times += 1
+        self.assertEqual(times, 5)
+
+        # test with magmom
+        cg = CellGenerator('cif', fcif, [1.0], magmoms = [1.0, -1.0, 0.0])
+        times = 0
+        for cell in cg():
+            self.assertEqual(cell.a, 4.84451701)
+            self.assertEqual(cell.b, 4.84451701)
+            self.assertEqual(cell.c, 4.84451701)
+            self.assertEqual(cell.alpha, 60.0)
+            self.assertEqual(cell.beta, 60.0)
+            self.assertEqual(cell.gamma, 60.0)
+            self.assertEqual(cell.labels, ["Ac1", "Ac2", "O1"])
+            self.assertEqual(cell.kinds, ["Ac", "O"])
+            self.assertEqual(cell.labels_kinds_map, [0, 0, 1])
+            self.assertEqual(cell.coords, [[0, 0, 0], [0.75, 0.75, 0.75], [0.25, 0.25, 0.25]])
+            self.assertEqual(cell.magmoms, [1.0, -1.0, 0.0])
+            times += 1
+
         os.remove(fcif)
 
-    def test_build(self):
-        cell = Cell()
-        cell.kernel_build([5, 5, 5, 90, 90, 90], [[0, 0, 0]], [0])
-        self.assertEqual(cell.a, 5)
-        self.assertEqual(cell.b, 5)
-        self.assertEqual(cell.c, 5)
-        self.assertEqual(cell.alpha, 90)
-        self.assertEqual(cell.beta, 90)
-        self.assertEqual(cell.gamma, 90)
-        self.assertEqual(cell.coords.shape, (1, 3))
-        self.assertEqual(cell.labels_kinds_map, [0])
-    
-    def test_easy_build(self):
-        cell = Cell()
-        cell.ideal_build('Si_sc', 5.43)
-        self.assertEqual(cell.a, 5.43)
-        self.assertEqual(cell.b, 5.43)
-        self.assertEqual(cell.c, 5.43)
-        self.assertEqual(cell.alpha, 90)
-        self.assertEqual(cell.beta, 90)
-        self.assertEqual(cell.gamma, 90)
-        self.assertEqual(cell.coords.shape, (1, 3))
-        self.assertEqual(cell.labels_kinds_map, [0])
-        self.assertEqual(cell.kinds, ['Si'])
+    def test_ideal_build(self):
+        cg = CellGenerator('bravis', 'Si_sc', [1.0]) # for bravis, the scale ought to be scaling factor but presently
+        # is directly the volume of the cell
+        times = 0
+        for cell in cg():
+            self.assertEqual(cell.a, 1.0)
+            self.assertEqual(cell.b, 1.0)
+            self.assertEqual(cell.c, 1.0)
+            self.assertEqual(cell.alpha, 90.0)
+            self.assertEqual(cell.beta, 90.0)
+            self.assertEqual(cell.gamma, 90.0)
+            self.assertEqual(cell.labels, ["Si"])
+            self.assertEqual(cell.kinds, ["Si"])
+            self.assertEqual(cell.labels_kinds_map, [0])
+            self.assertEqual(cell.coords, [[0, 0, 0]])
+            times += 1
+        self.assertEqual(times, 1)
 
-        with self.assertRaises(AssertionError):
-            cell.ideal_build('SiO_diamond', 5.43)
-        with self.assertRaises(AssertionError):
-            cell.ideal_build('Si_x2y3', 5.43)
-        with self.assertRaises(AssertionError):
-            cell.ideal_build('Si_imagination', 5.43)
-        cell.ideal_build('SiO_xy2', 5.43) # SiO2
-        self.assertEqual(cell.a, 5.43)
-        self.assertEqual(cell.b, 5.43)
-        self.assertEqual(cell.c, 5.43)
-        self.assertEqual(cell.alpha, 60)
-        self.assertEqual(cell.beta, 60)
-        self.assertEqual(cell.gamma, 60)
-        self.assertEqual(cell.coords.shape, (3, 3))
-        self.assertEqual(cell.labels_kinds_map, [0, 1, 1])
-        self.assertEqual(cell.kinds, ['Si', 'O'])
+        cg = CellGenerator('bravis', 'Si_sc', [1.0, 1.02, 1.04, 1.06, 1.08])
+        times = 0
+        for cell in cg():
+            self.assertEqual(cell.a, 1.0 * cg.scales[times]**(1/3))
+            self.assertEqual(cell.b, 1.0 * cg.scales[times]**(1/3))
+            self.assertEqual(cell.c, 1.0 * cg.scales[times]**(1/3))
+            self.assertEqual(cell.alpha, 90.0)
+            self.assertEqual(cell.beta, 90.0)
+            self.assertEqual(cell.gamma, 90.0)
+            self.assertEqual(cell.labels, ["Si"])
+            self.assertEqual(cell.kinds, ["Si"])
+            self.assertEqual(cell.labels_kinds_map, [0])
+            self.assertEqual(cell.coords, [[0, 0, 0]])
+            times += 1
+        self.assertEqual(times, 5)
 
-    def test_kspacing(self):
-        cell = Cell()
-        cell.kernel_build([4.22798145, 4.22798145, 4.22798145, 60, 60, 60], [[0, 0, 0]], [0])
-        cell.kmeshgen(0.03*cell.lat0)
-        self.assertEqual(cell.mpmesh_nks, [33, 33, 33])
+        cg = CellGenerator('molecule', 'Ba_dimer', [1.0])
+        times = 0
+        for cell in cg():
+            self.assertEqual(cell.a, 20.0)
+            self.assertEqual(cell.b, 20.0)
+            self.assertEqual(cell.c, 20.0)
+            self.assertEqual(cell.alpha, 90.0)
+            self.assertEqual(cell.beta, 90.0)
+            self.assertEqual(cell.gamma, 90.0)
+            self.assertEqual(cell.labels, ["Ba", "Ba"])
+            self.assertEqual(cell.kinds, ["Ba"])
+            self.assertEqual(cell.labels_kinds_map, [0, 0])
+            self.assertEqual(cell.coords, [[0, 0, 0], [1.0, 0, 0]])
+            times += 1
+        self.assertEqual(times, 1)
 
-    def test_divide_subset(self):
-        import numpy as np
-        cell = Cell()
-        cell.labels = ["Si", "Si", "O", "O", "O", "Na", "Ca", "Ca"]
-        cell.kinds = ["Si", "O", "Na", "Ca"]
-        cell.labels_kinds_map = [0, 0, 1, 1, 1, 2, 3, 3]
-        cell.coords = np.random.random((8, 3)).tolist()
-        magmom = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0]
-        cell.divide_subset(identifiers=magmom)
-        self.assertEqual(cell.labels_kinds_map, [0, 0, 1, 1, 1, 2, 3, 3])
-        self.assertEqual(cell.labels, ["Si1", "Si1", "O1", "O1", "O1", "Na1", "Ca1", "Ca1"])
-        # recover
-        cell.labels = ["Si", "Si", "O", "O", "O", "Na", "Ca", "Ca"]
-        cell.kinds = ["Si", "O", "Na", "Ca"]
-        cell.labels_kinds_map = [0, 0, 1, 1, 1, 2, 3, 3]
-        # AFM on Si
-        magmom = [1.0, -1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0]
-        cell.divide_subset(identifiers=magmom)
-        self.assertEqual(cell.labels_kinds_map, [0, 0, 1, 1, 1, 2, 3, 3])
-        self.assertEqual(cell.labels, ["Si1", "Si2", "O1", "O1", "O1", "Na1", "Ca1", "Ca1"])
-        # recover
-        cell.labels = ["Si", "Si", "O", "O", "O", "Na", "Ca", "Ca"]
-        cell.kinds = ["Si", "O", "Na", "Ca"]
-        cell.labels_kinds_map = [0, 0, 1, 1, 1, 2, 3, 3]
-        # AFM on Si, FM on O, FM on Na, AFM on Ca
-        magmom = [1.0, -1.0, 1.0, 1.0, 1.0, 1.0, 1.0, -1.0]
-        cell.divide_subset(identifiers=magmom)
-        self.assertEqual(cell.labels_kinds_map, [0, 0, 1, 1, 1, 2, 3, 3])
-        self.assertEqual(cell.labels, ["Si1", "Si2", "O1", "O1", "O1", "Na1", "Ca1", "Ca2"])
+        cg = CellGenerator('molecule', 'Ba_dimer', [1.0, 1.02, 1.04, 1.06, 1.08])
+        times = 0
+        for cell in cg():
+            self.assertEqual(cell.a, 20.0)
+            self.assertEqual(cell.b, 20.0)
+            self.assertEqual(cell.c, 20.0)
+            self.assertEqual(cell.alpha, 90.0)
+            self.assertEqual(cell.beta, 90.0)
+            self.assertEqual(cell.gamma, 90.0)
+            self.assertEqual(cell.labels, ["Ba", "Ba"])
+            self.assertEqual(cell.kinds, ["Ba"])
+            self.assertEqual(cell.labels_kinds_map, [0, 0])
+            self.assertEqual(cell.coords, [[0, 0, 0], [cg.scales[times], 0, 0]])
+            times += 1
+        self.assertEqual(times, 5)
 
-class TestStructureManager(unittest.TestCase):
-
-    def test_atomsets_transpose(self):
-        atomsets = [
-            {"H": [["pptagH1", "pptagH2"], None],
-             "O": [["pptagO1", "pptagO2"], None]},
-        ]
-        result = StructureManager.atomsets_transpose(atomsets)
-        self.assertEqual(result, [[{'H': ['pptagH1', 'pptagH2'], 'O': ['pptagO1', 'pptagO2']}, None]])
-
-    def est_make_desc(self):
-        atomsets = [
-            {"H": [["pptagH1", "pptagH2"], None],
-             "O": [["pptagO1", "pptagO2"], None]},
-        ]
-        structures = [
-            {"database": "mp",
-            "atomset": 0, 
-            "api_key": "wV1HUdmgESPVgSmQj5cc8WvttCO8NTHp", "desc": [
-            ["search", "BaTiO3", [1.0]]
-            ]}
-        ]
-        result = StructureManager.make_desc(
-            atomsets, structures
-        )
-        ref = [[('cif', ('apns_cache/mp-5777.cif', [0.0, 0.0, 0.0, 0.0, 0.0]), [1.0], 
-                 {'H': ['pptagH1', 'pptagH2'], 'O': ["pptagO1", "pptagO2"]}, None)]]
-        self.assertEqual(result, ref)
-
-    def test_describe_re(self):
-        """regular expression in StructureManager.build function"""
-        import re
-        _re = r'([A-Z][a-z]?_[dimer|trimer|tetramer|sc|bcc|fcc|diamond])|([A-Z][a-z]?[A-Z][a-z]?_[xy2|xy3|x2y|x2y3|x2y5])'
-        _match = re.match(_re, 'Si_dimer')
-        self.assertIsNotNone(_match)
-        _match = re.match(_re, 'O_sc')
-        self.assertIsNotNone(_match)
-        _match = re.match(_re, 'SiO_xy2')
-        self.assertIsNotNone(_match)
-        _match = re.match(_re, 'SiO_x2y5')
-        self.assertIsNotNone(_match)
-        _match = re.match(_re, 'SiO_x2y')
-        self.assertIsNotNone(_match)
-        _match = re.match(_re, 'CO_x2y3')
-        self.assertIsNotNone(_match)
-        _match = re.match(_re, 'Si_x2y3')
-        self.assertIsNone(_match)
-        _match = re.match(_re, 'SiO_x2y3')
-        self.assertIsNotNone(_match) # indicating preset Si2O3 structure
-        _match = re.match(_re, 'SiO_diamond')
-        self.assertIsNone(_match) # SiO2 in diamond-like Bravis lattice is not defined in this way
-
-    def test_idtfr_gen(self):
-        self.assertEqual(StructureManager.idtfr_gen('Si_dimer'), ('molecule', 'Si', 'dimer'))
-        self.assertEqual(StructureManager.idtfr_gen('SiO_xy2'), ('bravis', 'SiO', 'xy2'))
-        self.assertEqual(StructureManager.idtfr_gen('SiO_x2y3'), ('bravis', 'SiO', 'x2y3'))
-        self.assertIsNone(StructureManager.idtfr_gen('SiO_diamond'))
-        fcif = "Si.cif"
-        with open(fcif, "w") as f:
-            f.write("fake cif")
-        self.assertEqual(StructureManager.idtfr_gen(fcif), ('cif', fcif))
-        import os
-        os.remove(fcif)
-
-    def test_build(self):
-        import os
-        sm = StructureManager()
-        # test Bravis lattice
-        sm.describe([('bravis', ('Si_diamond', None), [0.95, 0.97, 0.99, 1.01, 1.03], {"Si": ['PBE', 'NC', 'sg15', 'sr']}, None)])
-        sm.build("./download/pseudopotentials/", "./download/numerical_orbitals/")
-        self.assertEqual(len(sm.structures), 5 * 3) # 3 is the number of pseudopotentials searched
-        result = sm.export(fmt="abacus", save="unittest")
-        for f in result:
-            for ff in f:
-                self.assertTrue(os.path.exists(ff))
-                os.remove(ff)
-        # test molecule
-        sm.describe([('molecule', ('Si_dimer', None), [0.95, 0.97, 0.99, 1.01, 1.03], {"Si": ['PBE', 'NC', 'sg15', 'sr']}, None)])
-        sm.build("./download/pseudopotentials/", "./download/numerical_orbitals/")
-        self.assertEqual(len(sm.structures), 5 * 3)
-        result = sm.export(fmt="abacus", save="unittest")
-        for f in result:
-            for ff in f:
-                self.assertTrue(os.path.exists(ff))
-                os.remove(ff)
-        # test cif with magmom
-        cif = """# generated using pymatgen
-data_Ac2O
-_symmetry_space_group_name_H-M   'P 1'
-_cell_length_a   4.84451701
-_cell_length_b   4.84451701
-_cell_length_c   4.84451701
-_cell_angle_alpha   60.00000000
-_cell_angle_beta   60.00000000
-_cell_angle_gamma   60.00000000
-_symmetry_Int_Tables_number   1
-_chemical_formula_structural   Ac2O
-_chemical_formula_sum   'Ac2 O1'
-_cell_volume   80.39637305
-_cell_formula_units_Z   1
-loop_
- _symmetry_equiv_pos_site_id
- _symmetry_equiv_pos_as_xyz
-  1  'x, y, z'
-loop_
- _atom_site_type_symbol
- _atom_site_label
- _atom_site_symmetry_multiplicity
- _atom_site_fract_x
- _atom_site_fract_y
- _atom_site_fract_z
- _atom_site_occupancy
-  Ac  Ac0  1  0.75000000  0.75000000  0.75000000  1
-  Ac  Ac1  1  0.25000000  0.25000000  0.25000000  1
-  O  O2  1  0.00000000  0.00000000  0.00000000  1"""
-        fcif = 'Ac2O.cif'
-        with open(fcif, "w") as f:
-            f.write(cif)
-        sm.describe([('cif', (fcif, [1.0, -1.0, 0.0]), [0.95, 0.97, 0.99, 1.01, 1.03], 
-                    {"Ac": ['PBE', 'NC', 'sr'], "O": ['PBE', 'GBRV', '1.5']}, None)])
-        sm.build("./download/pseudopotentials/", "./download/numerical_orbitals/")
-        self.assertEqual(len(sm.structures), 2 * 1 * 5) # there are 2 available pseudopotentials for Ac, 1 for O and 5 scalings
-        os.remove(fcif)
-        result = sm.export(fmt="abacus", save="unittest")
-        for f in result:
-            for ff in f:
-                self.assertTrue(os.path.exists(ff))
-                os.remove(ff)
 
 if __name__ == "__main__":
     unittest.main(exit=False)
