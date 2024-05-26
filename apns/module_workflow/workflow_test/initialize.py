@@ -92,7 +92,7 @@ def search_structure(systems: dict|list,
     else:
         raise ValueError("Unknown format of systems: \n", systems)
 
-import apns.module_database.search as amds
+import apns.module_new.tag_search as amds
 def search_upforb(elements: list, pptags: list, naotags: list, pseudo_dir: str, orbital_dir: str):
     """search valid pseudopotential and numerical atomic orbitals for all elements in input file.
     update to 2024-05-01, the logic of searching/indexing pseudopotentials are again iterated,

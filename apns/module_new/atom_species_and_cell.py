@@ -1,72 +1,43 @@
-"""Generator enpowers everything
-"abacus": [
-    Generator[Calc], Generator[Calc], Generator[Calc], ...
-]
-"qespresso": [
-    Generator[Calc], Generator[Calc], Generator[Calc], ...
-]
-"atomsets": [
-    list[AtomSpeciesGenerator], list[AtomSpeciesGenerator], list[AtomSpeciesGenerator], ...
-]
-"strusets": [
-    ["abacus",    0, 0, list[CellGenerator]], 
-    ["qespresso", 1, 0, list[CellGenerator]], 
-    ["abacus",    0, 2, list[CellGenerator]], ...
-]
-
-for struset in strusets:
-    calculator, icalc, iatomset, cellgens = struset
-    Generator[Calc] <- (calculator, icalc) # from these two, can determine one generator
-    # level 0: (Generator[Calc], list[AtomSpeciesGenerator], list[CellGenerator])
-    
-
-list[AtomSpecies] <- itertools.product(*list[AtomSpeciesGenerator])
-"""
 class AtomSpeciesGeneartor:
-    name, fullname, symbol, index, rcovalent, mass, magmom, u_minus_j = \
-        None, None, None, None, None, None, None, None
+    symbol = None
     pptags, naotags = None, None
 
     def __init__(self, symbol: str, pptags: list, naotags: list = None, **kwargs) -> None:
         assert isinstance(symbol, str), f'symbol should be a string: {symbol}'
-        from apns.module_database import database
-        self.name = kwargs.get('name', symbol)
-        assert isinstance(self.name, str), f'name should be a string: {self.name}'
-        self.fullname = database.PERIODIC_TABLE_TOFULLNAME[symbol]
         self.symbol = symbol
-        assert self.symbol in database.PERIODIC_TABLE_TOINDEX, f'symbol not supported: {self.symbol}'
-        self.index = database.PERIODIC_TABLE_TOINDEX[symbol]
-        self.rcovalent = database.RCOVALENT[symbol]
-        self.mass = database.ATOMIC_MASS[symbol]
-        self.magmom = kwargs.get('magmom', 0.0)
         assert isinstance(pptags, list), f'pseudopotential tags should be a list: {pptags}'
         assert all([isinstance(tag, str) for tag in pptags]), f'pseudopotential tags should be a list of strings: {pptags}'
         self.pptags = pptags
         assert isinstance(naotags, list) or naotags is None, f'nao tags should be a list or None: {naotags}'
         assert naotags is None or all([isinstance(tag, str) for tag in naotags]), f'nao tags should be a list of strings: {naotags}'
         self.naotags = naotags
-        self.u_minus_j = kwargs.get('u_minus_j', None)
-        assert self.u_minus_j is None or isinstance(self.u_minus_j, list), f'u_minus_j should be a list of floats: {self.u_minus_j}'
-        assert self.u_minus_j is None or all([isinstance(u, float) for u in self.u_minus_j]), f'u_minus_j should be a list of floats: {self.u_minus_j}'
 
     def __call__(self, pseudo_dir, orbital_dir = None):
         """iteratively create AtomSpecies instances"""
         import itertools as it
         from os.path import join as pjoin
-        from apns.module_database.search import TagSearcher
+        from apns.module_new.tag_search import TagSearcher
         searcher = TagSearcher(pjoin(pseudo_dir, 'database.json'))
         pps = searcher(False, False, *(list(set(self.pptags + [self.symbol]))))
+        
+        from apns.module_database import database
+        name = self.symbol
+        fullname = database.PERIODIC_TABLE_TOFULLNAME[self.symbol]
+        index = database.PERIODIC_TABLE_TOINDEX[self.symbol]
+        rcovalent = database.RCOVALENT[self.symbol]
+        mass = database.ATOMIC_MASS[self.symbol]
+        magmom = 0.0
         
         for pp in pps:
             if orbital_dir is not None:
                 searcher = TagSearcher(pjoin(orbital_dir, 'database.json'))
                 naos = searcher(False, False, *(list(set(self.naotags + [pp]))))
                 for pp, nao in it.product(pps, naos):
-                    yield AtomSpecies(name=self.name, fullname=self.fullname, symbol=self.symbol, index=self.index,
-                                      rcovalent=self.rcovalent, mass=self.mass, magmom=self.magmom, pp=pp, nao=nao)
+                    yield AtomSpecies(name=name, fullname=fullname, symbol=self.symbol, index=index,
+                                      rcovalent=rcovalent, mass=mass, magmom=magmom, pp=pp, nao=nao)
             else:
-                yield AtomSpecies(name=self.name, fullname=self.fullname, symbol=self.symbol, index=self.index,
-                                  rcovalent=self.rcovalent, mass=self.mass, magmom=self.magmom, pp=pp, nao=None)
+                yield AtomSpecies(name=name, fullname=fullname, symbol=self.symbol, index=index,
+                                  rcovalent=rcovalent, mass=mass, magmom=magmom, pp=pp, nao=None)
 
 class AtomSpecies:
     """# AtomSpecies
@@ -124,108 +95,108 @@ class CellGenerator:
 
     def __init__(self, identifier: str, config: str, scales: list, **kwargs) -> None:
         """create one cell instance with the scaling factors"""
-        assert identifier in ["cif", "bravis", "molecule"], f'config should be cif, bravis or molecule: {config}'
-        self.identifier = identifier
         import re
         import os
-        _match = re.match(r'^([A-Z][a-z]?)_(dimer|trimer|tetramer|sc|bcc|fcc|diamond)$', config) or \
-            re.match(r'^([A-Z][a-z]?[A-Z][a-z]?)_(xy2|xy3|x2y|x2y3|x2y5)$', config)
-        assert _match or os.path.exists(config), f'config should be a file or a simple structure: {config}'
+
+        assert (identifier == "cif" and os.path.exists(config))\
+         or (identifier == "bravis" and re.match(r"^([A-Z][a-z]?)_(sc|bcc|fcc|diamond)$", config))\
+         or (identifier == "bravis" \
+             and re.match(r"^([A-Z][a-z]?[A-Z][a-z]?)_(xy|xy2|xy3|x2y|x2y3|x2y5)$", config))\
+         or (identifier == "molecule" and re.match(r"^([A-Z][a-z]?)_(dimer|trimer|tetramer)$", config))
+        
+        self.identifier = identifier
         self.config = config
+        self.scales = scales
+
         assert isinstance(scales, list), f'scales should be a list of floats: {scales}'
         assert all([isinstance(scale, float) for scale in scales]), f'scales should be a list of floats: {scales}'
-        self.scales = scales
-        self.kspacing = kwargs.get('kspacing', -1.0)
-        assert isinstance(self.kspacing, float), f'kspacing should be a float: {self.kspacing}'
+
+        self.kspacing = kwargs.get('kspacing', [-1.0])
+        assert isinstance(self.kspacing, list) and all([isinstance(ks, float) for ks in self.kspacing])
+        
         self.magmoms = kwargs.get('magmoms', None)
         assert self.magmoms is None or isinstance(self.magmoms, list), f'magmoms should be a list of floats: {self.magmoms}'
 
     def __call__(self):
         """iteratively create Cell instances"""
-        for scale in self.scales:
-            params = self.build(self.identifier, self.config, scale, self.kspacing)
-            params["labels"] = CellGenerator.divide_subset(
-                params["coords"], params["kinds"], self.magmoms, params["labels_kinds_map"])\
-                    if self.magmoms is not None else params["labels"]
-            cell = Cell(**params)
-            yield cell
+        import itertools as it
+        for s, k in it.product(*[self.scales, self.kspacing]):
+            yield self.build(s, k)
 
-    def build(self, identifier: str, config: str, scale: float, kspacing: float) -> dict:
-        assert identifier in ["cif", "bravis", "molecule"], f'config should be cif, bravis or molecule: {config}'
-        build_func = CellGenerator.standard_build if identifier == "cif" else CellGenerator.ideal_build
-        build_result = build_func(config, scale, kspacing)
-        vels = [[0.0] * 3] * len(build_result["coords"])
-        magmoms = [0.0] * len(build_result["coords"]) if self.magmoms is None else self.magmoms
-        mobs = [[1] * 3] * len(build_result["coords"])
+    def build(self, scale: float, kspacing: float) -> dict:
+        build_func = CellGenerator.build_from_cif if self.identifier == "cif" \
+            else CellGenerator.build_bravis
+        build_func = CellGenerator.build_molecule if self.identifier == "molecule" else build_func
+        param = build_func(self.config, scale, kspacing)
+        if self.magmoms is not None:
+            param["labels"] = CellGenerator.divide_subset(param["coords"], param["kinds"], self.magmoms, param["labels_kinds_map"])
+            param["magmoms"] = self.magmoms
+        param["coords"] = param["coords"].tolist()
+        return Cell(**param)
 
-        keys = ["vels", "magmoms", "mobs"]
-        vals = [vels, magmoms, mobs]
-        build_result.update(dict(zip(keys, vals)))
-        return build_result
-
-    def standard_build(fname: str, scale: float, kspacing: float = -1.0):
+    def build_from_cif(fname: str, scale: float, kspacing: float = -1.0):
         """read structure file from external, and construct the structure.
         Currently only support CIF file.
         """
-
         from pymatgen.io.cif import CifParser
         parser = CifParser(fname)
         structure = parser.parse_structures(primitive=False)[0]
         labels = [site.species.elements[0].symbol for site in structure]
         kinds = list(dict.fromkeys(labels)) # find unique set but keep the sequence
         labels_kinds_map = [kinds.index(lable) for lable in labels]
-        coords = structure.frac_coords.tolist()
+        coords = structure.frac_coords
         magmoms = [0] * len(coords)
         a, b, c = [i*scale**(1/3) for i in structure.lattice.abc]
         alpha, beta, gamma = structure.lattice.angles
 
         import seekpath
-        cell = CellGenerator._abc_angles_to_vec([a, b, c, alpha, beta, gamma], True)
+        cell = CellGenerator.abc_angles_to_vec([a, b, c, alpha, beta, gamma], True)
         seekpath_result = seekpath.get_path((cell, coords, labels_kinds_map))
         sym_ks = seekpath_result['point_coords']
         possible_kpath = seekpath_result['path']
         mpmesh_nks = CellGenerator.kmeshgen(a, b, c, alpha, beta, gamma, kspacing) if kspacing > 0 else [1] * 3
 
-        keys = ['a', 'b', 'c', 'alpha', 'beta', 'gamma', 'labels', 'kinds', 'labels_kinds_map', 'coords', 'magmoms', 'sym_ks', 'possible_kpath', 'mpmesh_nks']
-        vals = [a, b, c, alpha, beta, gamma, labels, kinds, labels_kinds_map, coords, magmoms, sym_ks, possible_kpath, mpmesh_nks]
+        keys = ['a', 'b', 'c', 'alpha', 'beta', 'gamma', 'labels', 'kinds', 'labels_kinds_map', \
+                'coords', 'magmoms', 'sym_ks', 'possible_kpath', 'mpmesh_nks', 'periodic']
+        vals = [a, b, c, alpha, beta, gamma, labels, kinds, labels_kinds_map, \
+                coords, magmoms, sym_ks, possible_kpath, mpmesh_nks, True]
         return dict(zip(keys, vals))
-        
-    def ideal_build(config: str, characteristic: float, kspacing: float = -1.0):
-        """build structures with simple shapes, such as ideal Bravis lattices,
-        including SimpleCubic (SC), FaceCenteredCubic (FCC), BodyCenteredCubic (BCC),
-        Diamond (diamond) and simple molecules such as dimer, trimer, tetramer, etc.
-        """
-        import re
-        import numpy as np
-        match_ = re.match(r'^([A-Z][a-z]?)_(dimer|trimer|tetramer|sc|bcc|fcc|diamond)$', config) or \
-            re.match(r'^([A-Z][a-z]?[A-Z][a-z]?)_(xy2|xy3|x2y|x2y3|x2y5)$', config)
-        assert match_, f'config not supported for ideal_build: {config}'
-        kind, config = match_.groups()
-        pure = config.lower() in ['sc', 'fcc', 'bcc', 'diamond', 'dimer', 'trimer', 'tetramer']
-        periodic = config.lower() in ['sc', 'fcc', 'bcc', 'diamond', 'x2y', 'x2y3', 'x2y5', 'xy', 'xy2', 'xy3']
-        composite = not pure and periodic
-        assert (re.match(r'^[A-Z][a-z]?$', kind) and pure) or (re.match(r'^[A-Z][a-z]?[A-Z][a-z]?$', kind) and composite), \
-            f'atomic symbol not supported for ideal_build: {kind}'
-        config = config.lower() if pure else config.upper()
-        assert (config == config.upper() and composite) or (config == config.lower() and pure)
-        # True, True: ideal sc, fcc, bcc, diamond
-        # True, False: dimer, trimer, tetramer
-        # False, True: X2Y, X2Y3, X2Y5, XY, XY2, XY3
-        # False, False: not supported
-        assert pure or periodic, f'config not supported for ideal_build: {config}'
-        characteristic = CellGenerator._vcell_to_celldm(CellGenerator.bravis_angles(config), -characteristic)\
-            if characteristic < 0 and periodic else characteristic
-        assert characteristic > 0, f'characteristic should be positive: {characteristic}'
-        abc_angles, labels_kinds_map, coords = CellGenerator._structure(config, characteristic)
-        coords = coords.tolist()
+    
+    def build_bravis(bravis: str, scale: float, kspacing: float = -1.0):
+        from apns.module_new.bravis_and_molecule import lookup_acwf_db, lookup_bravis_angles, \
+            vol_to_abc_angles, lookup_bravis_lattice
+        vol = lookup_acwf_db(bravis)
+        alpha, beta, gamma = lookup_bravis_angles(bravis)
+        celldm = vol_to_abc_angles(vol, [alpha, beta, gamma])
+        abc_angles, labels, kinds, labels_kinds_map, coords = lookup_bravis_lattice(bravis, celldm*scale)
         a, b, c, alpha, beta, gamma = abc_angles
-        kinds = re.findall(r'([A-Z][a-z]?)', kind)
-        labels = [kinds[i] for i in labels_kinds_map]
-        assert (len(kinds) == 2 and composite) or (len(kinds) == 1 and pure)
+        magmoms = [0] * len(coords)
+
+        import seekpath
+        cell = CellGenerator.abc_angles_to_vec([a, b, c, alpha, beta, gamma], True)
+        seekpath_result = seekpath.get_path((cell, coords, labels_kinds_map))
+        sym_ks = seekpath_result['point_coords']
+        possible_kpath = seekpath_result['path']
         mpmesh_nks = CellGenerator.kmeshgen(a, b, c, alpha, beta, gamma, kspacing) if kspacing > 0 else [1] * 3
 
-        keys = ['a', 'b', 'c', 'alpha', 'beta', 'gamma', 'labels', 'kinds', 'labels_kinds_map', 'coords', 'mpmesh_nks']
-        vals = [a, b, c, alpha, beta, gamma, labels, kinds, labels_kinds_map, coords, mpmesh_nks]
+        keys = ['a', 'b', 'c', 'alpha', 'beta', 'gamma', 'labels', 'kinds', 'labels_kinds_map', \
+                'coords', 'magmoms', 'sym_ks', 'possible_kpath', 'mpmesh_nks', 'periodic']
+        vals = [a, b, c, alpha, beta, gamma, labels, kinds, labels_kinds_map, \
+                coords, magmoms, sym_ks, possible_kpath, mpmesh_nks, True]
+        return dict(zip(keys, vals))
+
+    def build_molecule(molecule: int, bond_length: float, kspacing: float = -1.0):
+        from apns.module_new.bravis_and_molecule import lookup_molecule
+        abc_angles, labels, kinds, labels_kinds_map, coords = lookup_molecule(molecule, bond_length)
+        a, b, c, alpha, beta, gamma = abc_angles
+        magmoms = [0] * len(coords)
+        sym_ks, possible_kpath = None, None
+        mpmesh_nks = [1, 1, 1]
+
+        keys = ['a', 'b', 'c', 'alpha', 'beta', 'gamma', 'labels', 'kinds', 'labels_kinds_map', \
+                'coords', 'magmoms', 'sym_ks', 'possible_kpath', 'mpmesh_nks', 'periodic']
+        vals = [a, b, c, alpha, beta, gamma, labels, kinds, labels_kinds_map, \
+                coords, magmoms, sym_ks, possible_kpath, mpmesh_nks, False]
         return dict(zip(keys, vals))
 
     def divide_subset(fullset: list, dividee: list, divider: list, dividee_fullset_map: list):
@@ -243,22 +214,11 @@ class CellGenerator:
             labels_.append(dividee[idx_sp] + str(kind_count_[idx_sp]))
         return labels_
 
-    def bravis_angles(config: str):
-        """get the angles of the simple perodic structures"""
-        if config in ['sc', 'X2Y3', 'X2Y5']:
-            return [90, 90, 90]
-        elif config in ['fcc', 'diamond', 'X2Y', 'XY', 'XY2', 'XY3']:
-            return [60, 60, 60]
-        elif config in ['bcc']:
-            return [109.4712206, 109.4712206, 109.4712206]
-        else:
-            raise NotImplementedError(f'easy_angle not supported: {config}')
-
     def kmeshgen(a, b, c, alpha, beta, gamma, kspacing: float|list[float]):
         """get the Monkhorst-Pack mesh"""
         import numpy as np
         kspacing = kspacing if isinstance(kspacing, list) else [kspacing] * 3
-        vecs = np.array(CellGenerator._abc_angles_to_vec([a, b, c, alpha, beta, gamma], True))
+        vecs = np.array(CellGenerator.abc_angles_to_vec([a, b, c, alpha, beta, gamma], True))
         recvecs = np.linalg.inv(vecs).T
         recvecs = 2*np.pi * recvecs
         norms = np.linalg.norm(recvecs, axis=1).tolist()
@@ -266,24 +226,7 @@ class CellGenerator:
         norms = [int(norm / kspac) for norm, kspac in zip(norms, kspacing)]
         return list(map(lambda x: max(1, x + 1), norms))
 
-    #############################
-    #  private static methods   #
-    #############################
-    
-    def _vcell_to_celldm(angles: list, volume: float):
-        """calculate the characteristic length from the volume of the cell"""
-        import numpy as np
-        assert len(angles) == 3, f'angles should be a list of 3 floats: {angles}'
-        if np.linalg.norm(np.array(angles) - np.array([90, 90, 90])) < 1e-6:
-            return volume**(1/3)
-        elif np.linalg.norm(np.array(angles) - np.array([60, 60, 60])) < 1e-6:
-            return np.sqrt(2)/2 * (4*volume)**(1/3)
-        elif np.linalg.norm(np.array(angles) - np.array([109.4712206, 109.4712206, 109.4712206])) < 1e-6:
-            return np.sqrt(3)/2 * (2*volume)**(1/3)
-        else:
-            raise NotImplementedError(f'angles not supported: {angles}')
-    
-    def _abc_angles_to_vec(lat: list, as_list: bool = False):
+    def abc_angles_to_vec(lat: list, as_list: bool = False):
         """convert lattice parameters to vectors"""
         import numpy as np
         assert len(lat) == 6, f'lat should be a list of 6 floats: {lat}'
@@ -296,233 +239,6 @@ class CellGenerator:
         e33 = np.sqrt(c**2 - e31**2 - e32**2)
         return np.array([[e11, e12, e13], [e21, e22, e23], [e31, e32, e33]])\
             if not as_list else [[e11, e12, e13], [e21, e22, e23], [e31, e32, e33]]
-
-    def _structure(config: str, characteristic: float):
-        if config == 'sc':
-            return CellGenerator._simple_cubic(characteristic)
-        elif config == 'fcc':
-            return CellGenerator._face_centered_cubic(characteristic)
-        elif config == 'bcc':
-            return CellGenerator._body_centered_cubic(characteristic)
-        elif config == 'diamond':
-            return CellGenerator._diamond(characteristic)
-        elif config == 'dimer':
-            return CellGenerator._dimer(characteristic)
-        elif config == 'trimer':
-            return CellGenerator._trimer(characteristic)
-        elif config == 'tetramer':
-            return CellGenerator._tetramer(characteristic)
-        elif config == 'X2Y':
-            return CellGenerator._X2Y(characteristic)
-        elif config == 'X2Y3':
-            return CellGenerator._X2Y3(characteristic)
-        elif config == 'X2Y5':
-            return CellGenerator._X2Y5(characteristic)
-        elif config == 'XY':
-            return CellGenerator._XY(characteristic)
-        elif config == 'XY2':
-            return CellGenerator._XY2(characteristic)
-        elif config == 'XY3':
-            return CellGenerator._XY3(characteristic)
-        else:
-            raise NotImplementedError(f'config not supported: {config}')
-        
-    def _dimer(bl: float):
-        """build dimer with bond length `bl`
-        
-        Args:
-            bl (float): bond length in Angstrom
-        Returns:
-            lat (list): lattice parameters, including a, b, c and alpha, beta, gamma
-            kinds_map (list): mapping the index of coords to kinds, size = n_atoms
-            coords (np.ndarray): coordinates of atoms
-        """
-        import numpy as np
-        return [20, 20, 20, 90, 90, 90], \
-            [0, 0], np.array([[0, 0, 0], [bl, 0, 0]])
-
-    def _trimer(bl: float):
-        """build triangle with bond length `bl`
-        
-        Args:
-            bl (float): bond length in Angstrom
-        Returns:
-            lat (list): lattice parameters, including a, b, c and alpha, beta, gamma
-            kinds_map (list): mapping the index of coords to kinds, size = n_atoms
-            coords (np.ndarray): coordinates of atoms
-        """
-        import numpy as np
-        return [20, 20, 20, 90, 90, 90], \
-            [0, 0, 0], np.array([[0, 0, 0], [bl, 0, 0], [bl/2, bl/2*3**0.5, 0]])
-
-    def _tetramer(bl: float):
-        """build tetrahedron with bond length `bl`
-        
-        Args:
-            bl (float): bond length in Angstrom
-        Returns:
-            lat (list): lattice parameters, including a, b, c and alpha, beta, gamma
-            kinds_map (list): mapping the index of coords to kinds, size = n_atoms
-            coords (np.ndarray): coordinates of atoms
-        """
-        import numpy as np
-        return [20, 20, 20, 90, 90, 90], \
-            [0, 0, 0, 0], np.array([[0, 0, 0], [bl, 0, 0], [bl/2, bl/2*3**0.5, 0], [bl/2, bl/2*3**0.5/3, bl/2*3**0.5]])
-
-    def _simple_cubic(celldm: float):
-        """build simple cubic with characteristic length `celldm`
-        
-        Args:
-            celldm (float): characteristic length in Angstrom
-        Returns:
-            lat (list): lattice parameters, including a, b, c and alpha, beta, gamma
-            kinds_map (list): mapping the index of coords to kinds, size = n_atoms
-            coords (np.ndarray): coordinates of atoms
-        """
-        import numpy as np
-        return [celldm, celldm, celldm, 90, 90, 90], \
-            [0], np.array([[0, 0, 0]])
-
-    def _body_centered_cubic(celldm: float):
-        """build body centered cubic with characteristic length `celldm`
-        
-        Args:
-            celldm (float): characteristic length in Angstrom
-        Returns:
-            lat (list): lattice parameters, including a, b, c and alpha, beta, gamma
-            kinds_map (list): mapping the index of coords to kinds, size = n_atoms
-            coords (np.ndarray): coordinates of atoms
-        """
-        import numpy as np
-        return [celldm, celldm, celldm, 109.4712206, 109.4712206, 109.4712206], \
-            [0], np.array([[0, 0, 0]])
-
-    def _face_centered_cubic(celldm: float):
-        """build face centered cubic with characteristic length `celldm`
-        
-        Args:
-            celldm (float): characteristic length in Angstrom
-        Returns:
-            lat (list): lattice parameters, including a, b, c and alpha, beta, gamma
-            kinds_map (list): mapping the index of coords to kinds, size = n_atoms
-            coords (np.ndarray): coordinates of atoms
-        """
-        import numpy as np
-        return [celldm, celldm, celldm, 60.0, 60.0, 60.0], \
-            [0], np.array([[0, 0, 0]])
-
-    def _diamond(celldm: float):
-        """build diamond with characteristic length `celldm`
-        
-        Args:
-            celldm (float): characteristic length in Angstrom
-        Returns:
-            lat (list): lattice parameters, including a, b, c and alpha, beta, gamma
-            kinds_map (list): mapping the index of coords to kinds, size = n_atoms
-            coords (np.ndarray): coordinates of atoms
-        """
-        import numpy as np
-        return [celldm, celldm, celldm, 60.0, 60.0, 60.0], \
-            [0, 0], np.array([[0, 0, 0], [0.25, 0.25, 0.25]])
-
-    def _X2Y(celldm: float):
-        """build X2Y structure with characteristic length `celldm`
-        
-        Args:
-            celldm (float): characteristic length in Angstrom
-        Returns:
-            lat (list): lattice parameters, including a, b, c and alpha, beta, gamma
-            kinds_map (list): mapping the index of coords to kinds, size = n_atoms
-            coords (np.ndarray): coordinates of atoms
-        """
-        import numpy as np
-        return [celldm, celldm, celldm, 60, 60, 60], \
-            [0]*2 + [1]*1, \
-            np.array([[0.75, 0.75, 0.75], [0.25, 0.25, 0.25], [0, 0, 0]])
-
-    def _X2Y3(celldm: float):
-        """build X2Y3 structure with characteristic length `celldm`
-        
-        Args:
-            celldm (float): characteristic length in Angstrom
-        Returns:
-            lat (list): lattice parameters, including a, b, c and alpha, beta, gamma
-            kinds_map (list): mapping the index of coords to kinds, size = n_atoms
-            coords (np.ndarray): coordinates of atoms
-        """
-        import numpy as np
-        return [celldm, celldm, celldm, 90, 90, 90], \
-            [0]*4 + [1]*6, \
-            np.array([[0.25, 0.25, 0.25], [0.75, 0.75, 0.25], [0.75, 0.25, 0.75], 
-                        [0.25, 0.75, 0.75], 
-                        [0.5, 0, 0], [0, 0.5, 0], [0, 0, 0.5], [0.5, 0.5, 0], 
-                        [0.5, 0, 0.5], [0, 0.5, 0.5]])
-
-    def _X2Y5(celldm: float):
-        """build X2Y5 structure with characteristic length `celldm`
-        
-        Args:
-            celldm (float): characteristic length in Angstrom
-        Returns:
-            lat (list): lattice parameters, including a, b, c and alpha, beta, gamma
-            kinds_map (list): mapping the index of coords to kinds, size = n_atoms
-            coords (np.ndarray): coordinates of atoms
-        """
-        import numpy as np
-        return [celldm, celldm, celldm, 90, 90, 90], \
-            [0]*4 + [1]*10, \
-            np.array([[0.75, 0.75, 0.75], [0.25, 0.25, 0.75], [0.25, 0.75, 0.25],
-                        [0.75, 0.25, 0.25],
-                        [0.25, 0.75, 0.75], [0.75, 0.25, 0.75], [0.75, 0.75, 0.25],
-                        [0.25, 0.25, 0.25], [0.5, 0.5, 0], [0.5, 0, 0.5],
-                        [0, 0.5, 0.5], [0.5, 0, 0], [0, 0.5, 0],
-                        [0, 0, 0.5]])
-
-    def _XY(celldm: float):
-        """build XO structure with characteristic length `celldm`
-        
-        Args:
-            celldm (float): characteristic length in Angstrom
-        Returns:
-            lat (list): lattice parameters, including a, b, c and alpha, beta, gamma
-            kinds_map (list): mapping the index of coords to kinds, size = n_atoms
-            coords (np.ndarray): coordinates of atoms
-        """
-        import numpy as np
-        return [celldm, celldm, celldm, 60, 60, 60], \
-            [0]*1 + [1]*1, \
-            np.array([[0, 0, 0], [0.5, 0.5, 0.5]])
-
-    def _XY2(celldm: float):
-        """build XO2 structure with characteristic length `celldm`
-        
-        Args:
-            celldm (float): characteristic length in Angstrom
-        Returns:
-            lat (list): lattice parameters, including a, b, c and alpha, beta, gamma
-            kinds_map (list): mapping the index of coords to kinds, size = n_atoms
-            coords (np.ndarray): coordinates of atoms
-        """
-        import numpy as np
-        return [celldm, celldm, celldm, 60, 60, 60], \
-            [0]*1 + [1]*2, \
-            np.array([[0, 0, 0], [0.75, 0.75, 0.75], [0.25, 0.25, 0.25]])
-
-    def _XY3(celldm: float):
-        """build XO3 structure with characteristic length `celldm`
-        
-        Args:
-            celldm (float): characteristic length in Angstrom
-        Returns:
-            lat (list): lattice parameters, including a, b, c and alpha, beta, gamma
-            kinds_map (list): mapping the index of coords to kinds, size = n_atoms
-            coords (np.ndarray): coordinates of atoms
-        """
-        import numpy as np
-        return [celldm, celldm, celldm, 60, 60, 60], \
-            [0]*1 + [1]*3, \
-            np.array([[0, 0, 0], 
-                        [0.5, 0, 0], [0, 0.5, 0], [0, 0, 0.5]])
 
 class Cell:
     """# Cell
@@ -549,6 +265,8 @@ class Cell:
     # "points" information
     coords, vels, magmoms, mobs = None, None, None, None
     labels, kinds, labels_kinds_map = None, None, None
+    
+    periodic = True
 
     def __init__(self, **kwargs) -> None:
         self.a = kwargs.get('a', None)
@@ -567,6 +285,7 @@ class Cell:
         self.labels = kwargs.get('labels', None)
         self.kinds = kwargs.get('kinds', None)
         self.labels_kinds_map = kwargs.get('labels_kinds_map', None)
+        self.periodic = kwargs.get('periodic', True)
 
     def __str__(self) -> str:
         return f"""Cell
@@ -637,7 +356,7 @@ class TestCellGeneartor(unittest.TestCase):
         result = CellGenerator.kmeshgen(4.22798145, 4.22798145, 4.22798145, 60, 60, 60, 0.03*1.889725989)
         self.assertEqual(result, [33, 33, 33])
 
-    def test_standard_build(self):
+    def test_build_from_cif(self):
         import os
         cif = """# generated using pymatgen
 data_Ac2O
@@ -722,14 +441,14 @@ loop_
 
         os.remove(fcif)
 
-    def test_ideal_build(self):
+    def test_build_bravis(self):
         cg = CellGenerator('bravis', 'Si_sc', [1.0]) # for bravis, the scale ought to be scaling factor but presently
         # is directly the volume of the cell
         times = 0
         for cell in cg():
-            self.assertEqual(cell.a, 1.0)
-            self.assertEqual(cell.b, 1.0)
-            self.assertEqual(cell.c, 1.0)
+            self.assertEqual(cell.a, 2.5318206866989112)
+            self.assertEqual(cell.b, 2.5318206866989112)
+            self.assertEqual(cell.c, 2.5318206866989112)
             self.assertEqual(cell.alpha, 90.0)
             self.assertEqual(cell.beta, 90.0)
             self.assertEqual(cell.gamma, 90.0)
@@ -743,9 +462,9 @@ loop_
         cg = CellGenerator('bravis', 'Si_sc', [1.0, 1.02, 1.04, 1.06, 1.08])
         times = 0
         for cell in cg():
-            self.assertEqual(cell.a, 1.0 * cg.scales[times])
-            self.assertEqual(cell.b, 1.0 * cg.scales[times])
-            self.assertEqual(cell.c, 1.0 * cg.scales[times])
+            self.assertEqual(cell.a, 2.5318206866989112 * cg.scales[times])
+            self.assertEqual(cell.b, 2.5318206866989112 * cg.scales[times])
+            self.assertEqual(cell.c, 2.5318206866989112 * cg.scales[times])
             self.assertEqual(cell.alpha, 90.0)
             self.assertEqual(cell.beta, 90.0)
             self.assertEqual(cell.gamma, 90.0)
@@ -756,6 +475,7 @@ loop_
             times += 1
         self.assertEqual(times, 5)
 
+    def test_build_molecule(self):
         cg = CellGenerator('molecule', 'Ba_dimer', [1.0])
         times = 0
         for cell in cg():
@@ -787,7 +507,6 @@ loop_
             self.assertEqual(cell.coords, [[0, 0, 0], [cg.scales[times], 0, 0]])
             times += 1
         self.assertEqual(times, 5)
-
 
 if __name__ == "__main__":
     unittest.main(exit=False)
