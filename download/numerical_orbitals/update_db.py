@@ -6,7 +6,7 @@ FDATABASE = ORBITAL_DIR + "/database.json"
 import os
 import json
 import apns.module_nao.parse as amnp
-import apns.module_database.search as amds
+import apns.module_new.tag_search as amds
 def initialize(subfolder: str, pptags: list, refresh: bool = False) -> list[str]:
     """initialize will create a database file if not exists, placing all
     numerical atomic orbitals in the same folder would be beneficial, therefore

@@ -390,9 +390,336 @@ ACWF_REFVOLUME = """
              Zr-X/SC       24.7431321708
 """
 
-def acwf_ref_volume(token: str):
+def lookup_acwf_db(bravis: str):
+    """bravis will be something like Si_bcc, SiO_X2O3 or something"""
+    import re
+    assert re.match(r"^([A-Z][a-z]?)_(sc|bcc|fcc|diamond)$", bravis)\
+        or re.match(r"^([A-Z][a-z]?[A-Z][a-z]?)_(xy2|xy3|x2y|x2y3|x2y5)$", bravis)\
+            , f"bravis required does not match any ACWF token: {bravis}"
+    parts = bravis.split("_")
+    phase = parts[1].upper() if parts[1].lower() != "diamond" else "Diamond"
+    token = f"{parts[0].lower().capitalize()}-X/{phase}"
     refdata = ACWF_REFVOLUME.split("\n")
     for line in refdata:
         if token in line:
             return float(line.split()[1])
     return None
+
+def lookup_bravis_angles(bravis: str):
+    
+    abc_angles, _, _, _, _ = lookup_bravis_lattice(bravis, 1.0)
+    _, _, _, alpha, beta, gamma = abc_angles
+    return alpha, beta, gamma
+
+def lookup_bravis_lattice(bravis: str, celldm: float):
+    import re
+    assert re.match(r"^([A-Z][a-z]?)_(sc|bcc|fcc|diamond)$", bravis)\
+        or re.match(r"^([A-Z][a-z]?[A-Z][a-z]?)_(xy2|xy3|x2y|x2y3|x2y5)$", bravis)\
+            , f"bravis required does not match any ACWF token: {bravis}"
+    kinds, phase = bravis.split("_")
+    kinds = [kinds] if phase in ["sc", "bcc", "fcc", "diamond"] else list(re.match(r"([A-Z][a-z]?)([A-Z][a-z]?)", kinds).groups())
+    phase = phase.lower()
+    func_expr = f"bravis_{phase}(kinds, celldm)"
+    return eval(func_expr)
+
+def vol_to_abc_angles(volume: float, angles: list):
+    """calculate the characteristic length from the volume of the cell"""
+    import numpy as np
+    assert len(angles) == 3, f'angles should be a list of 3 floats: {angles}'
+    if np.linalg.norm(np.array(angles) - np.array([90, 90, 90])) < 1e-6:
+        return volume**(1/3)
+    elif np.linalg.norm(np.array(angles) - np.array([60, 60, 60])) < 1e-6:
+        return np.sqrt(2)/2 * (4*volume)**(1/3)
+    elif np.linalg.norm(np.array(angles) - np.array([109.4712206, 109.4712206, 109.4712206])) < 1e-6:
+        return np.sqrt(3)/2 * (2*volume)**(1/3)
+    else:
+        raise NotImplementedError(f'angles not supported: {angles}')
+
+def bravis_sc(kinds: list, celldm: float):
+    """build simple cubic with characteristic length `celldm`
+    
+    Args:
+        bl (float): bond length in Angstrom
+    Returns:
+        lat (list): lattice parameters, including a, b, c and alpha, beta, gamma
+        labels (list): atom labels, each atom has one
+        kinds (list): kinds that present cell has
+        labels_kinds_map (list): mapping the index of coords to kinds, size = n_atoms
+        coords (np.ndarray): coordinates of atoms
+    """
+    assert len(kinds) == 1
+    import numpy as np
+    return [celldm, celldm, celldm, 90, 90, 90], kinds, kinds, \
+        [0], np.array([[0, 0, 0]])
+
+def bravis_bcc(kinds: list, celldm: float):
+    """build body centered cubic with characteristic length `celldm`
+    
+    Args:
+        bl (float): bond length in Angstrom
+    Returns:
+        lat (list): lattice parameters, including a, b, c and alpha, beta, gamma
+        labels (list): atom labels, each atom has one
+        kinds (list): kinds that present cell has
+        labels_kinds_map (list): mapping the index of coords to kinds, size = n_atoms
+        coords (np.ndarray): coordinates of atoms
+    """
+    assert len(kinds) == 1
+    import numpy as np
+    return [celldm, celldm, celldm, 109.4712206, 109.4712206, 109.4712206], kinds, kinds, \
+        [0], np.array([[0, 0, 0]])
+
+def bravis_fcc(kinds: list, celldm: float):
+    """build face centered cubic with characteristic length `celldm`
+    
+    Args:
+        bl (float): bond length in Angstrom
+    Returns:
+        lat (list): lattice parameters, including a, b, c and alpha, beta, gamma
+        labels (list): atom labels, each atom has one
+        kinds (list): kinds that present cell has
+        labels_kinds_map (list): mapping the index of coords to kinds, size = n_atoms
+        coords (np.ndarray): coordinates of atoms
+    """
+    assert len(kinds) == 1
+    import numpy as np
+    return [celldm, celldm, celldm, 60.0, 60.0, 60.0], kinds, kinds, \
+        [0], np.array([[0, 0, 0]])
+
+def bravis_diamond(kinds: list, celldm: float):
+    """build diamond with characteristic length `celldm`
+    
+    Args:
+        bl (float): bond length in Angstrom
+    Returns:
+        lat (list): lattice parameters, including a, b, c and alpha, beta, gamma
+        labels (list): atom labels, each atom has one
+        kinds (list): kinds that present cell has
+        labels_kinds_map (list): mapping the index of coords to kinds, size = n_atoms
+        coords (np.ndarray): coordinates of atoms
+    """
+    assert len(kinds) == 1
+    import numpy as np
+    return [celldm, celldm, celldm, 60.0, 60.0, 60.0], kinds * 2, kinds, \
+        [0, 0], np.array([[0, 0, 0], [0.25, 0.25, 0.25]])
+
+def bravis_x2y(kinds: list, celldm: float):
+    """build X2Y structure with characteristic length `celldm`
+    
+    Args:
+        bl (float): bond length in Angstrom
+    Returns:
+        lat (list): lattice parameters, including a, b, c and alpha, beta, gamma
+        labels (list): atom labels, each atom has one
+        kinds (list): kinds that present cell has
+        labels_kinds_map (list): mapping the index of coords to kinds, size = n_atoms
+        coords (np.ndarray): coordinates of atoms
+    """
+    assert len(kinds) == 2
+    import numpy as np
+    return [celldm, celldm, celldm, 60, 60, 60], [kinds[0]]*2 + [kinds[1]], kinds, \
+        [0]*2 + [1]*1, \
+        np.array([[0.75, 0.75, 0.75], [0.25, 0.25, 0.25], [0, 0, 0]])
+
+def bravis_x2y3(kinds: list, celldm: float):
+    """build X2Y3 structure with characteristic length `celldm`
+    
+    Args:
+        bl (float): bond length in Angstrom
+    Returns:
+        lat (list): lattice parameters, including a, b, c and alpha, beta, gamma
+        labels (list): atom labels, each atom has one
+        kinds (list): kinds that present cell has
+        labels_kinds_map (list): mapping the index of coords to kinds, size = n_atoms
+        coords (np.ndarray): coordinates of atoms
+    """
+    assert len(kinds) == 2
+    import numpy as np
+    return [celldm, celldm, celldm, 90, 90, 90], [kinds[0]]*4 + [kinds[1]]*6, kinds, \
+        [0]*4 + [1]*6, \
+        np.array([[0.25, 0.25, 0.25], [0.75, 0.75, 0.25], [0.75, 0.25, 0.75], 
+                    [0.25, 0.75, 0.75], 
+                    [0.5, 0, 0], [0, 0.5, 0], [0, 0, 0.5], [0.5, 0.5, 0], 
+                    [0.5, 0, 0.5], [0, 0.5, 0.5]])
+
+def bravis_x2y5(kinds: list, celldm: float):
+    """build X2Y5 structure with characteristic length `celldm`
+    
+    Args:
+        bl (float): bond length in Angstrom
+    Returns:
+        lat (list): lattice parameters, including a, b, c and alpha, beta, gamma
+        labels (list): atom labels, each atom has one
+        kinds (list): kinds that present cell has
+        labels_kinds_map (list): mapping the index of coords to kinds, size = n_atoms
+        coords (np.ndarray): coordinates of atoms
+    """
+    assert len(kinds) == 2
+    import numpy as np
+    return [celldm, celldm, celldm, 90, 90, 90], [kinds[0]]*4 + [kinds[1]]*10, kinds, \
+        [0]*4 + [1]*10, \
+        np.array([[0.75, 0.75, 0.75], [0.25, 0.25, 0.75], [0.25, 0.75, 0.25],
+                    [0.75, 0.25, 0.25],
+                    [0.25, 0.75, 0.75], [0.75, 0.25, 0.75], [0.75, 0.75, 0.25],
+                    [0.25, 0.25, 0.25], [0.5, 0.5, 0], [0.5, 0, 0.5],
+                    [0, 0.5, 0.5], [0.5, 0, 0], [0, 0.5, 0],
+                    [0, 0, 0.5]])
+
+def bravis_xy(kinds: list, celldm: float):
+    """build XO structure with characteristic length `celldm`
+    
+    Args:
+        bl (float): bond length in Angstrom
+    Returns:
+        lat (list): lattice parameters, including a, b, c and alpha, beta, gamma
+        labels (list): atom labels, each atom has one
+        kinds (list): kinds that present cell has
+        labels_kinds_map (list): mapping the index of coords to kinds, size = n_atoms
+        coords (np.ndarray): coordinates of atoms
+    """
+    assert len(kinds) == 2
+    import numpy as np
+    return [celldm, celldm, celldm, 60, 60, 60], kinds, kinds, \
+        [0]*1 + [1]*1, \
+        np.array([[0, 0, 0], [0.5, 0.5, 0.5]])
+
+def bravis_xy2(kinds: list, celldm: float):
+    """build XO2 structure with characteristic length `celldm`
+    
+    Args:
+        bl (float): bond length in Angstrom
+    Returns:
+        lat (list): lattice parameters, including a, b, c and alpha, beta, gamma
+        labels (list): atom labels, each atom has one
+        kinds (list): kinds that present cell has
+        labels_kinds_map (list): mapping the index of coords to kinds, size = n_atoms
+        coords (np.ndarray): coordinates of atoms
+    """
+    assert len(kinds) == 2
+    import numpy as np
+    return [celldm, celldm, celldm, 60, 60, 60], [kinds[0]]*1 + [kinds[1]]*2, kinds, \
+        [0]*1 + [1]*2, \
+        np.array([[0, 0, 0], [0.75, 0.75, 0.75], [0.25, 0.25, 0.25]])
+
+def bravis_xy3(kinds: list, celldm: float):
+    """build XO3 structure with characteristic length `celldm`
+    
+    Args:
+        bl (float): bond length in Angstrom
+    Returns:
+        lat (list): lattice parameters, including a, b, c and alpha, beta, gamma
+        labels (list): atom labels, each atom has one
+        kinds (list): kinds that present cell has
+        labels_kinds_map (list): mapping the index of coords to kinds, size = n_atoms
+        coords (np.ndarray): coordinates of atoms
+    """
+    import numpy as np
+    return [celldm, celldm, celldm, 60, 60, 60], [kinds[0]]*1 + [kinds[1]]*3, kinds, \
+        [0]*1 + [1]*3, \
+        np.array([[0, 0, 0], 
+                    [0.5, 0, 0], [0, 0.5, 0], [0, 0, 0.5]])
+
+def lookup_molecule(molecule: str, bond_length: float):
+    import re
+    assert re.match(r"^([A-Z][a-z]?)_(dimer|trimer|tetramer)$", molecule), f"does not match any predefined molecule: {molecule}"
+    assert isinstance(bond_length, float), f"must specify a float number as bond length: {bond_length}"
+    kind, shape = molecule.split("_")
+    shape = shape.lower()
+    func_expr = f"molecule_{shape}(kind, bond_length)"
+    return eval(func_expr)
+
+def molecule_dimer(kind: str, bl: float):
+    """build dimer with bond length `bl`
+    
+    Args:
+        bl (float): bond length in Angstrom
+    Returns:
+        lat (list): lattice parameters, including a, b, c and alpha, beta, gamma
+        labels (list): atom labels, each atom has one
+        kinds (list): kinds that present cell has
+        labels_kinds_map (list): mapping the index of coords to kinds, size = n_atoms
+        coords (np.ndarray): coordinates of atoms
+    """
+    import numpy as np
+    return [20, 20, 20, 90, 90, 90], [kind, kind], [kind], \
+        [0, 0], np.array([[0, 0, 0], [bl, 0, 0]])
+
+def molecule_trimer(kind: str, bl: float):
+    """build triangle with bond length `bl`
+    
+    Args:
+        bl (float): bond length in Angstrom
+    Returns:
+        lat (list): lattice parameters, including a, b, c and alpha, beta, gamma
+        labels (list): atom labels, each atom has one
+        kinds (list): kinds that present cell has
+        labels_kinds_map (list): mapping the index of coords to kinds, size = n_atoms
+        coords (np.ndarray): coordinates of atoms
+    """
+    import numpy as np
+    return [20, 20, 20, 90, 90, 90], [kind, kind, kind], [kind], \
+        [0, 0, 0], np.array([[0, 0, 0], [bl, 0, 0], [bl/2, bl/2*3**0.5, 0]])
+
+def molecule_tetramer(kind: str, bl: float):
+    """build tetrahedron with bond length `bl`
+    
+    Args:
+        bl (float): bond length in Angstrom
+    Returns:
+        lat (list): lattice parameters, including a, b, c and alpha, beta, gamma
+        labels (list): atom labels, each atom has one
+        kinds (list): kinds that present cell has
+        labels_kinds_map (list): mapping the index of coords to kinds, size = n_atoms
+        coords (np.ndarray): coordinates of atoms
+    """
+    import numpy as np
+    return [20, 20, 20, 90, 90, 90], [kind, kind, kind, kind], [kind], \
+        [0, 0, 0, 0], np.array([[0, 0, 0], [bl, 0, 0], [bl/2, bl/2*3**0.5, 0], [bl/2, bl/2*3**0.5/3, bl/2*3**0.5]])
+
+import unittest
+class TestMolecule(unittest.TestCase):
+    def test_lookup_molecule(self):
+        result = lookup_molecule("Si_dimer", 1.0)
+        self.assertEqual(result[0], [20, 20, 20, 90, 90, 90])
+        self.assertEqual(result[1], ['Si']*2)
+        self.assertEqual(result[2], ['Si'])
+        self.assertEqual(result[3], [0]*2)
+        self.assertEqual(result[4].tolist(), [[0, 0, 0], [1, 0, 0]])
+
+        result = lookup_molecule("O_trimer", 1.0)
+        self.assertEqual(result[0], [20, 20, 20, 90, 90, 90])
+        self.assertEqual(result[1], ['O']*3)
+        self.assertEqual(result[2], ['O'])
+        self.assertEqual(result[3], [0]*3)
+        self.assertEqual(result[4].tolist(), [[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [0.5, 0.8660254037844386, 0.0]])
+
+    def test_lookup_bravis_angles(self):
+        result = lookup_bravis_angles("Si_sc")
+        self.assertEqual(result, (90, 90, 90))
+
+        result = lookup_bravis_angles("Si_fcc")
+        self.assertEqual(result, (60, 60, 60))
+
+        result = lookup_bravis_angles("Si_diamond")
+        self.assertEqual(result, (60, 60, 60))
+
+        result = lookup_bravis_angles("SiO_xy2")
+        self.assertEqual(result, (60, 60, 60))
+
+        result = lookup_bravis_angles("VO_xy3")
+        self.assertEqual(result, (60, 60, 60))
+
+        result = lookup_bravis_angles("VO_x2y5")
+        self.assertEqual(result, (90, 90, 90))
+
+    def test_lookup_bravis_lattice(self):
+        result = lookup_bravis_lattice("Si_sc", 1.0)
+        self.assertEqual(result[0], [1, 1, 1, 90, 90, 90])
+        self.assertEqual(result[1], ['Si'])
+        self.assertEqual(result[2], ['Si'])
+        self.assertEqual(result[3], [0])
+        self.assertEqual(result[4].tolist(), [[0, 0, 0]])
+
+
+if __name__ == "__main__":
+    unittest.main()
