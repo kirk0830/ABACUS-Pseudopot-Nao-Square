@@ -1,11 +1,8 @@
-from apns.module_structure.materials_project import download as mpdwld
-from apns.module_structure.cod import download as coddwld
-from apns.module_structure.optimade import download as optimadedwld
 from apns.module_workflow.identifier import TEMPORARY_FOLDER as cache_dir
-def download(formula: dict,
-             n_structures: dict = None,
-             api_keys: str = "",
-             stru_cache_dir = cache_dir):
+def download_all(formula: dict,
+                 api_keys: dict,
+                 n_structures: dict = None,
+                 stru_cache_dir = cache_dir):
     """# API of online crystal structure database
     General interface to download structures from different databases.
     
@@ -44,18 +41,25 @@ def download(formula: dict,
     See their official website for more information. For example the Materials Project, you should
     have an API key to download structures.
     """
+    from apns.module_structure.materials_project import download as materials_project
+    from apns.module_structure.cod import download as cod
+    from apns.module_structure.optimade import download as optimade
     n_structures = n_structures if n_structures is not None else {db: [1] * len(formula[db]) for db in formula.keys()}
-    api_keys = api_keys if api_keys != "" else {db: "" for db in formula.keys()}
     dbs = formula.keys()
-    assert all([db in ["mp", "mv", "cod", "optimade"] for db in dbs]), f'database not supported: {dbs}'
+    assert all([db in ["materials_project", "matterverse", "cod", "optimade"] for db in dbs]), f'database not supported: {dbs}'
     log = {}
     for db in dbs:
-        if db == "mp":
-            log[db] = mpdwld(api_keys[db], formula[db], n_structures[db], stru_cache_dir)
-        elif db == "mv":
+        if db == "materials_project":
+            log[db] = materials_project(api_keys[db], formula[db], n_structures[db], stru_cache_dir)
+        elif db == "matterverse":
             raise NotImplementedError("Materials Virtual Lab is not implemented yet.")
         elif db == "cod":
-            log[db] = coddwld(formula[db])
+            log[db] = cod(formula[db])
         elif db == "optimade":
-            log[db] = optimadedwld(formula[db])
+            log[db] = optimade(formula[db])
     return log
+
+def download(formula: list|str, n_structures: list|int, api_key: str, database: str = "materials_project", cache_dir: str = cache_dir):
+    """after all structures needed are collected, in-one-shot download structures as cif, return
+    the formula as dict key, value as list of tuples (fname, magmoms)"""
+    return download_all({database: formula}, {database: api_key}, {database: n_structures}, cache_dir)[database]
