@@ -1,25 +1,30 @@
 class AtomSpeciesGeneartor:
     symbol = None
+    pseudo_dir, orbital_dir = None, None
     pptags, naotags = None, None
 
-    def __init__(self, symbol: str, pptags: list, naotags: list = None, **kwargs) -> None:
+    def __init__(self, symbol: str, pseudo_dir: str, pptags: list, orbital_dir: str = None, naotags: list = None, **kwargs) -> None:
         assert isinstance(symbol, str), f'symbol should be a string: {symbol}'
         self.symbol = symbol
+        assert isinstance(pseudo_dir, str), f'pseudo_dir should be a string: {pseudo_dir}'
+        self.pseudo_dir = pseudo_dir
         assert isinstance(pptags, list), f'pseudopotential tags should be a list: {pptags}'
         assert all([isinstance(tag, str) for tag in pptags]), f'pseudopotential tags should be a list of strings: {pptags}'
         self.pptags = pptags
+        assert isinstance(orbital_dir, str) or orbital_dir is None, f'orbital_dir should be a string or None: {orbital_dir}'
+        self.orbital_dir = orbital_dir
         assert isinstance(naotags, list) or naotags is None, f'nao tags should be a list or None: {naotags}'
         assert naotags is None or all([isinstance(tag, str) for tag in naotags]), f'nao tags should be a list of strings: {naotags}'
         self.naotags = naotags
 
-    def __call__(self, pseudo_dir, orbital_dir = None):
+    def __call__(self):
         """iteratively create AtomSpecies instances"""
         import itertools as it
         from os.path import join as pjoin
         from apns.module_new.tag_search import TagSearcher
-        searcher = TagSearcher(pjoin(pseudo_dir, 'database.json'))
+        searcher = TagSearcher(pjoin(self.pseudo_dir, 'database.json'))
         pps = searcher(False, False, *(list(set(self.pptags + [self.symbol]))))
-        
+
         from apns.module_database import database
         name = self.symbol
         fullname = database.PERIODIC_TABLE_TOFULLNAME[self.symbol]
@@ -29,8 +34,8 @@ class AtomSpeciesGeneartor:
         magmom = 0.0
         
         for pp in pps:
-            if orbital_dir is not None:
-                searcher = TagSearcher(pjoin(orbital_dir, 'database.json'))
+            if self.orbital_dir is not None and self.naotags is not None:
+                searcher = TagSearcher(pjoin(self.orbital_dir, 'database.json'))
                 naos = searcher(False, False, *(list(set(self.naotags + [pp]))))
                 for pp, nao in it.product(pps, naos):
                     yield AtomSpecies(name=name, fullname=fullname, symbol=self.symbol, index=index,
@@ -62,25 +67,30 @@ class AtomSpecies:
     simulation. Because it is not the property of one atom species, but the property of one
     object (but as coincidience) called "atom" in simulation.
     """
-    name, fullname, symbol, index, rcovalent, mass, magmom = \
+    label, fullname, symbol, index, rcovalent, mass, magmom = \
         None, None, None, None, None, None, None
     pp, nao = None, None
     
-    def __init__(self, name, fullname, symbol, index, rcovalent, mass, magmom, pp, nao) -> None:
-        self.name = name
-        self.fullname = fullname
-        self.symbol = symbol
-        self.index = index
-        self.rcovalent = rcovalent
-        self.mass = mass
-        self.magmom = magmom
-        self.pp = pp
-        self.nao = nao
+    def __init__(self, **kwargs) -> None:
+        self.label = kwargs.get('label', None)
+        self.fullname = kwargs.get('fullname', None)
+        self.symbol = kwargs.get('symbol', None)
+        self.index = kwargs.get('index', None)
+        self.rcovalent = kwargs.get('rcovalent', None)
+        self.mass = kwargs.get('mass', None)
+        self.magmom = kwargs.get('magmom', None)
+        self.pp = kwargs.get('pp', None)
+        self.nao = kwargs.get('nao', None)
 
     def __str__(self) -> str:
-        return f"""AtomSpecies:\nname: {self.name}, \nfullname: {self.fullname},
+        return f"""AtomSpecies:\nname: {self.label}, \nfullname: {self.fullname},
 symbol: {self.symbol}, \nindex: {self.index}, \ncovalent radius: {self.rcovalent},
 mass: {self.mass}, \nmagmom: {self.magmom}, \npseudopotential: {self.pp}, \nnumerical atomic orbital: {self.nao}"""
+
+    def as_dict(self) -> dict:
+        return {"name": self.label, "fullname": self.fullname, "symbol": self.symbol,
+                "index": self.index, "rcovalent": self.rcovalent, "mass": self.mass,
+                "magmom": self.magmom, "pp": self.pp, "nao": self.nao}
 
 class CellGenerator:
 
@@ -93,17 +103,16 @@ class CellGenerator:
     # generator specific
     scales = None
 
-    def __init__(self, identifier: str, config: str, scales: list, **kwargs) -> None:
+    def __init__(self, config: str, scales: list, **kwargs) -> None:
         """create one cell instance with the scaling factors"""
         import re
         import os
 
-        assert (identifier == "cif" and os.path.exists(config))\
-         or (identifier == "bravis" and re.match(r"^([A-Z][a-z]?)_(sc|bcc|fcc|diamond)$", config))\
-         or (identifier == "bravis" \
-             and re.match(r"^([A-Z][a-z]?[A-Z][a-z]?)_(xy|xy2|xy3|x2y|x2y3|x2y5)$", config))\
-         or (identifier == "molecule" and re.match(r"^([A-Z][a-z]?)_(dimer|trimer|tetramer)$", config))
-        
+        identifier = "bravis" if re.match(r"^([A-Z][a-z]?)_(sc|bcc|fcc|diamond)$", config) else "illegal"
+        identifier = "bravis" if re.match(r"^([A-Z][a-z]?[A-Z][a-z]?)_(xy|xy2|xy3|x2y|x2y3|x2y5)$", config) else identifier
+        identifier = "molecule" if re.match(r"^([A-Z][a-z]?)_(dimer|trimer|tetramer)$", config) else identifier
+        identifier = "cif" if os.path.exists(config) else identifier
+        assert identifier != "illegal", f'config should be a valid Bravis lattice, molecule or CIF file: {config}'
         self.identifier = identifier
         self.config = config
         self.scales = scales
@@ -132,6 +141,10 @@ class CellGenerator:
             param["labels"] = CellGenerator.divide_subset(param["coords"], param["kinds"], self.magmoms, param["labels_kinds_map"])
             param["magmoms"] = self.magmoms
         param["coords"] = param["coords"].tolist()
+        # hard code for now
+        param["mobs"] = [[1, 1, 1]] * len(param["coords"])
+        param["vels"] = [[0, 0, 0]] * len(param["coords"])
+
         return Cell(**param)
 
     def build_from_cif(fname: str, scale: float, kspacing: float = -1.0):
@@ -299,17 +312,22 @@ Structure:
 coords: {self.coords}, \nvelocities: {self.vels}, \nmagnetic moments: {self.magmoms}, \noccupations: {self.mobs}
 labels: {self.labels}, \nkinds: {self.kinds}, \nlabels_kinds_map: {self.labels_kinds_map}"""
 
+    def as_dict(self) -> dict:
+        return {"a": self.a, "b": self.b, "c": self.c, "alpha": self.alpha, "beta": self.beta, "gamma": self.gamma,
+                "sym_ks": self.sym_ks, "possible_kpath": self.possible_kpath, "mpmesh_nks": self.mpmesh_nks,
+                "coords": self.coords, "vels": self.vels, "magmoms": self.magmoms, "mobs": self.mobs,
+                "labels": self.labels, "kinds": self.kinds, "labels_kinds_map": self.labels_kinds_map, "periodic": self.periodic}
+
 import unittest
 class TestAtomSpeciesGenerator(unittest.TestCase):
 
     def test_constructor(self):
-        asg = AtomSpeciesGeneartor('Si', [])
-        self.assertEqual(asg.name, 'Si')
-        self.assertEqual(asg.fullname, 'Silicon')
+        asg = AtomSpeciesGeneartor('Si', "", [])
         self.assertEqual(asg.symbol, 'Si')
-        self.assertEqual(asg.index, 14)
-        self.assertEqual(asg.rcovalent, 1.11)
-        self.assertEqual(asg.mass, 28.0855)
+        self.assertEqual(asg.pseudo_dir, "")
+        self.assertEqual(asg.pptags, [])
+        self.assertEqual(asg.orbital_dir, None)
+        self.assertEqual(asg.naotags, None)
     
     def test_oncall(self):
         import os
@@ -319,21 +337,21 @@ class TestAtomSpeciesGenerator(unittest.TestCase):
         fdatabase = "./database.json"
         with open(fdatabase, "w") as f:
             json.dump(database, f)
-        asg = AtomSpeciesGeneartor('Si', ["tag1", "tag2"])
+        asg = AtomSpeciesGeneartor('Si', "./", ["tag1", "tag2"])
         times = 0
-        for as_ in asg("./"):
+        for as_ in asg():
             times += 1
             self.assertEqual(as_.pp, "the_file_name_with_path")
         self.assertEqual(times, 1)
         os.remove(fdatabase)
 
-        asg = AtomSpeciesGeneartor('Si', ["Si", "PBE", "NC", "sg15", "sr"])
+        asg = AtomSpeciesGeneartor('Si', "./download/pseudopotentials/", ["Si", "PBE", "NC", "sg15", "sr"])
         times = 0
         ref = {'/root/abacus-develop/ABACUS-Pseudopot-Nao-Square/download/pseudopotentials/sg15_oncv_upf_2020-02-06/Si_ONCV_PBE-1.2.upf', 
                '/root/abacus-develop/ABACUS-Pseudopot-Nao-Square/download/pseudopotentials/sg15_oncv_upf_2020-02-06/Si_ONCV_PBE-1.0.upf', 
                '/root/abacus-develop/ABACUS-Pseudopot-Nao-Square/download/pseudopotentials/sg15_oncv_upf_2020-02-06/Si_ONCV_PBE-1.1.upf'}
         result = []
-        for as_ in asg("./download/pseudopotentials/"):
+        for as_ in asg():
             result.append(as_.pp)
             times += 1
         result = set(result)
@@ -344,10 +362,10 @@ class TestCellGeneartor(unittest.TestCase):
 
     def test_constructor(self):
         with self.assertRaises(AssertionError):
-            CellGenerator('cif', 'Si', 1.0) # raise error because scales must be list
+            CellGenerator('Si', 1.0) # raise error because scales must be list
         with self.assertRaises(AssertionError):
-            CellGenerator('cif', 'Si', [1.0])
-        cg = CellGenerator('molecule', 'Si_dimer', [1.0])
+            CellGenerator('Si', [1.0])
+        cg = CellGenerator('Si_dimer', [1.0])
         self.assertEqual(cg.identifier, 'molecule')
         self.assertEqual(cg.config, 'Si_dimer')
         self.assertEqual(cg.scales, [1.0])
@@ -390,7 +408,7 @@ loop_
         fcif = 'Ac2O.cif'
         with open(fcif, "w") as f:
             f.write(cif)
-        cg = CellGenerator('cif', fcif, [1.0])
+        cg = CellGenerator(fcif, [1.0])
         times = 0
         for cell in cg():
             self.assertAlmostEqual(cell.a, 4.84451701, delta=1e-6)
@@ -406,7 +424,7 @@ loop_
             times += 1
         self.assertEqual(times, 1)
 
-        cg = CellGenerator('cif', fcif, [1.0, 1.02, 1.04, 1.06, 1.08])
+        cg = CellGenerator(fcif, [1.0, 1.02, 1.04, 1.06, 1.08])
         times = 0
         for cell in cg():
             self.assertAlmostEqual(cell.a, 4.84451701 * cg.scales[times]**(1/3), delta=1e-6)
@@ -423,7 +441,7 @@ loop_
         self.assertEqual(times, 5)
 
         # test with magmom
-        cg = CellGenerator('cif', fcif, [1.0], magmoms = [1.0, -1.0, 0.0])
+        cg = CellGenerator(fcif, [1.0], magmoms = [1.0, -1.0, 0.0])
         times = 0
         for cell in cg():
             self.assertAlmostEqual(cell.a, 4.84451701, delta=1e-6)
@@ -442,7 +460,7 @@ loop_
         os.remove(fcif)
 
     def test_build_bravis(self):
-        cg = CellGenerator('bravis', 'Si_sc', [1.0]) # for bravis, the scale ought to be scaling factor but presently
+        cg = CellGenerator('Si_sc', [1.0]) # for bravis, the scale ought to be scaling factor but presently
         # is directly the volume of the cell
         times = 0
         for cell in cg():
@@ -459,7 +477,7 @@ loop_
             times += 1
         self.assertEqual(times, 1)
 
-        cg = CellGenerator('bravis', 'Si_sc', [1.0, 1.02, 1.04, 1.06, 1.08])
+        cg = CellGenerator('Si_sc', [1.0, 1.02, 1.04, 1.06, 1.08])
         times = 0
         for cell in cg():
             self.assertEqual(cell.a, 2.5318206866989112 * cg.scales[times])
@@ -476,7 +494,7 @@ loop_
         self.assertEqual(times, 5)
 
     def test_build_molecule(self):
-        cg = CellGenerator('molecule', 'Ba_dimer', [1.0])
+        cg = CellGenerator('Ba_dimer', [1.0])
         times = 0
         for cell in cg():
             self.assertEqual(cell.a, 20.0)
@@ -492,7 +510,7 @@ loop_
             times += 1
         self.assertEqual(times, 1)
 
-        cg = CellGenerator('molecule', 'Ba_dimer', [1.0, 1.02, 1.04, 1.06, 1.08])
+        cg = CellGenerator('Ba_dimer', [1.0, 1.02, 1.04, 1.06, 1.08])
         times = 0
         for cell in cg():
             self.assertEqual(cell.a, 20.0)

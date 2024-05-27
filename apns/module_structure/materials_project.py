@@ -28,7 +28,6 @@ def download(api_key: str,
     # (False, True): only experimentally observed, the most stable
     # (False, False): experimentally observed, not needed to be the most stable
     # (True, False): theoretically predicted is also okay
-
     print("Establishing connection to Materials Project database...")
     with MPRester(api_key) as mpr:
         for ifo, fo in enumerate(formula):

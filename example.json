@@ -3,11 +3,15 @@
         "mode": "test",
         "pseudo_dir": "./download/pseudopotentials",
         "orbital_dir": "./download/numerical_orbitals",
-        "cache_dir": "./apns_cache"
+        "cache_dir": "./apns_cache",
+        "out_dir": "./output"
     },
-    "abacustest": {
-        "bohrium.account": "test",
-        "bohrium.password": "test"
+    "credentials": {
+        "materials_project": {"api_key": "test"},
+        "abacustest": {
+            "bohrium.account": "test",
+            "bohrium.password": "test"
+        }
     },
     "abacus": [
         {
@@ -116,18 +120,12 @@
                    []]
         }
     ],
-    "structures": [
+    "strusets": [
         {
             "calculator": "abacus",
             "calcset": 3,
             "atomset": 2,
-            "database": "mp",
-            "search_filter": {
-                "n_structures": 1,
-                "is_stable": true,
-                "theoretical": false
-            },
-            "api_key": "test",
+            "database": "materials_project",
             "desc": [["search", "Li3ErCl6", [1.0]],
                      ["scratch", "ErCl_xy3", [0.94, 0.96, 0.98, 1.00, 1.02, 1.04, 1.06]],
                      ["scratch", "Er_dimer", [2.1, 2.4, 2.7, 3.0, 3.3]]]
@@ -136,16 +134,14 @@
             "calculator": "qespresso",
             "calcset": 1,
             "atomset": 0,
-            "database": "mv",
-            "n_structures": 1,
-            "api_key": "test",
+            "database": "matterverse",
             "desc": [["search", "Li3DyCl6", [0.94, 0.96, 0.98, 1.00, 1.02, 1.04, 1.06]]]
         },
         {
             "calculator": "abacus",
             "calcset": 0,
             "atomset": 1,
-            "database": "cod",
+            "database": "pymatgen.cod",
             "desc": [["local", "/example/structure/only/cif/supported.cif", [1.0]]]
         }
     ]
