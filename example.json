@@ -106,10 +106,13 @@
     ],
     "atomsets": [
         {
-            "H": [[],
-                  []],
-            "O": [[],
-                  []]
+            "Ba": [["sg15", "1.0"], null],
+            "O": [["GBRV"], null],
+            "Ti": [["rrkjus"], null],
+            "H": [["PD", "04"], null],
+            "Fe": [["sg15", "1.0"], null],
+            "Mn": [["sg15", "1.0"], null],
+            "Y": [["sg15", "1.0"], null]
         },
         {
             "H": [[],
@@ -124,25 +127,10 @@
         {
             "calculator": "abacus",
             "calcset": 3,
-            "atomset": 2,
-            "database": "materials_project",
-            "desc": [["search", "Li3ErCl6", [1.0]],
-                     ["scratch", "ErCl_xy3", [0.94, 0.96, 0.98, 1.00, 1.02, 1.04, 1.06]],
-                     ["scratch", "Er_dimer", [2.1, 2.4, 2.7, 3.0, 3.3]]]
-        },
-        {
-            "calculator": "qespresso",
-            "calcset": 1,
             "atomset": 0,
-            "database": "matterverse",
-            "desc": [["search", "Li3DyCl6", [0.94, 0.96, 0.98, 1.00, 1.02, 1.04, 1.06]]]
-        },
-        {
-            "calculator": "abacus",
-            "calcset": 0,
-            "atomset": 1,
-            "database": "pymatgen.cod",
-            "desc": [["local", "/example/structure/only/cif/supported.cif", [1.0]]]
+            "database": "materials_project",
+            "desc": [["search", "BaTiO3", [1.0], [0.05]],
+                     ["from_scratch", "Fe_dimer", [2.1, 2.4, 2.7, 3.0, 3.3]]]
         }
     ]
 }
