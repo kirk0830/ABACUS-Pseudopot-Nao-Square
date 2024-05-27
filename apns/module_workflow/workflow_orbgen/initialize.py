@@ -84,7 +84,7 @@ def check(inp: dict):
     return inp
 
 import apns.pspot.manage as ampm
-import apns.module_io.input_translate as amiit
+#import apns.module_io.input_translate as amiit
 import apns.module_structure.basic as amsb
 def initialize(finp: str):
     """setup the orbgen workflow, return the checked inp file contents 
@@ -100,7 +100,7 @@ def initialize(finp: str):
     and fname"""
     inp = read(finp)
     elements = amsb.scan_elements(inp["systems"])
-    inp = amiit.expand(inp, elements)
+    #inp = amiit.expand(inp, elements)
     vupfs = ampm.valid_pseudo(inp["global"]["pseudo_dir"], elements, inp["pseudopotentials"])
     # vupfs will have keys as elements 
     # and values the key-value pairs of pspot_ids and file name with path

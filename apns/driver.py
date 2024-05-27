@@ -1,8 +1,6 @@
 """APNS has three main functionalities: test, analysis and orbital generation. Each functionality has its own driver."""
 import os
 import apns.module_workflow.identifier as amwi
-import apns.pspot.manage as ampm
-import apns.orbgen.manage as amnm
 import apns.new.citation as amic
 welcome = "\n"
 welcome += "="*100
@@ -35,25 +33,18 @@ Current working directory: {os.getcwd()}""")
         amwi.TEMPORARY_FOLDER = os.path.join(os.getcwd(), amwi.TEMPORARY_FOLDER)
         """create cache directory if not exist"""
         os.makedirs(amwi.TEMPORARY_FOLDER, exist_ok=True)
-        # treat pseudopotentials and numerical atomic orbitals equally
-        # therefore both are loaded
-        # print("Refreshing pseudopotential and numerical orbital archive.")
-        # with open(self.finp, "r") as f:
-        #     inp = json.load(f)
-        # ampm.load(inp["global"]["pseudo_dir"])
-        # amnm.load(inp["global"]["orbital_dir"])
         
     def run(self):
         """run the driver"""
         pass
 
-import apns.module_workflow.workflow_test.driver as amwtd
+import apns.test as amwt
 class test_driver(apns_driver):
     """test driver, for testing pseudopotentials and numerical orbitals"""
     def run(self):
-        amwtd.run(self.finp)
+        amwt.run(self.finp)
 
-import apns.module_workflow.workflow_analysis.driver as amwad
+import apns.analysis as amwad
 class analysis_driver(apns_driver):
     """analysis driver, for analyzing test results"""
     def run(self):
@@ -70,13 +61,13 @@ def spawn_driver(finp: str) -> apns_driver:
     """return corresponding driver according to detailed user settings"""
     with open(finp, "r") as f:
         inp = json.load(f)
-    if inp["global"]["test_mode"] in ["pseudopotential", "numerical_orbital"]:
-        print("Activate test mode: ", inp["global"]["test_mode"])
+    if inp["global"]["mode"] in "test":
+        print("Activate test mode.")
         return test_driver(finp)
-    elif inp["global"]["test_mode"] == "analysis":
+    elif inp["global"]["mode"] == "analysis":
         print("Analysis mode activated.")
         return analysis_driver(finp)
-    elif inp["global"]["test_mode"] == "orbgen":
+    elif inp["global"]["mode"] == "orbgen":
         print("Orbgen mode activated.")
         return orbgen_driver(finp)
     else:

@@ -1,7 +1,7 @@
 """initialize is the module should be called everytime will the program starts"""
 
-import apns.module_io.input_translate as amiit
-import apns.module_io.abacustest as amia
+#import apns.module_io.input_translate as amiit
+#import apns.module_io.abacustest as amia
 import apns.module_structure.basic as amsb
 # import apns.module_nao.nao_archive as amna
 def initialize(finp: str):
@@ -22,8 +22,8 @@ def initialize(finp: str):
                                naotags=inp["naotags"],
                                pseudo_dir=inp["global"]["pseudo_dir"],
                                orbital_dir=inp["global"]["orbital_dir"])
-    abacustest = amia.read_apns_inp(finp)
-    return inp, structures, upfs, orbs, abacustest
+    #abacustest = amia.read_apns_inp(finp)
+    #return inp, structures, upfs, orbs, abacustest
 
 import json
 import os
@@ -167,7 +167,7 @@ def read_apns_inp(finp: str):
     return result
 
 import apns.pspot.manage as ampm
-import apns.orbgen.manage as amnm
+#import apns.orbgen.manage as amnm
 def scan_upforb(elements: list,
                 basis_type: str,
                 pseudo_dir: str, 
