@@ -83,7 +83,7 @@ def check(inp: dict):
 
     return inp
 
-import apns.module_pseudo.manage as ampm
+import apns.pspot.manage as ampm
 import apns.module_io.input_translate as amiit
 import apns.module_structure.basic as amsb
 def initialize(finp: str):

@@ -125,8 +125,8 @@ def write_apns_inp(element: str, kind: str, version: str, appendix: str, ecut: f
 import zipfile
 import re
 import time
-import apns.module_io.abacustest as amia
-import apns.module_io.compress as amic
+import apns.new.abacustest as amia
+import apns.new.compress as amic
 def main(fecut: str = "./apns_cache/apns_ecutwfc_db.json", 
          fpspot: str = "./download/pseudopotentials/pseudo_db.json", 
          included: list = None, excluded: list = None):

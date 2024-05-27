@@ -1,9 +1,9 @@
 """APNS has three main functionalities: test, analysis and orbital generation. Each functionality has its own driver."""
 import os
 import apns.module_workflow.identifier as amwi
-import apns.module_pseudo.manage as ampm
-import apns.module_nao.manage as amnm
-import apns.module_io.citation as amic
+import apns.pspot.manage as ampm
+import apns.orbgen.manage as amnm
+import apns.new.citation as amic
 welcome = "\n"
 welcome += "="*100
 welcome += "\n"

@@ -15,7 +15,7 @@ def initialize(finp: str):
 
 import json
 import os
-import apns.module_nao.orbgen as amno
+import apns.orbgen.orbgen as amno
 import time
 def run(finp: str):
    """run orbital generation from this driver"""

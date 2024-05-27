@@ -18,8 +18,8 @@ is hard-coded as database.json"""
 
 import os
 import json
-import apns.module_pseudo.parse as ampp
-import apns.module_pseudo.parse_special.GBRV_Vanderbilt as amppsg
+import apns.pspot.parse as ampp
+import apns.pspot.parse_special.GBRV_Vanderbilt as amppsg
 def initialize(refresh: bool = False) -> list[str]:
     """initialize will create a database file if not exists"""
     if not os.path.exists(FDATABASE):
@@ -114,6 +114,6 @@ if __name__ == "__main__":
     # fail_upfs = initialize(True)
     # print(fail_upfs)
     # exit()
-    import apns.module_new.tag_search as ts
+    import apns.new.tag_search as ts
     searcher = ts.TagSearcher(FDATABASE)
     print("\n".join(searcher(False, False, "Sr", "sr", "DOJO")))
