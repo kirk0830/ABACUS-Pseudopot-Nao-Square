@@ -114,6 +114,6 @@ if __name__ == "__main__":
     # fail_upfs = initialize(True)
     # print(fail_upfs)
     # exit()
-    import apns.new.tag_search as ts
+    import apns.test.tag_search as ts
     searcher = ts.TagSearcher(FDATABASE)
     print("\n".join(searcher(False, False, "Sr", "sr", "DOJO")))

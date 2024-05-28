@@ -540,7 +540,7 @@ def set_bond_length_fromfile(fname: str,
 is available for each element)"""
 import os
 import json
-import apns.module_workflow.identifier as amwid
+import apns.outdated.identifier as amwid
 import apns.pspot.archive as amupfa
 def generator(elements: list = None,
               pspot_identifier: str = None,

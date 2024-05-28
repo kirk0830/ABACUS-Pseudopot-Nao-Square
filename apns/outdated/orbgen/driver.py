@@ -8,14 +8,14 @@ There are several prerequisites for this workflow:
    by `apns/main.py -i input_test.json` first, then run analysis
    workflow to generate/grep converged values for pseudopotentials
 """
-import apns.module_workflow.workflow_orbgen.initialize as amwwoi
+import apns.outdated.orbgen.initialize as amwwoi
 def initialize(finp: str):
    """setup the orbgen workflow"""
    return amwwoi.initialize(finp)
 
 import json
 import os
-import apns.orbgen.orbgen as amno
+import apns.outdated.orbgen.orbgen as amno
 import time
 def run(finp: str):
    """run orbital generation from this driver"""

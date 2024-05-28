@@ -85,7 +85,7 @@ def check(inp: dict):
 
 import apns.pspot.manage as ampm
 #import apns.module_io.input_translate as amiit
-import apns.module_structure.basic as amsb
+import apns.structure.basic as amsb
 def initialize(finp: str):
     """setup the orbgen workflow, return the checked inp file contents 
     along with available pspot_ids selected by the input file

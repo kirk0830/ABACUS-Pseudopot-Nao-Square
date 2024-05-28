@@ -34,7 +34,7 @@ def read_apns_inp(fname: str) -> dict:
     return inp.get("abacustest", {})
 
 import time
-import apns.new.compress as amic
+import apns.test.compress as amic
 def auto_api(test_setting: dict, folders: list):
     jobgroup = f"apns_{time.strftime('%Y-%m-%d_%H-%M-%S', time.localtime())}"
     auto_submit = True

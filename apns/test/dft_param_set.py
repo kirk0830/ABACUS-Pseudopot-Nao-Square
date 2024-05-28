@@ -12,6 +12,9 @@ class DFTParamSetGenerator:
         self.keys = keys
         self.vals = [self.folded[k] for k in keys]
         self.residual = {k: v for k, v in self.folded.items() if k not in keys}
+        print(f"""DFTParamSetGenerator setup:
+Keys to be expanded: {", ".join(keys)}
+""")
 
     def __call__(self):
         import itertools as it

@@ -16,16 +16,23 @@ class AtomSpeciesGeneartor:
         assert isinstance(naotags, list) or naotags is None, f'nao tags should be a list or None: {naotags}'
         assert naotags is None or all([isinstance(tag, str) for tag in naotags]), f'nao tags should be a list of strings: {naotags}'
         self.naotags = naotags
+        print(f"""AtomSpeciesGenerator setup
+Symbol: {self.symbol}
+Pseudopotential directory: {self.pseudo_dir}
+Pseudopotential tags: {self.pptags}
+Orbital directory: {self.orbital_dir}
+Numerical atomic orbital tags: {self.naotags}
+""")
 
     def __call__(self):
         """iteratively create AtomSpecies instances"""
         import itertools as it
         from os.path import join as pjoin
-        from apns.new.tag_search import TagSearcher
+        from apns.test.tag_search import TagSearcher
         searcher = TagSearcher(pjoin(self.pseudo_dir, 'database.json'))
         pps = searcher(False, False, *(list(set(self.pptags + [self.symbol]))))
 
-        from apns.new import database
+        from apns.test import database
         name = self.symbol
         fullname = database.PERIODIC_TABLE_TOFULLNAME[self.symbol]
         index = database.PERIODIC_TABLE_TOINDEX[self.symbol]
@@ -125,6 +132,13 @@ class CellGenerator:
         
         self.magmoms = kwargs.get('magmoms', None)
         assert self.magmoms is None or isinstance(self.magmoms, list), f'magmoms should be a list of floats: {self.magmoms}'
+        print(f"""CellGenerator setup
+Identifier (type of structure): {self.identifier}
+Config (structure configuration): {self.config}
+Scales: {self.scales}
+K-spacing: {" ".join(map(str, self.kspacing))} in Bohr-1
+Magnetic moments: {self.magmoms}
+""")
 
     def __call__(self):
         """iteratively create Cell instances"""
@@ -176,7 +190,7 @@ class CellGenerator:
         return dict(zip(keys, vals))
     
     def build_bravis(bravis: str, scale: float, kspacing: float = -1.0):
-        from apns.new.bravis_and_molecule import lookup_acwf_db, lookup_bravis_angles, \
+        from apns.test.bravis_and_molecule import lookup_acwf_db, lookup_bravis_angles, \
             vol_to_abc_angles, lookup_bravis_lattice
         vol = lookup_acwf_db(bravis)
         alpha, beta, gamma = lookup_bravis_angles(bravis)
@@ -199,7 +213,7 @@ class CellGenerator:
         return dict(zip(keys, vals))
 
     def build_molecule(molecule: int, bond_length: float, kspacing: float = -1.0):
-        from apns.new.bravis_and_molecule import lookup_molecule
+        from apns.test.bravis_and_molecule import lookup_molecule
         abc_angles, labels, kinds, labels_kinds_map, coords = lookup_molecule(molecule, bond_length)
         a, b, c, alpha, beta, gamma = abc_angles
         magmoms = [0] * len(coords)

@@ -1,6 +1,5 @@
 import json
-
-import apns.module_workflow.identifier as amwi
+import apns.outdated.identifier as amwi
 def find_ecutwfc(element: str,
                  ecutwfc: float|list = None,
                  pspot_id: str|list = None):
@@ -66,7 +65,7 @@ def find_ecutwfc(element: str,
 
     return dict(zip(pspot_id, ecutwfc))
 
-import apns.orbgen.orbgen_kernel.siab_new as amnoksn
+import apns.outdated.orbgen.orbgen_kernel.siab_new as amnoksn
 def siab_generator(**kwargs):
     """
     Generate SIAB_INPUT.json file based on the given settings

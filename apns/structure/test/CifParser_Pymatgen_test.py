@@ -1,5 +1,5 @@
 import unittest
-import apns.module_structure.cifparser_pymatgen as amscp
+import apns.structure.cifparser_pymatgen as amscp
 import math
 import os
 

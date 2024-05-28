@@ -2,7 +2,7 @@ import os
 import json
 import re
 
-import apns.module_workflow.identifier as amwi
+import apns.outdated.identifier as amwi
 def load(pseudo_dir: str):
     print("""
 rules.json will be loaded on at beginning of test workflow. Once

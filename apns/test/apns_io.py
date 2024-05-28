@@ -99,7 +99,7 @@ def search(formula: list|str, n_structures: list|int, api_key: str, cache_dir: s
     result = search(formula, n_structures, api_key, cache_dir, database)
     ```
     """
-    from apns.module_structure.api import download
+    from apns.structure.api import download
 
     if isinstance(formula, str):
         print("Warning: only one formula as query, high-frequency query is not recommended.")
@@ -113,14 +113,19 @@ def search(formula: list|str, n_structures: list|int, api_key: str, cache_dir: s
     for i in range(len(formula)):
         structures = lookup_cache(formula[i], n_structures[i], cache_dir)
         if len(structures) < n_structures[i]:
+            print(f"""Warning: Only {len(structures)} structures of {formula[i]} are available in the cache.
+          will search {n_structures[i]} structures from {database} database.""")
             ifo_to_download.append(i)
         else:
+            print(f"{n_structures[i]} structures of {formula[i]} are available in local cache.")
             result[formula[i]] = [(s[0], s[1]) for s in structures]
     if len(ifo_to_download) > 0:
         formula_to_download = [formula[i] for i in ifo_to_download]
         n_structures_to_download = [n_structures[i] for i in ifo_to_download]
         log = download(formula_to_download, n_structures_to_download, api_key, database, cache_dir)
         update_cache(log, cache_dir)
+        print("""Search result has been updated to the cache, next time you can directly use it without download again.
+Privacy: please delete your api_key information in input files in case you leave it in your pull request.""")
         result.update(log)
     return result
 
@@ -169,8 +174,12 @@ def initialize(inp: dict):
 def prepare(inp: dict):
     demands, traits = initialize(inp)
     cache_dir = inp.get("cache_dir", "./apns_cache")
+    print("* * * Structure search and download * * *".center(100))
+    print(f"Cache directory where structures are download, stored and local searched: {cache_dir}")
     search_result = {}
     for db, formula in demands.items():
+        print(f"""Structures queried from `{db}` database:
+{", ".join(formula)}""")
         n_structures = [1] * len(formula)
         api_key = inp.get("credentials", {}).get(db, {}).get("api_key", "")
         search_result[db] = search(formula, n_structures, api_key, cache_dir, db)
