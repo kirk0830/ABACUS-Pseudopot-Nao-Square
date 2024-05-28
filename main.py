@@ -34,7 +34,7 @@ SIAB, presently is also maintained by AISI-ABACUS developers.
     return finp
 
 """main"""
-import apns.module_workflow.driver as amwd
+import apns.driver as amwd
 def main():
     """main function"""
     finp = entry()

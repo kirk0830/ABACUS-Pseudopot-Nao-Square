@@ -1,0 +1,144 @@
+{
+    "global": {
+        "mode": "test",
+        "pseudo_dir": "./download/pseudopotentials",
+        "orbital_dir": "./download/numerical_orbitals",
+        "cache_dir": "./apns_cache",
+        "out_dir": "./output"
+    },
+    "credentials": {
+        "materials_project": {
+            "api_key": "register to get your API key: https://www.materialsproject.org/dashboard"},
+        "abacustest": {
+            "bohrium.account": "register your account on Bohrium: https://bohrium.dp.tech/",
+            "bohrium.password": "then you type your password here",
+            "ncores": 32,
+            "memory": 64
+        }
+    },
+    "abacus": [
+        {
+            "ecutwfc": 30,
+            "calculation": "cell-relax",
+            "nspin": 2
+        },
+        {
+            "ecutwfc": [30, 40, 50],
+            "calculation": "scf",
+            "cal_force": 1,
+            "cal_stress": 1
+        },
+        {
+            "ecutwfc|ecutrho": [[30, 300], [40, 400], [50, 500]],
+            "calculation": "scf"
+        },
+        {
+            "ecutwfc": [30, 40, 50],
+            "ecutrho": [300, 400, 500],
+            "calculation": "scf"
+        }
+    ],
+    "qespresso": [
+        {
+            "calculation": {
+                "outdir": "./out",
+                "prefix": "test",
+                "pseudo_dir": "./pseudo",
+                "wf_collect": ".true.",
+                "disk_io": "low",
+                "verbosity": "high",
+                "restart_mode": "from_scratch"
+            },
+            "system": {
+                "ibrav": 0,
+                "celldm(1)": 10.0,
+                "nat": 2,
+                "ntyp": 1,
+                "ecutwfc|ecutrho": [[30, 300], [40, 400], [50, 500]],
+                "occupations": "smearing",
+                "smearing": "gaussian",
+                "degauss": 0.01
+            },
+            "electrons": {
+                "mixing_mode": "plain",
+                "mixing_beta": [0.3, 0.7],
+                "conv_thr": 1.0e-6,
+                "diagonalization": "david"
+            },
+            "ions": {
+                "ion_dynamics": "bfgs"
+            },
+            "cell": {
+                "cell_dynamics": "bfgs"
+            }
+        },
+        {
+            "calculation": {
+                "outdir": "./out",
+                "prefix": "test",
+                "pseudo_dir": "./pseudo",
+                "wf_collect": ".true.",
+                "disk_io": "low",
+                "verbosity": "high",
+                "restart_mode": "from_scratch"
+            },
+            "system": {
+                "ibrav": 0,
+                "celldm(1)": 10.0,
+                "nat": 2,
+                "ntyp": 1,
+                "ecutwfc": [30, 40, 50],
+                "ecutrho": [300, 400, 500],
+                "occupations": "smearing",
+                "smearing": "gaussian",
+                "degauss": 0.01
+            },
+            "electrons": {
+                "mixing_mode": "plain",
+                "mixing_beta": [0.3, 0.7],
+                "conv_thr": 1.0e-6,
+                "diagonalization": "david"
+            },
+            "ions": {
+                "ion_dynamics": "bfgs"
+            },
+            "cell": {
+                "cell_dynamics": "bfgs"
+            }
+        }
+    ],
+    "atomsets": [
+        {
+            "Ba": [["sg15", "1.0"], null],
+            "O": [["GBRV"], null],
+            "Ti": [["rrkjus"], null],
+            "H": [["PD", "04"], null],
+            "Fe": [["sg15", "1.0"], null],
+            "Mn": [["sg15", "1.0"], null],
+            "Y": [["sg15", "1.0"], null]
+        },
+        {
+            "Li": [["sg15", "1.0", "sr"], null],
+            "Cl": [["sg15", "1.0", "sr"], null],
+            "Dy": [["PD04", "nlcc"], null],
+            "Er": [["PD04", "nlcc"], null],
+            "Ho": [["PD04", "nlcc"], null],
+            "Lu": [["PD04", "nlcc"], null],
+            "Tm": [["PD04", "nlcc"], null],
+            "Yb": [["PD04", "nlcc"], null]
+        }
+    ],
+    "strusets": [
+        {
+            "calculator": "abacus", "calcset": 0,
+            "atomset": 1,
+            "database": "materials_project",
+            "desc": [["local", "./apns_cache/Li3DyCl6-Pna21.cif", [1.0], [0.08]],
+                     ["local", "./apns_cache/Li3ErCl6-Pna21.cif", [1.0], [0.08]],
+                     ["local", "./apns_cache/Li3HoCl6-Pna21.cif", [1.0], [0.08]],
+                     ["local", "./apns_cache/Li3LuCl6-Pna21.cif", [1.0], [0.08]],
+                     ["local", "./apns_cache/Li3TmCl6-Pna21.cif", [1.0], [0.08]],
+                     ["local", "./apns_cache/Li3YbCl6-Pna21.cif", [1.0], [0.08]]]
+        }
+    ]
+}
