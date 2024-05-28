@@ -31,6 +31,7 @@ Numerical atomic orbital tags: {self.naotags}
         from apns.test.tag_search import TagSearcher
         searcher = TagSearcher(pjoin(self.pseudo_dir, 'database.json'))
         pps = searcher(False, False, *(list(set(self.pptags + [self.symbol]))))
+        assert len(pps) > 0, f'no pseudopotential found for {self.symbol} with tags {self.pptags}'
 
         from apns.test import database
         name = self.symbol
@@ -151,10 +152,12 @@ Magnetic moments: {self.magmoms}
             else CellGenerator.build_bravis
         build_func = CellGenerator.build_molecule if self.identifier == "molecule" else build_func
         param = build_func(self.config, scale, kspacing)
+        param["coords"] = param["coords"].tolist()
         if self.magmoms is not None:
             param["labels"] = CellGenerator.divide_subset(param["coords"], param["kinds"], self.magmoms, param["labels_kinds_map"])
             param["magmoms"] = self.magmoms
-        param["coords"] = param["coords"].tolist()
+        else:
+            param["magmoms"] = [0] * len(param["coords"])
         # hard code for now
         param["mobs"] = [[1, 1, 1]] * len(param["coords"])
         param["vels"] = [[0, 0, 0]] * len(param["coords"])

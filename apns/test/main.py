@@ -73,6 +73,7 @@ from apns.test.atom_species_and_cell import AtomSpeciesGeneartor, AtomSpecies, C
 def bind_atom_species_with_cell(atom_species_generators: list[AtomSpeciesGeneartor], cell: Cell):
     assert all([isinstance(asgen, AtomSpeciesGeneartor) for asgen in atom_species_generators])
     those_wanted = [asgen for asgen in atom_species_generators if asgen.symbol in cell.kinds]
+    assert len(those_wanted) == len(cell.kinds), "Not all AtomSpecies are found in the cell"
     return those_wanted, cell
 
 def export(paramset: dict, atomset: list, cell: Cell, fmt = "abacus") -> dict:
@@ -103,13 +104,14 @@ def write_abacus_stru(atomset: list[AtomSpecies], cell: Cell):
     result = "ATOM_SPECIES\n"
     # need a map from cell.labels to index of AtomSpecies in atomset list!
     temp_ = [a.symbol for a in atomset]
-    labels_atomspecies_map = [temp_.index(cell.kinds[ik]) for ik in cell.labels_kinds_map]
-    result += "\n".join([f"{label:<4s} {atomset[labels_atomspecies_map[il]].mass:<8.4f} {basename(atomset[labels_atomspecies_map[il]].pp)}" \
+    uniquelabels_atomspecies_map = [temp_.index(cell.kinds[cell.labels_kinds_map[cell.labels.index(ulbl)]]) for ulbl in dict.fromkeys(cell.labels)]
+    result += "\n".join([f"{label:<4s} \
+{atomset[uniquelabels_atomspecies_map[il]].mass:<8.4f} {basename(atomset[uniquelabels_atomspecies_map[il]].pp)}" \
             for il, label in enumerate(dict.fromkeys(cell.labels))])
     
     if not all([as_.nao is None for as_ in atomset]):
         result += "\n\nNUMERICAL_ORBITAL\n"
-        result += "\n".join([f"{basename(atomset[labels_atomspecies_map[il]].nao)}" for il in range(len(set(cell.labels)))])
+        result += "\n".join([f"{basename(atomset[uniquelabels_atomspecies_map[il]].nao)}" for il in range(len(set(cell.labels)))])
 
     result += f"\n\nLATTICE_CONSTANT\n{cell.lat0:<20.10f}\n"
     result += "\nLATTICE_VECTORS\n"
@@ -124,7 +126,7 @@ def write_abacus_stru(atomset: list[AtomSpecies], cell: Cell):
         result += f"{label}\n{len(ind)}\n{cell.magmoms[ind[0]]:<4.2f}\n"
         for i in ind:
             result += f"{cell.coords[i][0]:<20.10f}{cell.coords[i][1]:<20.10f}{cell.coords[i][2]:<20.10f} \
-                m {cell.mobs[i][0]:<2d}{cell.mobs[i][1]:<2d}{cell.mobs[i][2]:<2d}\n"
+m {cell.mobs[i][0]:<2d}{cell.mobs[i][1]:<2d}{cell.mobs[i][2]:<2d}\n"
     return result
 
 def write_abacus_kpt(cell: Cell):
