@@ -123,7 +123,7 @@ def write_abacus_stru(atomset: list[AtomSpecies], cell: Cell):
     result += f"\n\nATOM_POSITIONS\n{coord}\n"
     for label in dict.fromkeys(cell.labels):
         ind = [i for i, l in enumerate(cell.labels) if l == label]
-        result += f"{label}\n{len(ind)}\n{cell.magmoms[ind[0]]:<4.2f}\n"
+        result += f"{label}\n{cell.magmoms[ind[0]]:<4.2f}\n{len(ind)}\n"
         for i in ind:
             result += f"{cell.coords[i][0]:<20.10f}{cell.coords[i][1]:<20.10f}{cell.coords[i][2]:<20.10f} \
 m {cell.mobs[i][0]:<2d}{cell.mobs[i][1]:<2d}{cell.mobs[i][2]:<2d}\n"
