@@ -18,6 +18,15 @@
     },
     "abacus": [
         {
+            "ecutwfc": 100,
+            "calculation": "scf",
+            "basis_type": "pw",
+            "cal_force": 1,
+            "cal_stress": 1,
+            "nspin": 1,
+            "symmetry": 1
+        },
+        {
             "ecutwfc": 30,
             "calculation": "cell-relax",
             "nspin": 2
@@ -126,19 +135,17 @@
             "Lu": [["PD04", "nlcc"], null],
             "Tm": [["PD04", "nlcc"], null],
             "Yb": [["PD04", "nlcc"], null]
+        },
+        {
+            "Yb": [["Yb"], null]
         }
     ],
     "strusets": [
         {
             "calculator": "abacus", "calcset": 0,
-            "atomset": 1,
+            "atomset": 2,
             "database": "materials_project",
-            "desc": [["local", "./apns_cache/Li3DyCl6-Pna21.cif", [1.0], [0.08]],
-                     ["local", "./apns_cache/Li3ErCl6-Pna21.cif", [1.0], [0.08]],
-                     ["local", "./apns_cache/Li3HoCl6-Pna21.cif", [1.0], [0.08]],
-                     ["local", "./apns_cache/Li3LuCl6-Pna21.cif", [1.0], [0.08]],
-                     ["local", "./apns_cache/Li3TmCl6-Pna21.cif", [1.0], [0.08]],
-                     ["local", "./apns_cache/Li3YbCl6-Pna21.cif", [1.0], [0.08]]]
+            "desc": [["local", "./apns_cache/cod-9010997.cif", [1.0], [0.10]]]
         }
     ]
 }
