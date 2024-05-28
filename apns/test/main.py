@@ -1,40 +1,51 @@
+def run(finp: str):
+    import json
+    import apns.test.citation as amc
+    with open(finp, "r") as f:
+        inp = json.load(f)
+    main(inp)
+    amc.citation()
 
 def main(inp: dict):
-    # import json
-    # with open(finp, 'r') as f:
-    #     inp = json.load(f)
-    # # first check correctness of input
-
     # then collect structures, update the descriptor in inp
-    import apns.new.apns_io as apns_io
+    import apns.test.apns_io as apns_io
     inp = apns_io.prepare(inp)
+    print("* * * Preparation done * * *".center(100, " "))
     # then loop over struset
-    import apns.new.dft_param_set as dftparam
-    import apns.new.atom_species_and_cell as struparam
+    import apns.test.dft_param_set as dftparam
+    import apns.test.atom_species_and_cell as struparam
     import itertools as it
     out_dir = inp["global"].get("out_dir", ".")
     folders = []
-    for struset in inp["strusets"]:
-        # the dft parameters
+    for iset, struset in enumerate(inp["strusets"]):
         software = struset.get("calculator", "abacus")
         calcset = struset.get("calcset", 0)
+        atomset = struset.get("atomset", 0)
+        print(f"""Struset {iset} module binding information
+DFT package: {software}
+Calcset: {calcset}
+Atomset: {atomset}
+Number of structure descriptors: {len(struset["desc"])}
+""")
+        # the dft parameters
         dftgen = dftparam.DFTParamSetGenerator(inp[software][calcset])
         # the atom species
-        atomset = struset.get("atomset", 0)
         asgens = [struparam.AtomSpeciesGeneartor(symbol=s, 
                   pseudo_dir=inp["global"].get("pseudo_dir", "."), pptags=tags[0], 
                   orbital_dir=inp["global"].get("orbital_dir", "."), naotags=tags[1]) \
                   for s, tags in inp["atomsets"][atomset].items()]
+
         # the cell
         for desc in struset["desc"]:
             # first extract the atomspecies that really needed
-            cellgen = struparam.CellGenerator(**desc) # kspacing? magmom?
+            cellgen = struparam.CellGenerator(**desc)
             for paramset, cell in it.product(dftgen(), cellgen()):
                 asgens_subset, cell = bind_atom_species_with_cell(asgens, cell)
                 for atom_species in it.product(*[asgen() for asgen in asgens_subset]):
                     standard_fname_with_contents = export(paramset, atom_species, cell, fmt=software)
                     cache = dict(zip(["AtomSpecies", "Cell", "DFTParamSet"], [[as_.as_dict() for as_ in atom_species], cell.as_dict(), paramset]))
                     folders.append(write_and_move(standard_fname_with_contents, cache, out_dir))
+    print("* * * All structures generated * * *".center(100, " "))
     return folders
 
 def write_and_move(standard_fname_with_contents: dict, cache: dict, out_dir: str):
@@ -58,7 +69,7 @@ def write_and_move(standard_fname_with_contents: dict, cache: dict, out_dir: str
             shutil.copy(f"{as_['nao']}", f"{folder}/{basename(as_['nao'])}")
     return folder
 
-from apns.new.atom_species_and_cell import AtomSpeciesGeneartor, AtomSpecies, Cell
+from apns.test.atom_species_and_cell import AtomSpeciesGeneartor, AtomSpecies, Cell
 def bind_atom_species_with_cell(atom_species_generators: list[AtomSpeciesGeneartor], cell: Cell):
     assert all([isinstance(asgen, AtomSpeciesGeneartor) for asgen in atom_species_generators])
     those_wanted = [asgen for asgen in atom_species_generators if asgen.symbol in cell.kinds]
@@ -102,7 +113,7 @@ def write_abacus_stru(atomset: list[AtomSpecies], cell: Cell):
 
     result += f"\n\nLATTICE_CONSTANT\n{cell.lat0:<20.10f}\n"
     result += "\nLATTICE_VECTORS\n"
-    from apns.new.atom_species_and_cell import CellGenerator
+    from apns.test.atom_species_and_cell import CellGenerator
     latvec = CellGenerator.abc_angles_to_vec([cell.a, cell.b, cell.c, cell.alpha, cell.beta, cell.gamma], True)
     result += "\n".join([f"{latvec[i][0]:<20.10f} {latvec[i][1]:<20.10f} {latvec[i][2]:<20.10f}" for i in range(3)])
     

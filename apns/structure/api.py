@@ -1,4 +1,4 @@
-from apns.module_workflow.identifier import TEMPORARY_FOLDER as cache_dir
+from apns.outdated.identifier import TEMPORARY_FOLDER as cache_dir
 def download_all(formula: dict,
                  api_keys: dict,
                  n_structures: dict = None,
@@ -41,9 +41,9 @@ def download_all(formula: dict,
     See their official website for more information. For example the Materials Project, you should
     have an API key to download structures.
     """
-    from apns.module_structure.materials_project import download as materials_project
-    from apns.module_structure.cod import download as cod
-    from apns.module_structure.optimade import download as optimade
+    from apns.structure.materials_project import download as materials_project
+    from apns.structure.cod import download as cod
+    from apns.structure.optimade import download as optimade
     n_structures = n_structures if n_structures is not None else {db: [1] * len(formula[db]) for db in formula.keys()}
     dbs = formula.keys()
     assert all([db in ["materials_project", "matterverse", "cod", "optimade"] for db in dbs]), f'database not supported: {dbs}'

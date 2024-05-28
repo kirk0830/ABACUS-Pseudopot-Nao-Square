@@ -1,7 +1,7 @@
 """APNS has three main functionalities: test, analysis and orbital generation. Each functionality has its own driver."""
 import os
-import apns.module_workflow.identifier as amwi
-import apns.new.citation as amic
+import apns.outdated.identifier as amwi
+import apns.test.citation as amic
 welcome = "\n"
 welcome += "="*100
 welcome += "\n"
@@ -38,19 +38,19 @@ Current working directory: {os.getcwd()}""")
         """run the driver"""
         pass
 
-import apns.test as amwt
+import apns.test.main as amwt
 class test_driver(apns_driver):
     """test driver, for testing pseudopotentials and numerical orbitals"""
     def run(self):
         amwt.run(self.finp)
 
-import apns.analysis as amwad
+import apns.analysis.main as amwad
 class analysis_driver(apns_driver):
     """analysis driver, for analyzing test results"""
     def run(self):
         amwad.run(self.finp)
 
-import apns.module_workflow.workflow_orbgen.driver as amwod
+import apns.outdated.orbgen.driver as amwod
 class orbgen_driver(apns_driver):
     """orbgen driver, for generating numerical orbitals"""
     def run(self):

@@ -2,7 +2,7 @@
 Collect eos test result and pack the pseudopotential file.
 The time to publish recommended pseudopotentials is coming.
 """
-import apns.module_workflow.identifier as amwi
+import apns.outdated.identifier as amwi
 import os
 def initialize():
     """initialize by asserting the existence of all files"""
@@ -139,7 +139,7 @@ def file_pack(pack):
     
     return list(database.keys())
 
-import apns.new.compress as compress
+import apns.test.compress as compress
 import time
 def main(excluded: list = None, n_lowest: int = 5):
     feos, fecut, fpspot = initialize()

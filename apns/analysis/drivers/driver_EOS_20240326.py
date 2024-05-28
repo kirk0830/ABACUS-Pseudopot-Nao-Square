@@ -97,7 +97,7 @@ def search(path: str, fromcal: str = "cell-relax"):
     return result
 
 import apns.analysis.postprocess.eos as amape
-import apns.module_workflow.identifier as amwi
+import apns.outdated.identifier as amwi
 def calculate(sys_mpid_pnid_veks: dict):
     """calculate EOS V0, E0, B0, B0', delta refer to All Electron provided by ACWF,
     result would be dict whose keys are element symbols, then values are list of dict,

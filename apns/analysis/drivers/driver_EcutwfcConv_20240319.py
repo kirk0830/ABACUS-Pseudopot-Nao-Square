@@ -125,7 +125,7 @@ def summarize_conv(convs: list, result: dict):
             result[element][pnid] = max(result[element][pnid], ecutwfc)
     return result
 
-import apns.module_workflow.identifier as amwi
+import apns.outdated.identifier as amwi
 def ecutwfc_convergence(convs: list):
     # summarize the convergence results
     fresult = amwi.TEMPORARY_FOLDER + "/apns_ecutwfc_db.json"
