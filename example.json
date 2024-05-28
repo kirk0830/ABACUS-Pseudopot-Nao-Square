@@ -7,10 +7,13 @@
         "out_dir": "./output"
     },
     "credentials": {
-        "materials_project": {"api_key": "test"},
+        "materials_project": {
+            "api_key": "register to get your API key: https://www.materialsproject.org/dashboard"},
         "abacustest": {
-            "bohrium.account": "test",
-            "bohrium.password": "test"
+            "bohrium.account": "register your account on Bohrium: https://bohrium.dp.tech/",
+            "bohrium.password": "then you type your password here",
+            "ncores": 32,
+            "memory": 64
         }
     },
     "abacus": [
@@ -115,22 +118,27 @@
             "Y": [["sg15", "1.0"], null]
         },
         {
-            "H": [[],
-                  []],
-            "O": [[],
-                  []],
-            "Na": [[],
-                   []]
+            "Li": [["sg15", "1.0", "sr"], null],
+            "Cl": [["sg15", "1.0", "sr"], null],
+            "Dy": [["PD04", "nlcc"], null],
+            "Er": [["PD04", "nlcc"], null],
+            "Ho": [["PD04", "nlcc"], null],
+            "Lu": [["PD04", "nlcc"], null],
+            "Tm": [["PD04", "nlcc"], null],
+            "Yb": [["PD04", "nlcc"], null]
         }
     ],
     "strusets": [
         {
-            "calculator": "abacus",
-            "calcset": 3,
-            "atomset": 0,
+            "calculator": "abacus", "calcset": 0,
+            "atomset": 1,
             "database": "materials_project",
-            "desc": [["search", "BaTiO3", [1.0], [0.05]],
-                     ["from_scratch", "Fe_dimer", [2.1, 2.4, 2.7, 3.0, 3.3]]]
+            "desc": [["local", "./apns_cache/Li3DyCl6-Pna21.cif", [1.0], [0.08]],
+                     ["local", "./apns_cache/Li3ErCl6-Pna21.cif", [1.0], [0.08]],
+                     ["local", "./apns_cache/Li3HoCl6-Pna21.cif", [1.0], [0.08]],
+                     ["local", "./apns_cache/Li3LuCl6-Pna21.cif", [1.0], [0.08]],
+                     ["local", "./apns_cache/Li3TmCl6-Pna21.cif", [1.0], [0.08]],
+                     ["local", "./apns_cache/Li3YbCl6-Pna21.cif", [1.0], [0.08]]]
         }
     ]
 }
