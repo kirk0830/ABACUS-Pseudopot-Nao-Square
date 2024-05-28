@@ -1,6 +1,4 @@
 *.cif
-formula_mpid.json
-pseudo_db.json
 *.pyc
 __pycache__
 *egg-info
@@ -16,3 +14,4 @@ build/
 *.upf
 *.UPF
 *.orb
+download/*
