@@ -1,298 +1,200 @@
 {
+    "description": "this file contains the rules for taging pseudopotential files. All rules will be applied one-by-one to all files. Tags are added by appending instead of replacing. For example the first rule only specifies for all files in this folder, will share sg15, norm-conserving, NC, ONCV, ONCVPSP tags. Then the second rule will add 1.0, v1.0 tags to files that match the regex. The third rule will add 1.1, v1.1 tags to files that match the regex. The fourth rule will add 1.2, v1.2 tags ..., the fifth rule will add fr, full-relativistic, rel tags to files that match the regex.",
     "rules": [
         {
-            "kind": "sg15",
-            "version": "1.0",
-            "appendix": "",
             "re.folder": "sg15_oncv_upf_2020-02-06",
-            "re.file": "^([A-Z][a-z]?)(_ONCV_PBE\\-1\\.0\\.upf)$"
+            "re.file": "^([A-Z][a-z]?)(_ONCV.*\\.upf)$",
+            "tags": ["sg15", "norm-conserving", "NC", "ONCV", "ONCVPSP"]
         },
         {
-            "kind": "sg15",
-            "version": "1.0",
-            "appendix": "fr",
             "re.folder": "sg15_oncv_upf_2020-02-06",
-            "re.file": "^([A-Z][a-z]?)(_ONCV_PBE_FR\\-1\\.0\\.upf)$"
+            "re.file": "^([A-Z][a-z]?)(.*_PBE.*\\.upf)$",
+            "tags": ["PBE", "Perdew-Burke-Ernzerhof"]
         },
         {
-            "kind": "sg15",
-            "version": "1.1",
-            "appendix": "",
             "re.folder": "sg15_oncv_upf_2020-02-06",
-            "re.file": "^([A-Z][a-z]?)(_ONCV_PBE\\-1\\.1\\.upf)$"
+            "re.file": "^([A-Z][a-z]?)(.*\\-1\\.0\\.upf)$",
+            "tags": ["1.0", "v1.0"]
         },
         {
-            "kind": "sg15",
-            "version": "1.1",
-            "appendix": "fr",
             "re.folder": "sg15_oncv_upf_2020-02-06",
-            "re.file": "^([A-Z][a-z]?)(_ONCV_PBE_FR\\-1\\.1\\.upf)$"
+            "re.file": "^([A-Z][a-z]?)(.*\\-1\\.1\\.upf)$",
+            "tags": ["1.1", "v1.1"]
         },
         {
-            "kind": "sg15",
-            "version": "1.2",
-            "appendix": "",
             "re.folder": "sg15_oncv_upf_2020-02-06",
-            "re.file": "^([A-Z][a-z]?)(_ONCV_PBE\\-1\\.2\\.upf)$"
+            "re.file": "^([A-Z][a-z]?)(.*\\-1\\.2\\.upf)$",
+            "tags": ["1.2", "v1.2"]
         },
         {
-            "kind": "pslkjpaw",
-            "version": "0.3.1",
-            "appendix": "",
-            "re.folder": "PSEUDOPOTENTIALS",
-            "re.file": "([A-Z][a-z]?)(\\.pbe)(-[spdn]+)?(-kjpaw_psl\\.[\\d\\.]+\\.UPF)"
+            "re.folder": "sg15_oncv_upf_2020-02-06",
+            "re.file": "^([A-Z][a-z]?)(.*_FR.*.upf)$",
+            "tags": ["fr", "full-relativistic", "rel"]
         },
         {
-            "kind": "pslrrkjus",
-            "version": "0.3.1",
-            "appendix": "",
-            "re.folder": "PSEUDOPOTENTIALS",
-            "re.file": "([A-Z][a-z]?)(\\.pbe)(-[spdn]+)?(-rrkjus_psl\\.[\\d\\.]+\\.UPF)"
+            "re.folder": "PSEUDOPOTENTIALS.*",
+            "re.file": "([A-Z][a-z]?)(.*_psl.*\\.UPF)",
+            "tags": ["pslibrary", "psl", "0.3.1", "v0.3.1"]
         },
         {
-            "kind": "pslkjpaw",
-            "version": "0.3.1",
-            "appendix": "alt",
-            "re.folder": "PSEUDOPOTENTIALS_ALT",
-            "re.file": "([A-Z][a-z]?)(\\.pbe)(-[spdn]+)?(-kjpaw_psl\\.[\\d\\.]+\\.UPF)"
+            "re.folder": "PSEUDOPOTENTIALS.*",
+            "re.file": "([A-Z][a-z]?)(\\.pbe.*\\.UPF)",
+            "tags": ["PBE", "Perdew-Burke-Ernzerhof"]
         },
         {
-            "kind": "pslrrkjus",
-            "version": "0.3.1",
-            "appendix": "alt",
-            "re.folder": "PSEUDOPOTENTIALS_ALT",
-            "re.file": "([A-Z][a-z]?)(\\.pbe)(-[spdn]+)?(-rrkjus_psl\\.[\\d\\.]+\\.UPF)"
+            "re.folder": "PSEUDOPOTENTIALS_TOT",
+            "re.file": "([A-Z][a-z]?)(.*\\.UPF)",
+            "tags": ["fr", "full-relativistic", "rel"]
         },
         {
-            "kind": "pslnc",
-            "version": "0.3.1",
-            "appendix": "",
             "re.folder": "PSEUDOPOTENTIALS_NC",
-            "re.file": "([A-Z][a-z]?)(\\.pbe)(-n)?(-nc\\.UPF)"
+            "re.file": "([A-Z][a-z]?)(.*-nc\\.UPF)",
+            "tags": ["NC", "norm-conserving"]
         },
         {
-            "kind": "pslkjpaw",
-            "version": "0.3.1",
-            "appendix": "fr",
-            "re.folder": "PSEUDOPOTENTIALS_TOT",
-            "re.file": "([A-Z][a-z]?)(\\.pbe)(-[spdn]+)?(-kjpaw_psl\\.[\\d\\.]+\\.UPF)"
+            "re.folder": "PSEUDOPOTENTIALS.*",
+            "re.file": "([A-Z][a-z]?)(.*-kjpaw.*\\.UPF)",
+            "tags": ["kjpaw", "paw", "Projector Augmented Wave"]
         },
         {
-            "kind": "pslrrkjus",
-            "version": "0.3.1",
-            "appendix": "alt",
-            "re.folder": "PSEUDOPOTENTIALS_TOT",
-            "re.file": "([A-Z][a-z]?)(\\.pbe)(-[spdn]+)?(-rrkjus_psl\\.[\\d\\.]+\\.UPF)"
+            "re.folder": "PSEUDOPOTENTIALS.*",
+            "re.file": "([A-Z][a-z]?)(.*-rrkjus.*\\.UPF)",
+            "tags": ["rrkjus", "rrkj", "ultrasoft", "US"]
         },
         {
-            "kind": "dojo",
-            "version": "1.0",
-            "appendix": "sr",
-            "re.folder": "([\\d]+)(_)([A-Z][a-z]?)",
-            "re.file": "([A-Z][a-z]*)([-_]\\d[spdfn]+\\.upf)"
+            "re.folder": "GBRV_pbe_UPF_v1.5",
+            "re.file": "([a-z][a-z]?)(_pbe_v.*\\.UPF)",
+            "tags": ["GBRV", "US", "ultrasoft", "Garrity-Bennett-Rabe-Vanderbilt", "v1.5", "1.5", "PBE", "Perdew-Burke-Ernzerhof"]
         },
         {
-            "kind": "dojo",
-            "version": "1.0",
-            "appendix": "fr",
-            "re.folder": "([\\d]+)(_)([A-Z][a-z]?)",
-            "re.file": "([A-Z][a-z]*)([-_]\\d[spdfn]+_r\\.upf)"
+            "re.folder": "GBRV_pbe_UPF_v1.5",
+            "re.file": ".*plus4.*",
+            "tags": ["plus4"]
         },
         {
-            "kind": "dojo",
-            "version": "0.3",
-            "appendix": "sr",
-            "re.folder": "pbe_s_sr",
-            "re.file": "([A-Z][a-z]?)(\\.upf)"
+            "re.folder": "gth",
+            "re.file": "([A-Z][a-z]?)(.*\\.upf)",
+            "tags": ["gth", "Goedecker-Teter-Hutter", "CP2K"]
         },
         {
-            "kind": "dojo",
-            "version": "0.5",
-            "appendix": "sr",
-            "re.folder": "nc-sr-05_pbe_standard_upf",
-            "re.file": "([A-Z][a-z]?)(\\.upf)"
+            "re.folder": "gth",
+            "re.file": "([A-Z][a-z]?)(_GTH_NC_LnPP1\\.UPF)",
+            "tags": ["NC", "norm-conserving", "LnPP1"]
         },
         {
-            "kind": "dojo",
-            "version": "0.4",
-            "appendix": "3plus",
-            "re.folder": "nc-sr-04-3plus_pbe_standard_upf",
-            "re.file": "([A-Z][a-z]?)(\\.upf)"
+            "re.folder": "hgh",
+            "re.file": "([A-Z][a-z]?)(.*-hgh\\.UPF)",
+            "tags": ["hgh", "Hartwigsen-Goedecker-Hutter", "PBE", "Perdew-Burke-Ernzerhof", "NC", "norm-conserving"]
         },
         {
-            "kind": "dojo",
-            "version": "0.4",
-            "appendix": "sr",
-            "re.folder": "nc-sr-04_pbe_standard_upf",
-            "re.file": "([A-Z][a-z]?)(\\.upf)"
+            "re.folder": "hgh",
+            "re.file": "([A-Z][a-z]?)(-[spdf]+)(-hgh\\.UPF)",
+            "tags": ["semicore"]
         },
         {
-            "kind": "dojo",
-            "version": "0.4",
-            "appendix": "fr",
+            "re.folder": "(nc-)([sf]r-)(0[45])(_pbe_standard)(_upf)?",
+            "re.file": "([A-Z][a-z]?)(.*\\.upf)",
+            "tags": ["NC", "norm-conserving", "PBE", "Perdew-Burke-Ernzerhof", "PseudoDojo", "DOJO", "abinit", "ONCVPSP"]
+        },
+        {
             "re.folder": "nc-fr-04_pbe_standard",
-            "re.file": "([A-Z][a-z]?)(\\.upf)"
+            "re.file": "([A-Z][a-z]?)(.*\\.upf)",
+            "tags": ["v0.4", "0.4", "fr", "full-relativistic", "rel"]
         },
         {
-            "kind": "pd",
-            "version": "04",
-            "appendix": "3+_f--core",
-            "re.folder": "NCPP-PD04-PBE",
-            "re.file": "^([A-Z][a-z]?)(3\\+_f--core\\.PD04\\.PBE\\.UPF)$"
+            "re.folder": "nc-sr-04.*_pbe_standard_upf",
+            "re.file": "([A-Z][a-z]?)(.*\\.upf)",
+            "tags": ["v0.4", "0.4", "sr", "scalar-relativistic"]
         },
         {
-            "kind": "pd",
-            "version": "04",
-            "appendix": "3+_f--core-icmod1",
-            "re.folder": "NCPP-PD04-PBE",
-            "re.file": "^([A-Z][a-z]?)(3\\+_f--core-icmod1\\.PD04\\.PBE\\.UPF)$"
+            "re.folder": "nc-sr-05_pbe_standard_upf",
+            "re.file": "([A-Z][a-z]?)(.*\\.upf)",
+            "tags": ["v0.5", "0.5", "sr", "scalar-relativistic"]
         },
         {
-            "kind": "pd",
-            "version": "04",
-            "appendix": "d",
-            "re.folder": "NCPP-PD04-PBE",
-            "re.file": "^([A-Z][a-z]?)(-d\\.PD04\\.PBE\\.UPF)$"
-        },
-        {
-            "kind": "pd",
-            "version": "04",
-            "appendix": "",
-            "re.folder": "NCPP-PD04-PBE",
-            "re.file": "^([A-Z][a-z]?)(\\.PD04\\.PBE\\.UPF)$"
-        },
-        {
-            "kind": "pd",
-            "version": "04",
-            "appendix": "fsp",
-            "re.folder": "NCPP-PD04-PBE",
-            "re.file": "^([A-Z][a-z]?)(-fsp\\.PD04\\.PBE\\.UPF)$"
-        },
-        {
-            "kind": "pd",
-            "version": "04",
-            "appendix": "high",
-            "re.folder": "NCPP-PD04-PBE",
-            "re.file": "^([A-Z][a-z]?)(-high\\.PD04\\.PBE\\.UPF)$"
-        },
-        {
-            "kind": "pd",
-            "version": "04",
-            "appendix": "low",
-            "re.folder": "NCPP-PD04-PBE",
-            "re.file": "^([A-Z][a-z]?)(-low\\.PD04\\.PBE\\.UPF)$"
-        },
-        {
-            "kind": "pd",
-            "version": "04",
-            "appendix": "s",
-            "re.folder": "NCPP-PD04-PBE",
-            "re.file": "^([A-Z][a-z]?)(-s\\.PD04\\.PBE\\.UPF)$"
-        },
-        {
-            "kind": "pd",
-            "version": "04",
-            "appendix": "s-high",
-            "re.folder": "NCPP-PD04-PBE",
-            "re.file": "^([A-Z][a-z]?)(-s-high\\.PD04\\.PBE\\.UPF)$"
-        },
-        {
-            "kind": "pd",
-            "version": "04",
-            "appendix": "sp",
-            "re.folder": "NCPP-PD04-PBE",
-            "re.file": "^([A-Z][a-z]?)(-sp\\.PD04\\.PBE\\.UPF)$"
-        },
-        {
-            "kind": "pd",
-            "version": "04",
-            "appendix": "sp-exc",
-            "re.folder": "NCPP-PD04-PBE",
-            "re.file": "^([A-Z][a-z]?)(-sp-exc\\.PD04\\.PBE\\.UPF)$"
-        },
-        {
-            "kind": "pd",
-            "version": "04",
-            "appendix": "sp-high",
-            "re.folder": "NCPP-PD04-PBE",
-            "re.file": "^([A-Z][a-z]?)(-sp-high\\.PD04\\.PBE\\.UPF)$"
-        },
-        {
-            "kind": "pd",
-            "version": "04",
-            "appendix": "spd",
-            "re.folder": "NCPP-PD04-PBE",
-            "re.file": "^([A-Z][a-z]?)(-spd\\.PD04\\.PBE\\.UPF)$"
-        },
-        {
-            "kind": "pd",
-            "version": "04",
-            "appendix": "spd-high",
-            "re.folder": "NCPP-PD04-PBE",
-            "re.file": "^([A-Z][a-z]?)(-spd-high\\.PD04\\.PBE\\.UPF)$"
-        },
-        {
-            "kind": "pd",
-            "version": "03",
-            "appendix": "",
             "re.folder": "NCPP-PD03-PBE",
-            "re.file": "^([A-Z][a-z]?)(\\.PD03\\.PBE\\.UPF)$"
+            "re.file": "([A-Z][a-z]?)(.*PD03\\.PBE\\.UPF)",
+            "tags": ["PD", "PD03", "v0.3", "0.3", "pwmat", "norm-conserving", "NC", "PBE", "Perdew-Burke-Ernzerhof", "ONCVPSP"]
         },
         {
-            "kind": "hgh",
-            "version": "1.0",
-            "appendix": "",
-            "re.folder": ".*",
-            "re.file": "^([A-Z][a-z]?)(\\.pbe-hgh\\.UPF)$"
+            "re.folder": "NCPP-PD04-PBE",
+            "re.file": "([A-Z][a-z]?)(.*PD04\\.PBE\\.UPF)",
+            "tags": ["PD", "PD04", "v0.4", "0.4", "pwmat", "norm-conserving", "NC", "PBE", "Perdew-Burke-Ernzerhof", "ONCVPSP"]
         },
         {
-            "kind": "hgh",
-            "version": "1.0",
-            "appendix": "d",
-            "re.folder": ".*",
-            "re.file": "^([A-Z][a-z]?)(\\.pbe-d-hgh\\.UPF)$"
+            "re.folder": "NCPP-PD04-PBE",
+            "re.file": "([A-Z][a-z]?)(-[spdf]+)(.*PD04\\.PBE\\.UPF)",
+            "tags": ["semicore"]
         },
         {
-            "kind": "hgh",
-            "version": "1.0",
-            "appendix": "s",
-            "re.folder": ".*",
-            "re.file": "^([A-Z][a-z]?)(\\.pbe-s-hgh\\.UPF)$"
+            "re.folder": "NCPP-PD04-PBE",
+            "re.file": "([A-Z][a-z]?)(.*-high\\.PD04\\.PBE\\.UPF)",
+            "tags": ["high"]
         },
         {
-            "kind": "hgh",
-            "version": "1.0",
-            "appendix": "sp",
-            "re.folder": ".*",
-            "re.file": "^([A-Z][a-z]?)(\\.pbe-sp-hgh\\.UPF)$"
+            "re.folder": "NCPP-PD04-PBE",
+            "re.file": "([A-Z][a-z]?3\\+_f--core.*\\.PD04\\.PBE\\.UPF)",
+            "tags": ["f--core", "rare-earth"]
         },
         {
-            "kind": "hgh",
-            "version": "1.0",
-            "appendix": "spd",
-            "re.folder": ".*",
-            "re.file": "^([A-Z][a-z]?)(\\.pbe-spd-hgh\\.UPF)$"
+            "re.folder": "NCPP-PD04-PBE",
+            "re.file": "([A-Z][a-z]?.*icmod1\\.PD04\\.PBE\\.UPF)",
+            "tags": ["non-collinear correction", "nlcc", "rare-earth"]
         },
         {
-            "kind": "gth",
-            "version": "LnPP1",
-            "appendix": "",
-            "re.folder": ".*",
-            "re.file": "^([A-Z][a-z]?)(_GTH_NC_LnPP1\\.upf)$"
+            "re.folder": "pbe_s_sr",
+            "re.file": "([A-Z][a-z]?)(.*\\.upf)",
+            "tags": ["PBE", "Perdew-Burke-Ernzerhof", "sr", "scalar-relativistic", "PseudoDojo", "DOJO", "abinit", "v0.3", "0.3", "NC", "norm-conserving", "ONCVPSP"]
         },
         {
-            "kind": "gbrv",
-            "version": "1.5",
-            "appendix": "",
-            "re.folder": "GBRV_pbe_UPF_v1\\.5",
-            "re.file": "^([a-z]+)(_pbe_v[\\d\\.]+\\.uspp\\.F\\.UPF)$"
+            "re.folder": "pseudos_ac_she/\\d+_[A-Z][a-z]?",
+            "re.file": "([A-Z][a-z]?)(.*\\.upf)",
+            "tags": ["PBE", "Perdew-Burke-Ernzerhof", "PseudoDojo", "DOJO", "abinit", "v1.0", "1.0", "Actinides", "rare-earth", "ONCVPSP", "NC", "norm-conserving"]
         },
         {
-            "kind": "gbrv",
-            "version": "1.5",
-            "appendix": "plus4",
-            "re.folder": "GBRV_pbe_UPF_v1\\.5",
-            "re.file": "^([a-z]+)(_pbe_plus4_v[\\d\\.]+\\.uspp\\.F\\.UPF)$"
+            "re.folder": "pseudos_ac_she/\\d+_[A-Z][a-z]?",
+            "re.file": "([A-Z][a-z]?)(.*_r\\.upf)",
+            "tags": ["fr", "full-relativistic", "rel"]
+        },
+        {
+            "re.folder": "pseudos_ac_she/\\d+_[A-Z][a-z]?",
+            "re.file": "([A-Z][a-z]?)(^(_r)*\\.upf)",
+            "tags": ["sr", "scalar-relativistic"]
+        },
+        {
+            "re.folder": "ps-library",
+            "re.file": "([A-Z][a-z]?)(.*\\.UPF)",
+            "tags": ["psl", "pslibrary", "v1.0.0", "1.0.0", "atomic"]
+        },
+        {
+            "re.folder": "ps-library",
+            "re.file": "([A-Z][a-z]?)(.*-kjpaw.*\\.UPF)",
+            "tags": ["kjpaw", "paw", "Projector Augmented Wave"]
+        },
+        {
+            "re.folder": "ps-library",
+            "re.file": "([A-Z][a-z]?)(.*-rrkjus.*\\.UPF)",
+            "tags": ["rrkjus", "rrkj", "ultrasoft", "US"]
+        },
+        {
+            "re.folder": "ps-library",
+            "re.file": "([A-Z][a-z]?)(.*pbe-.*\\.UPF)",
+            "tags": ["PBE", "Perdew-Burke-Ernzerhof"]
+        },
+        {
+            "re.folder": "ps-library",
+            "re.file": "([A-Z][a-z]?)(\\.rel-.*\\.UPF)",
+            "tags": ["rel", "full-relativistic", "fr"]
+        },
+        {
+            "re.folder": "ps-library",
+            "re.file": "([A-Z][a-z]?)(\\.(rel-)?([\\w]+)-(\\w*n\\w*)-.*\\.UPF)",
+            "tags": ["non-collinear correction", "nlcc"]
+        },
+        {
+            "re.folder": "ps-library",
+            "re.file": "([A-Z][a-z]?)(\\.(rel-)?([\\w]+)-([spdf]+n?)-.*\\.UPF)",
+            "tags": ["semicore"]
         }
     ]
 }

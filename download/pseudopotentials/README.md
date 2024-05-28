@@ -5,18 +5,20 @@
 # ABACUS Pseudopot-Nao Square  
 ## In brief  
 This folder stores downloaded and generated pseudopotentials.  
-## Nomenclature  
-Following the rule in `sources/module_workflow/README.md`, the nomenclature of pseudopotentials is:  
-```text
-<kind>_<version>_<appendix>
+## Details
+the file `rules.json` stores the rule to add tag to pseudopotential files. If want to use newly added pseudopotential files, please add the corresponding tag to the file, then run code `update_db.py` to refresh the database. The database is `database.json` file, if not exist, will create an empty one.
+## Manually search
+To benefit from present tag-search based pseudopotential search scheme, one can:
+```python
+import apns.module_database.search as search
+
+searcher = search.TagSearcher(FDATABASE)
+result = searcher(False, False, "Sr", "sr", "DOJO")
+print("\n".join(result))
+
+"""
+/root/abacus-develop/ABACUS-Pseudopot-Nao-Square/download/pseudopotentials/pbe_s_sr/Sr.upf
+/root/abacus-develop/ABACUS-Pseudopot-Nao-Square/download/pseudopotentials/nc-sr-04_pbe_standard_upf/Sr.upf
+/root/abacus-develop/ABACUS-Pseudopot-Nao-Square/download/pseudopotentials/nc-sr-05_pbe_standard_upf/Sr.upf
+"""
 ```
-where:  
-- `<kind>` is the kind of pseudopotential, like `sg15`, `pd`, `dojo`, etc.  
-- `<version>` is the version of pseudopotential, like `10`, `04`, `05`, etc.  
-- `<appendix>` is the appendix of pseudopotential, like `fr`, `alt`, etc.  
-## To update
-To update the pseudopotentials, please follow the steps below:
-1. Download the pseudopotentials from the official website or other sources.
-2. Store the downloaded pseudopotentials in this folder.
-3. Extend functions in `apns/module_pseudo/archive.py`, especially function `determine_kind` and `archive`. If necessary, write a new function whose name startswith `op_` to handle the new kind of pseudopotential, for more details, refer to already implemented functions like `op_SG15_`, `op_PD03_`, `op_PD04_`, etc.
-4. Delete the `description.json` in this folder and run `apns/module_pseudo/archive.py` to generate a new `description.json`.
