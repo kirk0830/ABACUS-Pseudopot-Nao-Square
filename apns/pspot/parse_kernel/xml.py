@@ -13,7 +13,7 @@ def xml_standardize(fname: str):
     3. some of ADC pseudopotentials have `CDATA` tag, which is not allowed in xml, remove them
     """
     ftemp = f"{str(uuid.uuid3(uuid.NAMESPACE_DNS, fname))}.xml"
-    print(f"Preprocessing {fname}, will write standard XML formatted temporaray file to {ftemp}")
+    #print(f"Preprocessing {fname}, will write standard XML formatted temporaray file to {ftemp}")
     # because a pseudopotential file would not be large, directly read all lines into memory
     with open(fname, "r") as f:
         lines = f.readlines()
