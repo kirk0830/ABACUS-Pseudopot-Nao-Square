@@ -43,7 +43,9 @@ Number of structure descriptors: {len(struset["desc"])}
                 asgens_subset, cell = bind_atom_species_with_cell(asgens, cell)
                 for atom_species in it.product(*[asgen() for asgen in asgens_subset]):
                     standard_fname_with_contents = export(paramset, atom_species, cell, fmt=software)
-                    cache = dict(zip(["AtomSpecies", "Cell", "DFTParamSet"], [[as_.as_dict() for as_ in atom_species], cell.as_dict(), paramset]))
+                    cache = dict(zip(["AtomSpecies", "Cell", "DFTParamSet", "CellGenerator"], \
+                    [[as_.as_dict() for as_ in atom_species], cell.as_dict(), paramset, 
+                     dict(zip(["identifier", "config"], [cellgen.identifier, cellgen.config]))]))
                     folders.append(write_and_move(standard_fname_with_contents, cache, out_dir))
     print("* * * All structures generated * * *".center(100, " "))
     return folders
@@ -101,7 +103,7 @@ def write_abacus_input(paramset: dict):
 
 def write_abacus_stru(atomset: list[AtomSpecies], cell: Cell):
     from os.path import basename
-    result = "ATOM_SPECIES\n"
+    result = "ATOMIC_SPECIES\n"
     # need a map from cell.labels to index of AtomSpecies in atomset list!
     temp_ = [a.symbol for a in atomset]
     uniquelabels_atomspecies_map = [temp_.index(cell.kinds[cell.labels_kinds_map[cell.labels.index(ulbl)]]) for ulbl in dict.fromkeys(cell.labels)]
@@ -120,7 +122,7 @@ def write_abacus_stru(atomset: list[AtomSpecies], cell: Cell):
     result += "\n".join([f"{latvec[i][0]:<20.10f} {latvec[i][1]:<20.10f} {latvec[i][2]:<20.10f}" for i in range(3)])
     
     coord = "Direct" if cell.periodic else "Cartesian"
-    result += f"\n\nATOM_POSITIONS\n{coord}\n"
+    result += f"\n\nATOMIC_POSITIONS\n{coord}\n"
     for label in dict.fromkeys(cell.labels):
         ind = [i for i, l in enumerate(cell.labels) if l == label]
         result += f"{label}\n{cell.magmoms[ind[0]]:<4.2f}\n{len(ind)}\n"
