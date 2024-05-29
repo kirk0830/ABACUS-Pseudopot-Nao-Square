@@ -402,8 +402,8 @@ def discrete_logplots(xs: list, ys: list, **kwargs):
     nsubplts = len(xs)
     nlines = len(ys[0])
     for i in range(1, nsubplts):
-        assert len(xs[i]) == nlines
-        assert len(ys[i]) == nlines
+        assert len(xs[i]) == nlines, f"xs[{i}] has different length than xs[0]: {len(xs[i])} != {nlines}"
+        assert len(ys[i]) == nlines, f"ys[{i}] has different length than ys[0]: {len(ys[i])} != {nlines}"
     
     xtitle, ytitle = kwargs.get("xtitle", None), kwargs.get("ytitle", None)
     ysymbols, labels = kwargs.get("ysymbols", None), kwargs.get("labels", None)
@@ -513,15 +513,15 @@ def shift_lineplots(xs: list, ys: list, **kwargs):
         assert len(ys) == npspots
         nprptys = len(xs[0])
         for i in range(1, npspots):
-            assert len(xs[i]) == nprptys
-            assert len(ys[i]) == nprptys
+            assert len(xs[i]) == nprptys, f"xs[{i}] has different length than xs[0]: {len(xs[i])} != {nprptys}"
+            assert len(ys[i]) == nprptys, f"ys[{i}] has different length than ys[0]: {len(ys[i])} != {nprptys}"
     elif ld == "property":
         nprptys = len(xs)
         assert len(ys) == nprptys
         npspots = len(xs[0])
         for i in range(1, nprptys):
-            assert len(xs[i]) == npspots
-            assert len(ys[i]) == npspots
+            assert len(xs[i]) == npspots, f"xs[{i}] has different length than xs[0]: {len(xs[i])} != {npspots}"
+            assert len(ys[i]) == npspots, f"ys[{i}] has different length than ys[0]: {len(ys[i])} != {npspots}"
     else:
         raise ValueError("Unknown loop direction")
     
