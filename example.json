@@ -137,7 +137,8 @@
             "Yb": [["PD04", "nlcc"], null]
         },
         {
-            "Yb": [["Yb"], null]
+            "Yb": [["Yb", "NC"], null],
+            "O": [["sg15", "1.0", "sr"], null]
         }
     ],
     "strusets": [
@@ -145,7 +146,7 @@
             "calculator": "abacus", "calcset": 0,
             "atomset": 2,
             "database": "materials_project",
-            "desc": [["local", "./apns_cache/cod-9010997.cif", [1.0], [0.10]]]
+            "desc": [["bravis", "YbO_x2y3", [0.94, 0.96, 0.98, 1.0, 1.02, 1.04, 1.06], [0.06]]]
         }
     ]
 }
