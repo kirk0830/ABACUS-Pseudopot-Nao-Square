@@ -117,7 +117,12 @@ def is_compatible(pseudopotential: str|dict, software: str = "abacus"):
 
 def z_valence(pseudopotential: str|dict):
     """extract valence electron number from pseudopotential file"""
+    
     parsed = as_dict(pseudopotential)
+    pptype = determine_code(parsed)
+    if pptype == "GBRV":
+        from apns.pspot.parse_special.GBRV_Vanderbilt import PP_HEADER as gbrv_header
+        return gbrv_header(parsed["PP_HEADER"]["data"])["attrib"]["z_valence"]
     return parsed["PP_HEADER"]["attrib"]["z_valence"]
 
 #######################################
