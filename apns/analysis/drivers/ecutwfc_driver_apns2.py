@@ -36,14 +36,6 @@ def convert_fpp_to_ppid(fpp: str):
         family, version = "PD04", ""
         appendix = re.match(r"([A-Z][a-z]?)([\d\+\-\_\w]*)(\.PD04\.PBE\.UPF)", os.path.basename(fpp)).group(2)
         appendix = "" if appendix is None else appendix[1:] if appendix[0] in ["+", "-"] else appendix
-    elif "pslibrary-pbe.0.3.1" in fpp:
-        family, version = "PSlibrary", "0.3.1"
-        if "kjpaw" in fpp:
-            appendix = "PAW"
-        elif "rrkjus" in fpp:
-            appendix = "RRKJUS"
-        elif "nc" in fpp:
-            appendix = "NC"
     elif "GBRV_pbe_UPF_v1.5" in fpp:
         family, version, appendix = "GBRV", "1.5", ""
     elif "nc-sr-05_pbe_standard_upf" in fpp:
@@ -69,9 +61,18 @@ def convert_fpp_to_ppid(fpp: str):
     elif "gth" in fpp:
         family, version = "Goedecker-Teter-Hutter", ""
         appendix = os.path.basename(fpp).split("_")[-1].split(".")[0]
+    elif "psl" in fpp:
+        match_ = re.match(r"([A-Z][a-z]?)(\.)(rel-)?(pbe|pz)(-\w+)?(-)(rrkjus|kjpaw)(_psl\.)([\.\d]+)(\.UPF)", os.path.basename(fpp))
+        family = "PSlibrary"
+        version = match_.group(9)
+        apps = []
+        if match_.group(7): apps.append(match_.group(7).upper())
+        if match_.group(3): apps.append("fr")
+        if match_.group(5): apps.append(match_.group(5)[1:])
+        appendix = ", ".join(apps)
     else:
         raise ValueError(f"Unrecognized pseudopotential file: {fpp}")
-    return f"{family} v{version} ({appendix})".replace("v ", "")
+    return f"{family} v{version} ({appendix})".replace("v ", "").replace("()", "")
 
 def collect_apnsjob_data(folder: str):
     print("* * * Collect ABACUS result * * *".center(100))
@@ -275,19 +276,19 @@ def repair_apnsjob(folder: str):
                 shutil.copy2(os.path.join(f"../Yb_ecutwfc_test/{f}/description.json"), os.path.join(parent, "description.json"))
  
 if __name__ == "__main__":
-    import apns.analysis.external_frender.htmls as amaeh
-    element = "Yb"
-    html = amaeh.pseudopotentials(element=element, 
-                                    xc_functional="PBE", 
-                                    software="ABACUS",
-                                    fconv=f"{element}.svg",
-                                    fconvlog=f"{element}_logplot.svg")
-    with open(f"{element}.md", "w") as f:
-        f.write(html)
-    exit()
-    repair_apnsjob("12310698")
-    #exit()
-    collected = collect_apnsjob_data("12310698")
+    # import apns.analysis.external_frender.htmls as amaeh
+    # element = "Yb"
+    # html = amaeh.pseudopotentials(element=element, 
+    #                               xc_functional="PBE", 
+    #                               software="ABACUS",
+    #                               fconv=f"{element}.svg",
+    #                               fconvlog=f"{element}_logplot.svg")
+    # with open(f"{element}.md", "w") as f:
+    #     f.write(html)
+    # exit()
+    # repair_apnsjob("12310698")
+    # #exit()
+    collected = collect_apnsjob_data("12506574")
     merged = merge_collected(collected)
     calculated = calc_sorted_conv(sort_merged(merged))
     plot_log(calculated)
