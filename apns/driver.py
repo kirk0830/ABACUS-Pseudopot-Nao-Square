@@ -38,23 +38,25 @@ Current working directory: {os.getcwd()}""")
         """run the driver"""
         pass
 
-import apns.test.main as amwt
+
 class test_driver(apns_driver):
     """test driver, for testing pseudopotentials and numerical orbitals"""
     def run(self):
-        amwt.run(self.finp)
+        from apns.test.main import run as test_run
+        test_run(self.finp)
 
-import apns.analysis.main as amwad
+
 class analysis_driver(apns_driver):
     """analysis driver, for analyzing test results"""
     def run(self):
-        amwad.run(self.finp)
+        from apns.analysis.main import run as analysis_run
+        analysis_run(self.finp)
 
-import apns.outdated.orbgen.driver as amwod
 class orbgen_driver(apns_driver):
     """orbgen driver, for generating numerical orbitals"""
     def run(self):
-        amwod.run(self.finp)
+        from apns.orbgen.orbgen import run as orbgen_run
+        orbgen_run(self.finp)
 
 import json
 def spawn_driver(finp: str) -> apns_driver:
