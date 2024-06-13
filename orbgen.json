@@ -2,96 +2,52 @@
     "global": {
         "mode": "orbgen",
         "pseudo_dir": "./download/pseudopotentials",
-        "orbital_dir": "./download/numerical_orbitals",
         "cache_dir": "./apns_cache",
-        "out_dir": "./output"
+        "out_dir": "./output",
+        "siab_dir": "/root/deepmodeling/abacus_orbital_generation/SIAB"
     },
-    "atomsets": [
+    "ppsets": [
         {
-            "Ba": [["sg15", "1.0"], null],
-            "O": [["GBRV"], null],
-            "Ti": [["rrkjus"], null],
-            "H": [["PD", "04"], null],
-            "Fe": [["sg15", "1.0"], null],
-            "Mn": [["sg15", "1.0"], null],
-            "Y": [["sg15", "1.0"], null]
-        },
-        {
-            "Li": [["sg15", "1.0", "sr"], null],
-            "Cl": [["sg15", "1.0", "sr"], null],
-            "Dy": [["PD04", "nlcc"], null],
-            "Er": [["PD04", "nlcc"], null],
-            "Ho": [["PD04", "nlcc"], null],
-            "Lu": [["PD04", "nlcc"], null],
-            "Tm": [["PD04", "nlcc"], null],
-            "Yb": [["PD04", "nlcc"], null]
-        },
-        {
-            "Yb": [["Yb", "NC"], null],
-            "O": [["sg15", "1.0", "sr"], null]
+            "elements": ["H", "He", "Li", "Be", "B", "C", "N", "O", "F", "Ne"],
+            "tags": ["sg15", "1.0", "sr"]
         }
     ],
     "strusets": [
-        {
-            "shape": "dimer",
-            "nbands": "auto",
-            "nspin": 1,
-            "bond_lengths": "auto"
-        },
-        {
-            "shape": "trimer",
-            "nbands": "auto",
-            "nspin": 1,
-            "bond_lengths": "auto"
-        }
-    ],
-    "spillsets": [
-        {
-            "optimizer": "bfgs",
-            "max_steps": 5000,
-            "spill_coefs": [0.0, 1.0],
-            "spill_guess": "atomic",
-            "nthreads_rcut": 4,
-            "jY_type": "reduced"
-        },
-        {
-            "optimizer": "bfgs",
-            "max_steps": 5000,
-            "spill_coefs": [0.0, 1.0],
-            "spill_guess": "atomic",
-            "nthreads_rcut": 4,
-            "jY_type": ["reduced", "normalized"]
-        },
-        {
-            "optimizer|max_steps|spill_guess": [["bfgs", 5000, ["atomic", "random"]],
-                                                ["pytorch.SWAT", 9000, ["identity", "random"]]],
-            "spill_coefs": [0.0, 1.0],
-            "nthreads_rcut": 4,
-            "jY_type": "reduced"
-        }
+        [
+            {
+                "shape": "dimer",
+                "nbands": "auto",
+                "bond_lengths": "auto",
+                "nspin": 1
+            },
+            {
+                "shape": "trimer",
+                "nbands": "auto",
+                "bond_lengths": "auto",
+                "nspin": 1
+            }
+        ]
     ],
     "orbsets": [
+        [{"conf": "Z", "shape": "dimer", "dep": "none", "states": "occ"},
+         {"conf": "DZP", "shape": "dimer", "dep": "Z", "states": "occ+10"},
+         {"conf": "TZDP", "shape": "trimer", "dep": "DZP", "states": "all"}]
+    ],
+    "pwsets": [
+        {"smearing_sigma": 0.01}
+    ],
+    "siabsets": [
         {
-            "atomset": 0, "spillset": 1, "struset": 0,
-            "nzeta": "SZ",
-            "band_range": 1.0,
-            "deps": null
-        },
-        {
-            "atomset": 0,
-            "spillset": 0,
-            "nzeta|deps": [["SZ", null], ["DZP", 0]],
-            "struset": [0, 1],
-            "band_range": [1.0, 1.2, 1.4, 1.6, 1.8, 2.0]
-        },
-        {
-            "atomset": 2,
-            "spillset": 0,
-            "nzeta|struset|band_range|deps": [
-                ["SZ", 0, 1.0, null], 
-                ["DZP", 0, [1.0, 1.5, 2.0], 0], 
-                ["TZDP", 1, [1.0, 1.5, 2.0], 1]
-            ]
+            "rcuts": [6, 7, 8],
+            "optimizer": "bfgs",
+            "max_steps": 1000,
+            "spill_coefs": [0.0, 1.0],
+            "spill_guess": "atomic",
+            "nthreads_rcut": 4,
+            "jY_type": "reduced"
         }
+    ],
+    "tasks": [
+        {"orb": 0, "pp": 0, "stru": 0, "pw": 0, "siab": 0}
     ]
 }

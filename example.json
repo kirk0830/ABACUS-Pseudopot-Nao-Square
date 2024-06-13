@@ -20,7 +20,7 @@
         {
             "ecutwfc": 100,
             "calculation": "scf",
-            "basis_type": "pw",
+            "basis_type": "lcao",
             "cal_force": 1,
             "cal_stress": 1,
             "nspin": 1,
@@ -131,6 +131,9 @@
         {
             "Ag": [["US", "fr", "rrkjus", "1.0.0"], null],
             "H": [["US"], null]
+        },
+        {
+            "Ti": [["sg15", "1.0", "sr"], ["6au"]]
         }
     ],
     "strusets": [
@@ -138,7 +141,7 @@
             "calculator": "abacus", "calcset": 3,
             "atomset": 2,
             "database": "materials_project",
-            "desc": [["search", "Ag", [1.0], [0.08]]]
+            "desc": [["search", "Ti", [1.0], [0.08]]]
         }
     ]
 }
