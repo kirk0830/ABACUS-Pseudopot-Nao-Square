@@ -1,5 +1,114 @@
 """this file is for greping and rendering svg plots of ecutwfc convergence test for new version of APNS"""
 
+def build_sptc_from_nested(cases: dict):
+    """build instances of SystemPspotTestCase from a nested dict. Example input:
+    ```python
+    cases = {
+        "mp-1234.cif": {
+            "ppcases": [["Ag.pbe-spn-rrkjus_psl.0.2.3-tot.UPF", "O.pbe-n-rrkjus_psl.0.2.3-tot.UPF"],
+                        ["Ag_ONCV_PBE-1.0_fr.upf", "O_ONCV_PBE-1.0_fr.upf"]],
+            "pptests": [
+                [{"ecutwfc": 30, "eks": -1.0, "pressure": 0.0, "istate": 0.0, "natom": 1, "z_valence": [11, 6]},
+                 {"ecutwfc": 40, "eks": -2.0, "pressure": 0.0, "istate": 0.0, "natom": 1, "z_valence": [11, 6]},
+                 {"ecutwfc": 50, "eks": -3.0, "pressure": 0.0, "istate": 0.0, "natom": 1, "z_valence": [11, 6]}]
+                [{"ecutwfc": 40, "eks": -1.0, "pressure": 0.0, "istate": 0.0, "natom": 1, "z_valence": [11, 6]},
+                 {"ecutwfc": 50, "eks": -2.0, "pressure": 0.0, "istate": 0.0, "natom": 1, "z_valence": [11, 6]},
+                 {"ecutwfc": 60, "eks": -3.0, "pressure": 0.0, "istate": 0.0, "natom": 1, "z_valence": [11, 6]}]
+                ]
+        },
+        "mp-5678.cif": {...}
+    }
+    ```
+    This function will return a dict whose keys are different systems, and values are lists of SystemPspotTestCase instances.
+    Each instance represents a pseudopotential test case for a specific system."""
+    result = {}
+    for system, data in cases.items():
+        ppcases = data["ppcases"]
+        for ipt, pptests in enumerate(data["pptests"]):
+            pps = ppcases[ipt]
+            sptc = SystemPspotTestCase(system, pps, pptests)
+            result.setdefault(system, []).append(sptc)
+    return result
+
+class SystemPspotTestCase:
+    """the class owning test data varies ecutwfc"""
+    system: str
+    ecuts: list
+    natom: int
+    zvals: list
+    energies: list
+    pressures: list
+    istates: list
+    pps: list
+
+    iconv: int = None
+    def __init__(self, system: str, pps: list, cases: list):
+        """init from a nested dict, data can be get like:
+        ```python
+        scratch = [{"ecutwfc": 30, "eks": -1.0, "pressure": 0.0, "istate": 0.0, "natom": 1, "z_valence": [11, 6]},
+                   {"ecutwfc": 40, "eks": -2.0, "pressure": 0.0, "istate": 0.0, "natom": 1, "z_valence": [11, 6]},
+                   {"ecutwfc": 50, "eks": -3.0, "pressure": 0.0, "istate": 0.0, "natom": 1, "z_valence": [11, 6]}]
+        ```"""
+        self.system = system
+        self.pps = pps
+        self.ecuts = [float(c["ecutwfc"]) for c in cases]
+        self.natom = cases[0]["natom"]
+        assert all([c["natom"] == self.natom for c in cases]), "The number of atoms should be consistent for all ecutwfc tests"
+        self.zvals = cases[0]["z_valence"]
+        assert all([c["z_valence"] == self.zvals for c in cases]), "The valence of atoms should be consistent for all ecutwfc tests"
+        self.energies = [c["eks"] for c in cases]
+        self.pressures = [c["pressure"] for c in cases]
+        self.istates = [c["istate"] for c in cases]
+
+    def sort(self):
+        """sort the data according to ecutwfc"""
+        import numpy as np
+        idx = np.argsort(self.ecuts)
+        self.ecuts = np.array(self.ecuts)[idx].tolist()
+        self.energies = np.array(self.energies)[idx].tolist()
+        self.pressures = np.array(self.pressures)[idx].tolist()
+        self.istates = np.array(self.istates)[idx].tolist()
+
+    def calc_conv(self, ethr: float = 1e-3, pthr: float = 0.1, bsthr: float = 1e-2):
+        """calculate the converged ecutwfc, return the index of the converged ecutwfc"""
+        from apns.analysis.postprocess.conv.kernel import default_calculator
+        from apns.analysis.postprocess.conv.ecutwfc_istate import calculator
+        energies = [e/self.natom for e in self.energies]
+        de = default_calculator(energies, energies[-1])
+        dp = default_calculator(self.pressures, self.pressures[-1])
+        dbs = calculator(self.istates, self.istates[-1])
+        
+        iconv_e = [i for i, e in enumerate(de) if abs(e) <= ethr][0]
+        iconv_p = [i for i, p in enumerate(dp) if abs(p) <= pthr][0]
+        iconv_bs = [i for i, bs in enumerate(dbs) if abs(bs) <= bsthr][0]
+        iconv = max(iconv_e, iconv_p, iconv_bs)
+        self.iconv = iconv
+        return {"de": de, "dp": dp, "dbs": dbs, "iconv": iconv, "ecutwfc": self.ecuts, "zvals": self.zvals}
+    
+    def pp(self, as_list: bool = False):
+        """return the pseudopotential string"""
+        return self.pps if as_list else "|".join([convert_fpp_to_ppid(pp) for pp in self.pps])
+    
+    def zval(self, as_list: bool = False):
+        """return the valence of atoms"""
+        return self.zvals if as_list else "|".join(self.zvals)
+
+    def __call__(self):
+        self.sort()
+        return self.pp(), self.calc_conv()
+
+def update_ecutwfc(pp: str, ecutwfc: float, cache_dir: str = "./apns_cache/ecutwfc.json"):
+    import json
+    import os
+    if os.path.exists(cache_dir):
+        with open(cache_dir, "r") as f:
+            cache = json.load(f)
+    else:
+        cache = {}
+    cache[pp] = ecutwfc
+    with open(cache_dir, "w") as f:
+        json.dump(cache, f)
+
 #########
 # utils #
 #########
@@ -85,7 +194,7 @@ def collect_apnsjob_data(folder: str):
         for file in files:
             if re.match(r"(running_)(\w+)(\.log)", file): # reach the inner most folder like OUT.ABACUS
                 natom = read_abacus_out.read_natom_fromlog(os.path.join(root, file))
-                eks = read_abacus_out.read_etraj_fromlog(os.path.join(root, file))[-1]
+                eks = read_abacus_out.read_efin_fromlog(os.path.join(root, file))
                 pressure = read_abacus_out.read_pressure_fromlog(os.path.join(root, file))
                 bs = read_abacus_out.read_istate(os.path.join(root, "istate.info"))
                 # continue if there is None among eks, pressure and bs
@@ -95,11 +204,8 @@ def collect_apnsjob_data(folder: str):
                     continue
                 atom_species, cellgen = read_apnsjob_desc(os.path.join(parent, "description.json"))
                 system = os.path.basename(cellgen["config"])
-                #system = "Yb"
                 abacus_input = read_abacus_out.read_keyvals_frominput(os.path.join(parent, "INPUT"))
                 ecutwfc = abacus_input["ecutwfc"]
-                #pps = [fpp for fpp in os.listdir(parent) if fpp.lower().endswith(".upf")]
-                #ppids = pps
                 pps = [a["pp"] for a in atom_species]
                 ppids = [convert_fpp_to_ppid(pp) for pp in pps]
                 zvals = [ppparse.z_valence(os.path.join(parent, pp)) for pp in pps]
@@ -112,88 +218,18 @@ Final Kohn-Sham energy: {eks}
 Pressure: {pressure}
 Pseudopotentials are used:\n{s}
 """)
+                data = {"ecutwfc": ecutwfc, "eks": eks, "pressure": pressure, "istate": bs, "natom": natom, "z_valence": zvals}
                 # band structure is not easy to print, therefore omitted
-                pps = ", ".join(ppids)
-                result[(system, pps, ecutwfc)] = (natom, zvals, eks, pressure, bs)
-    return result
-
-def merge_collected(collected: dict):
-    """the collected result would have the key like:
-    (system, (pp1, pp2, pp3), ecutwfc) -> (natom, eks, pressure, bs).
-    The task of this function is to merge the collected data along axis of ecutwfc, so that the result would be:
-    (system, (pp1, pp2, pp3)) -> {ecutwfc: (natom, eks, pressure, bs), ...}."""
-    print("* * * Merge collected job results * * *".center(100))
-    result = {}
-    for key, value in collected.items():
-        system, pps, ecutwfc = key
-        result.setdefault((system, pps), {})[ecutwfc] = value
-    print(f"""Merge summary\nSystem with pp: ecutwfc -> (natom, eks, pressure, bs)""")
-    for k in result.keys():
-        print(f"{k}: {len(result[k])} tests")
-    return result
-
-def sort_merged(merged: dict):
-    """sort the merged result according to ecutwfc, return a sorted one and all properties are stored in lists, except `natom`.
-    Note: lists in this step will be converted to np.ndarray data type!"""
-    print("* * * Sort the merged data * * *".center(100))
-    import numpy as np
-    result = {}
-    for key in merged.keys():
-        ecuts = list(merged[key].keys())
-        natoms = [merged[key][ecut][0] for ecut in ecuts]
-        natoms_avg = np.mean(natoms)
-        assert all([n == natoms_avg for n in natoms]), "The number of atoms should be consistent for all ecutwfc tests"
-        natom = natoms_avg
-        # zval is the second, should be uniformly the same for all ecutwfc tests
-        zvals = [merged[key][ecut][1] for ecut in ecuts]
-        assert all([\
-            len(zvals[0])==len(zval) and all([zi == zj for zi, zj in zip(zvals[0], zval)]) \
-                for zval in zvals])
-        zvals = zvals[0]
-        # the following part is hard coded temporarily
-        eks = [merged[key][ecut][2] for ecut in ecuts]
-        press = [merged[key][ecut][3] for ecut in ecuts]
-        istate = [merged[key][ecut][4] for ecut in ecuts]
-        # sort according to ecutwfc
-        ecuts = [float(ecut) for ecut in ecuts]
-        idx = np.argsort(ecuts)
-        ecuts = np.array(ecuts)[idx].tolist()
-        eks = np.array(eks)[idx].tolist()
-        press = np.array(press)[idx].tolist()
-        istate = np.array(istate)[idx].tolist()
-        result[key] = dict(zip(["natom", "zvals", "ecuts", "energies", "pressures", "istates"], \
-                               [natom, zvals, ecuts, eks, press, istate]))
-    return result
-
-def calc_sorted_conv(sorted_: dict, ethr: float = 1e-3, pthr: float = 0.1, bsthr: float = 1e-2):
-    print("* * * Calculate converged ecutwfc * * *".center(100))
-    import apns.analysis.postprocess.conv.kernel as amack
-    import apns.analysis.postprocess.conv.ecutwfc_istate as istate
-    result = {}
-    for key, val in sorted_.items():
-        system, pps = key
-        natom = val["natom"]
-        energies = [e/natom for e in val["energies"]]
-        de = amack.default_calculator(energies, energies[-1])
-        dp = amack.default_calculator(val["pressures"], val["pressures"][-1])
-        dbs = istate.calculator(val["istates"], val["istates"][-1])
-        
-        iconv_e = [i for i, e in enumerate(de) if abs(e) <= ethr][0]
-        iconv_p = [i for i, p in enumerate(dp) if abs(p) <= pthr][0]
-        iconv_bs = [i for i, bs in enumerate(dbs) if abs(bs) <= bsthr][0]
-        iconv = max(iconv_e, iconv_p, iconv_bs)
-        print(f"""For system {system}
-with pseudopotentials: {pps}
-Energy converges to the threshold {ethr*1e3} meV/atom at ecutwfc = {val["ecuts"][iconv_e]} Ry
-Pressure converges to the threshold {pthr} kbar at ecutwfc = {val["ecuts"][iconv_p]} Ry
-Band structure converges to the threshold {bsthr*1e3} meV at ecutwfc = {val["ecuts"][iconv_bs]} Ry
-
-Overall converged ecutwfc is {val["ecuts"][iconv]} Ry
-""")
-        result[(system, pps)] = {"de": de, "dp": dp, "dbs": dbs, "iconv": iconv, "ecutwfc": val["ecuts"],
-                                 "zvals": val["zvals"]}
-        
-    print("* * * Calculation end * * *".center(100))
+                idx = -1 if result.get(system, None) is None \
+                    or result[system].get("ppcases", None) is None \
+                        or result[system]["ppcases"].count(pps) == 0 \
+                    else result[system]["ppcases"].index(pps)
+                if idx == -1:
+                    result.setdefault(system, {"ppcases": [], "pptests": []}).setdefault("ppcases", []).append(pps)
+                    result[system]["pptests"].append([data])
+                else:
+                    result[system]["pptests"][idx].append(data)
+                #result[(system, "|".join(pps), ecutwfc)] = (natom, zvals, eks, pressure, bs)
     return result
 
 def plot_log(conv_result: dict):
@@ -265,6 +301,13 @@ Absence of data points result from SCF convergence failure or walltime limit.",
     return figures
 
 def repair_apnsjob(folder: str):
+    """this function is written because one old abacustest version will drop description.json auto-generated by
+    apns workflow. Now this has been fixed, so do not call this function in any cases.
+    Call example:
+    ```python
+    repair_apnsjob("12310698")
+    ```
+    """
     import os
     import re
     import shutil
@@ -274,7 +317,7 @@ def repair_apnsjob(folder: str):
                 parent = os.path.dirname(root)
                 f = os.path.basename(os.path.dirname(os.path.dirname(root)))
                 shutil.copy2(os.path.join(f"../Yb_ecutwfc_test/{f}/description.json"), os.path.join(parent, "description.json"))
- 
+
 if __name__ == "__main__":
     # import apns.analysis.external_frender.htmls as amaeh
     # element = "Yb"
@@ -286,10 +329,17 @@ if __name__ == "__main__":
     # with open(f"{element}.md", "w") as f:
     #     f.write(html)
     # exit()
-    # repair_apnsjob("12310698")
-    # #exit()
-    collected = collect_apnsjob_data("12506574")
-    merged = merge_collected(collected)
-    calculated = calc_sorted_conv(sort_merged(merged))
-    plot_log(calculated)
-    plot_stack(calculated)
+
+    collected = collect_apnsjob_data("12508504")
+    system_and_stpcs = build_sptc_from_nested(collected)
+    result = {}
+    for s, stpcs in system_and_stpcs.items():
+        for stpc in stpcs:
+            pp, data = stpc()
+            result[(s, pp)] = data
+            ecut_conv = stpc.ecuts[stpc.iconv]
+            pp = stpc.pp(as_list=True)
+            assert len(pp) == 1, "The pseudopotential should be unique for each test case"
+            update_ecutwfc(pp[0], ecut_conv)
+    flogs = plot_log(result)
+    fstacks = plot_stack(result)

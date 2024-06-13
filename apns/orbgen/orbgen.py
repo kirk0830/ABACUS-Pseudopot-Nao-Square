@@ -1,171 +1,103 @@
-class OrbgenParamSetGenerator:
+"""generate series of SIAB_INPUT in-one-shot
 
-    inp = None
-    pseudo_dir, cache_dir = None, None
-    def __init__(self, finp: str, pseudo_dir: str, cache_dir: str):
-        import json
-        with open(finp, 'r') as f:
-            self.inp = json.load(f)
-        self.pseudo_dir, self.cache_dir = pseudo_dir, cache_dir
+Only following sections in input are allowed to be generator to iterate on:
+pwsets"""
 
-    def nested_parse(nested: dict, excluded: list = None):
-        """return a generator based on present nested dictionary, with consideration
-        of keywords in excluded """
-        import itertools as it
-        excluded = [] if excluded is None else excluded
-        scalar = {k: v for k, v in nested.items() if k in excluded or not isinstance(v, list)}
-        scalar_joint = {k: v for k, v in nested.items() if \
-        ("|" in k) and isinstance(v, list) and (len(v) == k.count("|") + 1) and not all([isinstance(i, list) for i in v])}
-        scalar.update(scalar_joint)
-        calculate = {k: v for k, v in nested.items() if k not in scalar.keys()}
-        
-        cal_keys = calculate.keys()
-        cal_vals = calculate.values()
-        for val in it.product(*cal_vals):
-            joint = dict(zip(cal_keys, val))
-            joint.update(scalar)
-            yield OrbgenParamSetGenerator.dejoint(joint)
+def convert_orbset(orbset: list):
+    """convert the given orbset to the one in SIAB_INPUT"""
+    result = []
+    for orb in orbset:
+        keys = ["zeta_notation", "shape", "orb_ref", "nbands_ref"]
+        vals = [orb["conf"], orb["shape"], orb["dep"], orb["states"]]
+        result.append(dict(zip(keys, vals)))
+    return result
+
+def convert_calcset(calcset: dict, pp: str, rcuts: list):
+    from apns.test.dft_param_set import DFTParamSetGenerator
+    result = {"pseudo_name": pp, "bessel_nao_rcut": rcuts}
+    calcgen = DFTParamSetGenerator(calcset)
+    for calc in calcgen():
+        yield {**result, **calc}
+
+def build(calcset: dict,
+          siabset: dict,
+          struset: list,
+          orbset: list,
+          environment: str = "", 
+          mpi_command: str = "mpirun -np 16", 
+          abacus_command: str = "abacus"):
+    result = {}
+    result.update(calcset)
+    result.update({k: v for k, v in siabset.items() if k != "rcuts"})
+    result["reference_systems"] = struset
+    result["orbitals"] = convert_orbset(orbset)
+    result.update({"environment": environment, "mpi_command": mpi_command, "abacus_command": abacus_command})
+    return result
+
+def gen(finp: str):
+    import json, uuid, os
+    from apns.test.atom_species_and_cell import AtomSpeciesGeneartor
+    with open(finp, 'r') as f:
+        inp = json.load(f)
+    with open(os.path.join(inp["global"]["cache_dir"], "ecutwfc.json"), "r") as f:
+        ecuts = json.load(f)
+    out_dir = inp["global"].get("out_dir", "./")
+    for task in inp["tasks"]:
+        atomset = inp["ppsets"][task["pp"]]
+        calcset = inp["pwsets"][task["pw"]]
+        siab = inp["siabsets"][task["siab"]]
+        tags = atomset["tags"]
+        orb = inp["orbsets"][task["orb"]]
+        struset = inp["strusets"][task["stru"]]
+        for element in atomset["elements"]:
+            print(f"* * * Generate SIAB_INPUT for {element} * * *".center(100))
+            asgen = AtomSpeciesGeneartor(element, inp["global"]["pseudo_dir"], tags)
+            for atom in asgen():
+                ecut = max(100, ecuts.get(atom.pp, 100)) # let it no larger than 100 Ry
+                for calc in convert_calcset(calcset, atom.pp, siab["rcuts"]):
+                    folder = str(uuid.uuid4())
+                    out = {"pseudo_dir": "./", "ecutwfc": ecut}
+                    out.update({k: v for k, v in build(calc, siab, struset, orb).items()\
+                                if k not in ["pseudo_dir", "ecutwfc"]})
+                    yield os.path.join(out_dir, folder), out
+
+def write_autorun(finp: str):
+    import json
+    import os
+    with open(finp, 'r') as f:
+        inp = json.load(f)
+    out_dir = inp["global"].get("out_dir", "./")
+    siab_dir = inp["global"].get("siab_dir", "./")
+    siab = os.path.join(siab_dir, "SIAB_nouvelle.py")
+    assert os.path.exists(siab), \
+        f"SIAB_nouvelle.py not found in {siab_dir}"
     
-    def dejoint(joint: dict):
-        """convert joint dictionary to normal one"""
-        normal = {}
-        for k, v in joint.items():
-            if "|" in k:
-                keys = k.split("|")
-                for key in keys:
-                    normal[key] = v[keys.index(key)]
-            else:
-                normal[k] = v
-        return normal
+    script = f"""import os
+cwd = os.path.abspath(os.getcwd())
+os.chdir("{out_dir}")
+for root, dirs, files in os.walk("."):
+    if "SIAB_INPUT.json" in files:
+        os.chdir(root)
+        os.system("nohup python3 {siab} -i SIAB_INPUT.json > log")
+        # then will only run the next till the current one is finished
+        os.chdir("{out_dir}") # back to the root directory
+os.chdir(cwd)
+"""
+    with open(os.path.join(out_dir, "autorun.py"), 'w') as f:
+        f.write(script)
 
-    def characterize(pseudo_dir: str, cache_dir: str, atomspecies):
-        from apns.test.atom_species_and_cell import AtomSpecies
-        import json
-        import os
-        assert isinstance(atomspecies, AtomSpecies), "atomspecies should be an instance of AtomSpecies"
-        with open(os.path.join(cache_dir, "ecutwfc.json"), "r") as f:
-            ecutwfc = json.load(f)
-        pp = atomspecies.pp
-        if pp not in ecutwfc.keys(): 
-            print(f"pseudo potential {pp} not found in ecutwfc.json")
-            return None
-        return {"pseudo_dir": pseudo_dir, "pseudo_name": os.path.basename(pp), "ecutwfc": ecutwfc[pp]}
-
-    def __call__(self):
-        from apns.test.atom_species_and_cell import AtomSpeciesGeneartor
-        import itertools as it
-        for iorb, orbset in enumerate(self.inp["orbsets"]):
-            print(f"* * * Generating orbgen input for orbset {iorb} * * *".center(100))
-            unpacked = OrbgenParamSetGenerator.nested_parse(orbset)
-            for orbs in OrbgenParamSetGenerator.recomb_orbset(unpacked): # prototype of "orbitals" section
-                print(f"Unpack nested orbset: \n{orbs}")
-                ia, isp, istru = orbs[0]["atomset"], orbs[0]["spillset"], orbs[0]["struset"]
-                atomset, spillset, struset = self.inp["atomsets"][ia], self.inp["spillsets"][isp], self.inp["strusets"][istru]
-                for element, tags in atomset.items(): # generate for each element...
-                    asgen = AtomSpeciesGeneartor(element, self.pseudo_dir, tags[0])
-                    for as_, spill_, stru_ in it.product(asgen(), 
-                    OrbgenParamSetGenerator.nested_parse(spillset, ["spill_coefs"]), 
-                    OrbgenParamSetGenerator.nested_parse(struset)):
-                        print(f"as: \n{as_}, \nspill: \n{spill_}, \nstru: \n{stru_}")
-
-    def recomb_orbset(unpacked: list):
-        import itertools as it
-        groups = {}
-        for u in unpacked:
-            groups.setdefault(u["nzeta"], []).append(u)
-        yield from it.product(*groups.values())
-
-    def build(orb_combs: list, strusets: list):
-        """because the orbital is somehow bound with the structure"""
-        result = {"orbitals": [], "reference_systems": []}
-        for orbs in orb_combs: # get the trivial concenation of orbital settings, no fold
-            for orb in orbs: # for each level of orbitals
-                folded_stru = strusets[orb["struset"]]
-
-import unittest
-class TestOrbgenParamSetGenerator(unittest.TestCase):
-    def test_dejoint(self):
-        joint = {"a|b|c": [1, 2, 3]}
-        normal = {"a": 1, "b": 2, "c": 3}
-        self.assertEqual(OrbgenParamSetGenerator.dejoint(joint), normal)
-    
-        joint = {"a|b|c": [1, 2, 3], "d": 4}
-        normal = {"a": 1, "b": 2, "c": 3, "d": 4}
-        self.assertEqual(OrbgenParamSetGenerator.dejoint(joint), normal)
-
-        joint = {"a|b|c": [1, [2, 3], 4], "d": 5}
-        normal = {"a": 1, "b": [2, 3], "c": 4, "d": 5}
-        self.assertEqual(OrbgenParamSetGenerator.dejoint(joint), normal)
-    
-    def test_nested_parse(self):
-        nested = {"a": [1, 2], "b": [3, 4], "c": [5, 6]}
-        excluded = ["a"]
-        normal = [{"a": [1, 2], "b": 3, "c": 5}, {"a": [1, 2], "b": 3, "c": 6}, \
-        {"a": [1, 2], "b": 4, "c": 5}, {"a": [1, 2], "b": 4, "c": 6}]
-        self.assertEqual(list(OrbgenParamSetGenerator.nested_parse(nested, excluded)), normal)
-
-        nested = {"a": [1, 2], "b": [3, 4], "c": [5, 6], "d": [7, 8]}
-        excluded = ["a", "b"]
-        normal = [{"a": [1, 2], "b": [3, 4], "c": 5, "d": 7}, {"a": [1, 2], "b": [3, 4], "c": 5, "d": 8}, \
-        {"a": [1, 2], "b": [3, 4], "c": 6, "d": 7}, {"a": [1, 2], "b": [3, 4], "c": 6, "d": 8}]
-        self.assertEqual(list(OrbgenParamSetGenerator.nested_parse(nested, excluded)), normal)
-
-        nested = {"a": [1, 2], "b": [3, 4], "c": [5, 6], "d": [7, 8], "e|f": [9, 10]}
-        excluded = ["a", "b"]
-        normal = [{"a": [1, 2], "b": [3, 4], "c": 5, "d": 7, "e": 9, "f": 10}, \
-        {"a": [1, 2], "b": [3, 4], "c": 5, "d": 8, "e": 9, "f": 10}, \
-        {"a": [1, 2], "b": [3, 4], "c": 6, "d": 7, "e": 9, "f": 10}, \
-        {"a": [1, 2], "b": [3, 4], "c": 6, "d": 8, "e": 9, "f": 10}]
-        self.assertEqual(list(OrbgenParamSetGenerator.nested_parse(nested, excluded)), normal)
-
-        nested = {"a": [1, 2], "b": [3, 4], "c": [5, 6], "d": [7, 8], "e|f": [9, [10, 11]]}
-        excluded = ["a", "b"]
-        normal = [{"a": [1, 2], "b": [3, 4], "c": 5, "d": 7, "e": 9, "f": [10, 11]}, \
-        {"a": [1, 2], "b": [3, 4], "c": 5, "d": 8, "e": 9, "f": [10, 11]}, \
-        {"a": [1, 2], "b": [3, 4], "c": 6, "d": 7, "e": 9, "f": [10, 11]}, \
-        {"a": [1, 2], "b": [3, 4], "c": 6, "d": 8, "e": 9, "f": [10, 11]}]
-        self.assertEqual(list(OrbgenParamSetGenerator.nested_parse(nested, excluded)), normal)
-
-        nested = {"a": [1, 2], "b": [3, 4], "c": [5, 6], "d": [7, 8], "e|f": [[9, 10], [11, 12]]}
-        excluded = ["a", "b", "c"]
-        normal = [{"a": [1, 2], "b": [3, 4], "c": [5, 6], "d": 7, "e": 9, "f": 10}, \
-        {"a": [1, 2], "b": [3, 4], "c": [5, 6], "d": 7, "e": 11, "f": 12}, \
-        {"a": [1, 2], "b": [3, 4], "c": [5, 6], "d": 8, "e": 9, "f": 10}, \
-        {"a": [1, 2], "b": [3, 4], "c": [5, 6], "d": 8, "e": 11, "f": 12}]
-        self.assertEqual(list(OrbgenParamSetGenerator.nested_parse(nested, excluded)), normal)
-
-    def test_recomb_orbset(self):
-        unpacked = [{"nzeta": "SZ", "struset": "dimer"}, 
-                    {"nzeta": "DZP", "struset": "trimer"}, 
-                    {"nzeta": "TZDP", "struset": "dimer"},
-                    {"nzeta": "TZDP", "struset": "trimer"}]
-        result = [({"nzeta": "SZ", "struset": "dimer"}, 
-                   {"nzeta": "DZP", "struset": "trimer"}, 
-                   {"nzeta": "TZDP", "struset": "dimer"}),
-                  ({"nzeta": "SZ", "struset": "dimer"}, 
-                   {"nzeta": "DZP", "struset": "trimer"}, 
-                   {"nzeta": "TZDP", "struset": "trimer"})]
-        self.assertEqual(list(OrbgenParamSetGenerator.recomb_orbset(unpacked)), result)
-
-    def test_on_call(self):
-        #return
-        import json
-        import uuid
-        import os
-        test = {"orbsets": [{"atomset": 0, "spillset": 0, "nzeta|struset|band_range|deps": [
-                ["SZ", 0, 1.0, None], ["DZP", 0, [1.0, 1.5, 2.0], 0], ["TZDP", 1, [1.0, 1.5, 2.0], 1]]}],
-                "atomsets": [{"Be": [["PD"], None]}],
-                "spillsets": [{"spill_coefs": [0.0, 1.0], "optimizer": ["bfgs", "pytorch.SWAT"]}],
-                "strusets": [{"shape": "dimer", "nbands": "auto", "nspin": 1, "bond_lengths": "auto"},
-                             {"shape": "trimer", "nbands": "auto", "nspin": 1, "bond_lengths": "auto"}]}
-        finp = "test_on_call_" + str(uuid.uuid4()) + ".json"
-        with open(finp, 'w') as f:
-            json.dump(test, f)
-        opsg = OrbgenParamSetGenerator(finp, "./download/pseudopotentials/", "./apns_cache/")
-        os.remove(finp)
-
-        orbgen = opsg()
-        #print(list(orbgen))
+def run(finp: str):
+    import json, shutil, os
+    from apns.test.citation import citation
+    for folder, task in gen(finp):
+        os.makedirs(folder, exist_ok=True)
+        # copy the pseudopotential file into the directory
+        shutil.copy(task["pseudo_name"], folder)
+        task["pseudo_name"] = os.path.basename(task["pseudo_name"])
+        with open(os.path.join(folder, "SIAB_INPUT.json"), 'w') as f:
+            json.dump(task, f, indent=4)
+    write_autorun(finp)
+    citation()
 
 if __name__ == "__main__":
-    unittest.main()
+    run("./orbgen.json")

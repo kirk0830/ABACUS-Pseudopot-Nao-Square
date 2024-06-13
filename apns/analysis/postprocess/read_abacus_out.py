@@ -292,6 +292,9 @@ def read_kpoints(fkpoints,
     return tables
 """File: istate.info"""
 def read_istate(fistate):
+    import os
+    if not os.path.exists(fistate):
+        return None
     with open(fistate, 'r') as f:
         lines = [line.strip() for line in f.readlines()]
     lines = [line for line in lines if len(line) > 0]
@@ -343,6 +346,11 @@ def read_etraj_fromlog(flog, unit = "eV", term = "EKS"):
         eners = [float(line.split()[-1]) for line in f.readlines() if line.strip().startswith(header)]
     eners = [unit_conversion(ener, "eV", unit) for ener in eners]
     return np.array(eners, dtype=np.float64)
+def read_efin_fromlog(flog, unit="eV", term="EKS"):
+    etraj = read_etraj_fromlog(flog, unit, term)
+    if len(etraj) > 0:
+        return etraj[-1]
+    return None
 """File: running_${}.log"""
 def read_natom_fromlog(flog):
     with open(flog, "r") as f:
