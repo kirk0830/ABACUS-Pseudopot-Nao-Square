@@ -87,6 +87,7 @@ class SystemPspotTestCase:
     
     def pp(self, as_list: bool = False):
         """return the pseudopotential string"""
+        from apns.analysis.drivers.apns2_utils import convert_fpp_to_ppid
         return self.pps if as_list else "|".join([convert_fpp_to_ppid(pp) for pp in self.pps])
     
     def zval(self, as_list: bool = False):
@@ -109,92 +110,18 @@ def update_ecutwfc(pp: str, ecutwfc: float, cache_dir: str = "./apns_cache/ecutw
     with open(cache_dir, "w") as f:
         json.dump(cache, f)
 
-#########
-# utils #
-#########
-def read_apnsjob_desc(fdesc: str):
-    import json
-    with open(fdesc, 'r') as f:
-        desc = json.load(f)
-
-    print("Read APNS job description from file: ", fdesc)
-    atom_species_symbols = [as_["symbol"] for as_ in desc["AtomSpecies"]]
-    s = ", ".join(atom_species_symbols)
-    print(f"Atom species: {s}")
-    pps = [as_["pp"] for as_ in desc["AtomSpecies"]]
-    s = "\n".join(pps)
-    print(f"Pseudopotentials bond with:\n{s}")
-    # naos = [as_["nao"] for as_ in desc["AtomSpecies"]]
-    # s = ", ".join(naos)
-    # print(f"Number of atomic orbitals: {s}")
-    cellgen = desc["CellGenerator"]
-    print(f"""CellGenerator (where the cell generated from)
-identifier: {cellgen["identifier"]}
-source: {cellgen["config"]}
-""")
-    return desc["AtomSpecies"], desc["CellGenerator"]
-
-def convert_fpp_to_ppid(fpp: str):
-    import re
-    import os
-    if "hgh" in fpp:
-        family, version = "Hartwigsen-Goedecker-Hutter", ""
-        appendix = re.match(r"([A-Z][a-z]?\.pbe\-)(.*)(hgh\.UPF)", os.path.basename(fpp)).group(2)
-        appendix = "" if appendix is None else appendix
-    elif "NCPP-PD04-PBE" in fpp:
-        family, version = "PD04", ""
-        appendix = re.match(r"([A-Z][a-z]?)([\d\+\-\_\w]*)(\.PD04\.PBE\.UPF)", os.path.basename(fpp)).group(2)
-        appendix = "" if appendix is None else appendix[1:] if appendix[0] in ["+", "-"] else appendix
-    elif "GBRV_pbe_UPF_v1.5" in fpp:
-        family, version, appendix = "GBRV", "1.5", ""
-    elif "nc-sr-05_pbe_standard_upf" in fpp:
-        family, version, appendix = "PseudoDojo", "0.5", "sr"
-    elif "nc-fr-04_pbe_standard" in fpp:
-        family, version, appendix = "PseudoDojo", "0.4", "fr"
-    elif "pbe_s_sr" in fpp:
-        family, version, appendix = "PseudoDojo", "0.3", "sr"
-    elif "NCPP-PD03-PBE" in fpp:
-        family, version, appendix = "PD03", "", ""
-    elif "sg15_oncv_upf_2020-02-06" in fpp:
-        family = "SG15"
-        match_ = re.match(r"([A-Z][a-z]?(_ONCV_PBE)(_)?(FR)?(\-)(\d\.\d)(\.upf))", os.path.basename(fpp))
-        version = match_.group(6)
-        appendix = "fr" if match_.group(4) is not None else "sr"
-    elif "nc-sr-04_pbe_standard_upf" in fpp:
-        family, version, appendix = "PseudoDojo", "0.4", "sr"
-    elif "nc-sr-04-3plus_pbe_standard_upf" in fpp:
-        family, version, appendix = "PseudoDojo", "0.4", "sr"
-    elif "pseudos_ac_she" in fpp:
-        family, version = "PseudoDojo", "1.0"
-        appendix = "fr" if fpp.endswith("_r.upf") else "sr"
-    elif "gth" in fpp:
-        family, version = "Goedecker-Teter-Hutter", ""
-        appendix = os.path.basename(fpp).split("_")[-1].split(".")[0]
-    elif "psl" in fpp:
-        match_ = re.match(r"([A-Z][a-z]?)(\.)(rel-)?(pbe|pz)(-\w+)?(-)(rrkjus|kjpaw)(_psl\.)([\.\d]+)(\.UPF)", os.path.basename(fpp))
-        family = "PSlibrary"
-        version = match_.group(9)
-        apps = []
-        if match_.group(7): apps.append(match_.group(7).upper())
-        if match_.group(3): apps.append("fr")
-        if match_.group(5): apps.append(match_.group(5)[1:])
-        appendix = ", ".join(apps)
-    else:
-        raise ValueError(f"Unrecognized pseudopotential file: {fpp}")
-    return f"{family} v{version} ({appendix})".replace("v ", "").replace("()", "")
-
 def collect_apnsjob_data(folder: str):
     print("* * * Collect ABACUS result * * *".center(100))
     import apns.analysis.postprocess.read_abacus_out as read_abacus_out
     import apns.pspot.parse as ppparse
-    import os
-    import re
+    import os, re
+    from apns.analysis.drivers.apns2_utils import read_apnsjob_desc, convert_fpp_to_ppid
     result = {}
     for root, _, files in os.walk(folder):
         for file in files:
             if re.match(r"(running_)(\w+)(\.log)", file): # reach the inner most folder like OUT.ABACUS
                 natom = read_abacus_out.read_natom_fromlog(os.path.join(root, file))
-                eks = read_abacus_out.read_efin_fromlog(os.path.join(root, file))
+                eks = read_abacus_out.read_e_fromlog(os.path.join(root, file))
                 pressure = read_abacus_out.read_pressure_fromlog(os.path.join(root, file))
                 bs = read_abacus_out.read_istate(os.path.join(root, "istate.info"))
                 # continue if there is None among eks, pressure and bs
@@ -232,74 +159,6 @@ Pseudopotentials are used:\n{s}
                 #result[(system, "|".join(pps), ecutwfc)] = (natom, zvals, eks, pressure, bs)
     return result
 
-def plot_log(conv_result: dict):
-    import matplotlib.pyplot as plt
-    import apns.analysis.drivers.driver_EcutwfcConv_20240319 as outdated
-    plt.rcParams["font.family"] = "Arial"
-
-    # merge again that indexed like [system][pps]
-    merged = {}
-    for key, val in conv_result.items():
-        system, pps = key
-        merged.setdefault(system, {})[pps] = val
-    figures = {s: f"{s}_logplog.svg" for s in merged.keys()}
-    for s, r in merged.items(): # s stands for system and r stands for result
-        # result would be dict indexed by different pps
-        pps = list(r.keys())
-        xs = [[r[pp]["ecutwfc"] for pp in pps], [r[pp]["ecutwfc"] for pp in pps], [r[pp]["ecutwfc"] for pp in pps]]
-        ys = [[r[pp]["de"] for pp in pps], [r[pp]["dp"] for pp in pps], [r[pp]["dbs"] for pp in pps]]
-        logplot_style = {"highlight_ys": [1e-3, 0.1, 1e-2], "nrows": 1, 
-                         "xtitle": "Planewave kinetic energy cutoff (ecutwfc, in Ry)", 
-                         "ytitle": ["Absolute Kohn-Sham energy difference per atom (eV)", 
-                                    "Absolute pressure difference (kbar)",
-                                    "Band structure difference (eV)"], 
-                         "ysymbols": ["$|\Delta E_{KS}|$", "$|\Delta P|$", "$|\eta_{all, 00}|$"],
-                         "suptitle": s, 
-                         "supcomment": "NOTE: Absence of data points result from SCF convergence failure or walltime limit.",
-                         "labels": pps, "fontsize": 19}
-        fig, ax = outdated.discrete_logplots(xs, ys, **logplot_style)
-        plt.savefig(figures[s])
-        plt.close()
-
-    return figures
-
-def plot_stack(conv_result: dict):
-    import matplotlib.pyplot as plt
-    import apns.analysis.drivers.driver_EcutwfcConv_20240319 as outdated
-    plt.rcParams["font.family"] = "Arial"
-
-    # merge again that indexed like [system][pps]
-    merged = {}
-    for key, val in conv_result.items():
-        system, pps = key
-        merged.setdefault(system, {})[pps] = val
-    figures = {s: f"{s}.svg" for s in merged.keys()}
-    for s, r in merged.items(): # s stands for system and r stands for result
-        pps = list(r.keys())
-        xs = [[r[pp]["ecutwfc"]]*3 for pp in pps]
-        ys = [[r[pp]["de"], r[pp]["dp"], r[pp]["dbs"]] for pp in pps]
-        lineplot_style = {"highlight_xs": [(pp, r[pp]["ecutwfc"][r[pp]["iconv"]]) for pp in pps], "ncols": 1, 
-                          "subtitles": pps, 
-                          "z_vals": [int(float(r[pp]["zvals"][0])) for pp in pps], 
-                          "grid": True,
-                          "xtitle": "Planewave kinetic energy cutoff (ecutwfc, in Ry)", 
-                          "ytitle": ["Kohn-Sham energy difference per atom (eV)", 
-                                     "Pressure difference (kbar)",
-                                     "Band structure difference (eV)"],
-                          "suptitle": s, 
-                          "supcomment": "NOTE: The red circle indicates the converged ecutwfc wrt. ecutwfc$_{max}$\
- with precision threshold (1.0 meV/atom, 0.1 kbar, 10 meV) respectively.\n \
-Absence of data points result from SCF convergence failure or walltime limit.",
-                          "fontsize": 13, "alpha": 0.8}
-        shift_style = {"shifts": [5, 500, 10], "ld": "pseudopotential",
-                       "ysymbols": ["$\Delta E_{KS}$", "$\Delta P$", "$\eta_{all, 00}$"],
-                      }
-        fig, ax = outdated.shift_lineplots(xs=xs, ys=ys, **shift_style, **lineplot_style)
-        plt.savefig(figures[s])
-        plt.close()
-
-    return figures
-
 def repair_apnsjob(folder: str):
     """this function is written because one old abacustest version will drop description.json auto-generated by
     apns workflow. Now this has been fixed, so do not call this function in any cases.
@@ -330,7 +189,7 @@ if __name__ == "__main__":
     #     f.write(html)
     # exit()
 
-    collected = collect_apnsjob_data("12508504")
+    collected = collect_apnsjob_data("12551436")
     system_and_stpcs = build_sptc_from_nested(collected)
     result = {}
     for s, stpcs in system_and_stpcs.items():
@@ -341,5 +200,6 @@ if __name__ == "__main__":
             pp = stpc.pp(as_list=True)
             assert len(pp) == 1, "The pseudopotential should be unique for each test case"
             update_ecutwfc(pp[0], ecut_conv)
+    from apns.analysis.drivers.apns2_ecut_utils import plot_log, plot_stack
     flogs = plot_log(result)
     fstacks = plot_stack(result)

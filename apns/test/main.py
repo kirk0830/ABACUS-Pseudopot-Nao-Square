@@ -82,12 +82,38 @@ def export(paramset: dict, atomset: list, cell: Cell, fmt = "abacus") -> dict:
     func_expr = f"write_{fmt}(paramset, atomset, cell)"
     return eval(func_expr)
 
-def write_qe(paramset: dict, atomset: list, cell: Cell):
-    return {"pwscf.in": write_qe_in(paramset, atomset, cell)}
+def write_qespresso(paramset: dict, atomset: list, cell: Cell):
+    return {"pwscf.in": write_qespresso_in(paramset, atomset, cell)}
 
-def write_qe_in(paramset: dict, atomset: list, cell: Cell):
-    assert False, "not implemented yet"
-    return None
+def write_qespresso_in(paramset: dict, atomset: list, cell: Cell):
+    from apns.test.atom_species_and_cell import CellGenerator
+    import os
+    sections = ["control", "system", "electrons", "ions", "cell"] # seems must be in this order
+    nat = len(cell.labels)
+    ntyp = len(set(cell.labels))
+    result = ""
+    for section in sections:
+        result += f"&{section.upper()}\n"
+        source = paramset.get(section, {})
+        source.update({"nat": nat, "ntyp": ntyp}) if section == "system" else None
+        for k, v in source.items():
+            v = v if v in [".true.", ".false."] else v if not isinstance(v, str) else f"'{v}'"
+            result += f"{k:<20s} = {v}\n"
+        result += "/\n\n"
+    result += f"CELL_PARAMETERS (angstrom)\n"
+    latvec = CellGenerator.abc_angles_to_vec([cell.a, cell.b, cell.c, cell.alpha, cell.beta, cell.gamma], True)
+    for i in range(3):
+        result += f"{latvec[i][0]:>20.10f} {latvec[i][1]:>20.10f} {latvec[i][2]:>20.10f}\n"
+    result += "\nATOMIC_SPECIES\n"
+    for label in dict.fromkeys(cell.labels):
+        ind = [i for i, aspec in enumerate(atomset) if aspec.symbol == cell.kinds[cell.labels_kinds_map[cell.labels.index(label)]]]
+        result += f"{label:<4s} {atomset[ind[0]].mass:<8.4f} {os.path.basename(atomset[ind[0]].pp)}\n"
+    result += "\nATOMIC_POSITIONS (crystal)\n"
+    for i, l in enumerate(cell.labels):
+        result += f"{l:<4s} {cell.coords[i][0]:>20.10f} {cell.coords[i][1]:>20.10f} {cell.coords[i][2]:>20.10f}\n"
+    result += f"\nK_POINTS (automatic)\n{cell.mpmesh_nks[0]} {cell.mpmesh_nks[1]} {cell.mpmesh_nks[2]} 0 0 0\n"
+
+    return result
 
 def write_abacus(paramset: dict, atomset: list, cell: Cell):
     keys = ["INPUT", "STRU", "KPT"]

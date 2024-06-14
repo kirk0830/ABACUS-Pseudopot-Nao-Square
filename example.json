@@ -18,9 +18,9 @@
     },
     "abacus": [
         {
-            "ecutwfc": 100,
-            "calculation": "scf",
-            "basis_type": "lcao",
+            "ecutwfc": 40,
+            "calculation": "relax",
+            "basis_type": "pw",
             "cal_force": 1,
             "cal_stress": 1,
             "nspin": 1,
@@ -50,71 +50,30 @@
     ],
     "qespresso": [
         {
-            "calculation": {
+            "control": {
                 "outdir": "./out",
                 "prefix": "test",
-                "pseudo_dir": "./pseudo",
-                "wf_collect": ".true.",
-                "disk_io": "low",
+                "pseudo_dir": "./",
                 "verbosity": "high",
-                "restart_mode": "from_scratch"
+                "restart_mode": "from_scratch",
+                "calculation": "scf",
+                "tstress": ".true.",
+                "tprnfor": ".true."
             },
             "system": {
                 "ibrav": 0,
-                "celldm(1)": 10.0,
-                "nat": 2,
-                "ntyp": 1,
-                "ecutwfc|ecutrho": [[30, 300], [40, 400], [50, 500]],
+                "ecutwfc|ecutrho": [[20, 160], [30, 240], [40, 320], [50, 400], [60, 480], [70, 560], [80, 640], [90, 720], [100, 800], [150, 1200], [200, 1600]],
                 "occupations": "smearing",
                 "smearing": "gaussian",
                 "degauss": 0.01
             },
             "electrons": {
                 "mixing_mode": "plain",
-                "mixing_beta": [0.3, 0.7],
                 "conv_thr": 1.0e-6,
                 "diagonalization": "david"
             },
-            "ions": {
-                "ion_dynamics": "bfgs"
-            },
-            "cell": {
-                "cell_dynamics": "bfgs"
-            }
-        },
-        {
-            "calculation": {
-                "outdir": "./out",
-                "prefix": "test",
-                "pseudo_dir": "./pseudo",
-                "wf_collect": ".true.",
-                "disk_io": "low",
-                "verbosity": "high",
-                "restart_mode": "from_scratch"
-            },
-            "system": {
-                "ibrav": 0,
-                "celldm(1)": 10.0,
-                "nat": 2,
-                "ntyp": 1,
-                "ecutwfc": [30, 40, 50],
-                "ecutrho": [300, 400, 500],
-                "occupations": "smearing",
-                "smearing": "gaussian",
-                "degauss": 0.01
-            },
-            "electrons": {
-                "mixing_mode": "plain",
-                "mixing_beta": [0.3, 0.7],
-                "conv_thr": 1.0e-6,
-                "diagonalization": "david"
-            },
-            "ions": {
-                "ion_dynamics": "bfgs"
-            },
-            "cell": {
-                "cell_dynamics": "bfgs"
-            }
+            "ions": {},
+            "cell": {}
         }
     ],
     "atomsets": [
@@ -129,8 +88,9 @@
             "Yb": [["PD04", "nlcc"], null]
         },
         {
-            "Ag": [["US", "fr", "rrkjus", "1.0.0"], null],
-            "H": [["US"], null]
+            "Ti": [["US"], null],
+            "O": [["US"], null],
+            "Sr": [["US"], null]
         },
         {
             "Ti": [["sg15", "1.0", "sr"], ["6au"]]
@@ -138,8 +98,8 @@
     ],
     "strusets": [
         {
-            "calculator": "abacus", "calcset": 3,
-            "atomset": 2,
+            "calculator": "qespresso", "calcset": 0,
+            "atomset": 1,
             "database": "materials_project",
             "desc": [["search", "Ti", [1.0], [0.08]]]
         }
