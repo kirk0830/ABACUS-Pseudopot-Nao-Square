@@ -227,7 +227,7 @@ def read_natom(fout):
 
 import unittest
 class TestReadQespressoOut(unittest.TestCase):
-    def est_read_rks_bs(self):
+    def test_read_rks_bs(self):
         lines = """
      End of self-consistent calculation
 

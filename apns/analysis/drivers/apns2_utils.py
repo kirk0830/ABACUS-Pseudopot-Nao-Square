@@ -71,3 +71,4 @@ def convert_fpp_to_ppid(fpp: str):
     else:
         raise ValueError(f"Unrecognized pseudopotential file: {fpp}")
     return f"{family} v{version} ({appendix})".replace("v ", "").replace("()", "")
+
