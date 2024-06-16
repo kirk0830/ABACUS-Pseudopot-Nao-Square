@@ -1,25 +1,31 @@
-def collect_apnsjob_data(folder: str):
+def is_outdir(folder: str):
+    import os
+    b = os.path.exists(os.path.join(folder, "out.log"))
+    b = b and os.path.exists(os.path.join(folder, "description.json"))
+    b = b and os.path.exists(os.path.join(folder, "pwscf.in"))
+    return b
+
+def collect_jobs(folder: str):
     print("* * * Collect QESPRESSO result * * *".center(100))
     import apns.analysis.postprocess.read_qespresso_out as read_qe
-    import apns.analysis.postprocess.read_abacus_out as read_abacus
     from apns.analysis.drivers.apns2_utils import read_apnsjob_desc, convert_fpp_to_ppid
     import apns.pspot.parse as ppparse
-    import os, re, json
+    import os, json
     result = {}
     for root, _, files in os.walk(folder):
-        if "description.json" in files:
-            natom = read_qe.read_natom(os.path.join(root, "pwscf.out"))
-            eks = read_qe.read_e(os.path.join(root, "pwscf.out"))
-            press = read_qe.read_press(os.path.join(root, "pwscf.out"))
-            _, bs = read_qe.read_bs(os.path.join(root, "pwscf.out"))
+        if is_outdir(root):
+            natom = read_qe.read_natom(os.path.join(root, "out.log"))
+            eks = read_qe.read_e(os.path.join(root, "out.log"))
+            press = read_qe.read_press(os.path.join(root, "out.log"))
+            bs = read_qe.read_istate(os.path.join(root, "out.log"))
             if None in [eks, press, bs]:
                 print(f"WARNING: Present APNS job is broken: {root}")
                 continue
             atom_species, cellgen = read_apnsjob_desc(os.path.join(root, "description.json"))
             system = os.path.basename(cellgen["config"])
-            with open(os.path.join(root, "description"), "r") as f:
+            with open(os.path.join(root, "description.json"), "r") as f:
                 desc = json.load(f)
-            ecutwfc = desc["DFTParamSet"]["ecutwfc"]
+            ecutwfc = desc["DFTParamSet"]["system"]["ecutwfc"]
             pps = [a["pp"] for a in atom_species]
             ppids = [convert_fpp_to_ppid(pp) for pp in pps]
             zvals = [ppparse.z_valence(os.path.join(root, pp)) for pp in pps]
@@ -43,7 +49,7 @@ Pseudopotentials are used:\n{s}
                 result[system]["pptests"].append([data])
             else:
                 result[system]["pptests"][idx].append(data)
-            #result[(system, "|".join(pps), ecutwfc)] = (natom, zvals, eks, pressure, bs)
+
     return result
 
 if __name__ == "__main__":
@@ -57,9 +63,8 @@ if __name__ == "__main__":
     # with open(f"{element}.md", "w") as f:
     #     f.write(html)
     # exit()
-    from apns.analysis.drivers.apns2_ecut_utils import update_ecutwfc, build_sptc_from_nested\
-    , SystemPspotTestCase
-    collected = collect_apnsjob_data("12551436")
+    from apns.analysis.drivers.apns2_ecut_utils import build_sptc_from_nested
+    collected = collect_jobs("12588486")
     system_and_stpcs = build_sptc_from_nested(collected)
     result = {}
     for s, stpcs in system_and_stpcs.items():
@@ -69,7 +74,7 @@ if __name__ == "__main__":
             ecut_conv = stpc.ecuts[stpc.iconv]
             pp = stpc.pp(as_list=True)
             assert len(pp) == 1, "The pseudopotential should be unique for each test case"
-            update_ecutwfc(pp[0], ecut_conv)
+            #update_ecutwfc(pp[0], ecut_conv)
     from apns.analysis.drivers.apns2_ecut_utils import plot_log, plot_stack
     flogs = plot_log(result)
     fstacks = plot_stack(result)

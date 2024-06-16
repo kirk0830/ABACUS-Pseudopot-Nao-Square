@@ -134,6 +134,22 @@ def read_bs(fout):
         return kstraj[-1], bstraj[-1]
     return None, None
 
+def to_abacus_istate(bs):
+    """convert the band structure to the format of Abacus"""
+    # Abacus format:
+    # index ekb  occ
+    # 1     -3.9 1.0
+    # ...
+    # however, can only be 1.0 for occ because qespresso does not provide occupation there
+    if bs is None: return None
+    return [[[[ib+1, e, 1.0] for ib, e in enumerate(bs[ispin][ik])] for ik in range(len(bs))] for ispin in range(len(bs))]
+
+def read_istate(fout):
+    import numpy as np
+    bs = read_bs(fout)[1]
+    if bs is None: return None
+    return [np.array(b) for b in to_abacus_istate(bs)]
+
 def read_etraj(fout, unit = "eV", term = "EKS"):
     """qe stdout is like:
     ```
@@ -328,6 +344,25 @@ class TestReadQespressoOut(unittest.TestCase):
         self.assertEqual(bs[0].shape, (2, 10))
         self.assertEqual(ks[1].shape, (2, 3))
         self.assertEqual(bs[1].shape, (2, 10))
+
+    def test_to_abacus_istate(self):
+        lines = """
+     End of self-consistent calculation
+
+          k =-0.0000 0.0000 0.0000 (   273 PWs)   bands (ev):
+
+    -3.9000  18.6222  18.6520  18.6520  21.5375  24.8623  26.9277  26.9277
+    31.6146  31.8351
+
+
+          k = 0.0000-0.0000 0.5449 (   272 PWs)   bands (ev):
+
+     1.3413   3.1273  20.9290  21.5726  22.0044  23.8594  25.8224  27.4089
+    28.6819  29.4710
+    """
+        ks, bs = read_rks_bs(lines.split("\n"))
+        istate = to_abacus_istate(bs)
+        print(istate)
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,5 +1,5 @@
 def build_sptc_from_nested(cases: dict):
-    """build instances of SystemPspotTestCase from a nested dict. Example input:
+    """build instances of EcutSingleCase from a nested dict. Example input:
     ```python
     cases = {
         "mp-1234.cif": {
@@ -17,19 +17,23 @@ def build_sptc_from_nested(cases: dict):
         "mp-5678.cif": {...}
     }
     ```
-    This function will return a dict whose keys are different systems, and values are lists of SystemPspotTestCase instances.
+    This function will return a dict whose keys are different systems, and values are lists of EcutSingleCase instances.
     Each instance represents a pseudopotential test case for a specific system."""
     result = {}
     for system, data in cases.items():
         ppcases = data["ppcases"]
         for ipt, pptests in enumerate(data["pptests"]):
             pps = ppcases[ipt]
-            sptc = SystemPspotTestCase(system, pps, pptests)
+            sptc = EcutSingleCase(system, pps, pptests)
             result.setdefault(system, []).append(sptc)
     return result
 
-class SystemPspotTestCase:
-    """the class owning test data varies ecutwfc"""
+class EcutSingleCase:
+    """Definition: A single case in ecutwfc convergence test is:
+    1. one system
+    2. many ecutwfc
+    3. (therefore) many energies, istates and pressures
+    4. one (combination of) pseudopotential(s)"""
     system: str
     ecuts: list
     natom: int
