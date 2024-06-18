@@ -1205,7 +1205,7 @@ def bravis_xy3(kinds: list, celldm: float):
 def lookup_molecule(molecule: str, bond_length: float):
     import re
     assert re.match(r"^([A-Z][a-z]?)_(atom|monomer|dimer|trimer|tetramer)$", molecule), \
-        f"does not match any predefined molecule: {molecule}"
+        f"The molecule '{molecule}' does not match any predefined patterns. Please ensure it is formatted correctly."
     assert isinstance(bond_length, float), f"must specify a float number as bond length: {bond_length}"
     kind, shape = molecule.split("_")
     shape = shape.lower()
