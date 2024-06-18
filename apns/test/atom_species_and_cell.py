@@ -2,7 +2,7 @@ class AtomSpeciesGeneartor:
     symbol = None
     pseudo_dir, orbital_dir = None, None
     pptags, naotags = None, None
-
+    ecut_db = None
     def __init__(self, symbol: str, pseudo_dir: str, pptags: list, orbital_dir: str = None, naotags: list = None, **kwargs) -> None:
         assert isinstance(symbol, str), f'symbol should be a string: {symbol}'
         self.symbol = symbol
@@ -24,6 +24,14 @@ Orbital directory: {self.orbital_dir}
 Numerical atomic orbital tags: {self.naotags}
 """)
 
+    def connect_ecut_db(self, fname: str):
+        """connect with the ecut database"""
+        import json
+        import os
+        if not os.path.exists(fname): return
+        with open(fname, "r") as f:
+            self.ecut_db = json.load(f)
+        
     def __call__(self):
         """iteratively create AtomSpecies instances"""
         import itertools as it
@@ -42,15 +50,18 @@ Numerical atomic orbital tags: {self.naotags}
         magmom = 0.0
         
         for pp in pps:
+            init_set = {"name": name, "fullname": fullname, "symbol": self.symbol, "index": index,
+                        "rcovalent": rcovalent, "mass": mass, "magmom": magmom, "pp": pp, "nao": None}
+            if self.ecut_db is not None:
+                init_set.update({"ecutwfc": self.ecut_db.get(pp, None)})
             if self.orbital_dir is not None and self.naotags is not None:
                 searcher = TagSearcher(pjoin(self.orbital_dir, 'database.json'))
                 naos = searcher(False, False, *(list(set(self.naotags + [pp]))))
                 for pp, nao in it.product(pps, naos):
-                    yield AtomSpecies(name=name, fullname=fullname, symbol=self.symbol, index=index,
-                                      rcovalent=rcovalent, mass=mass, magmom=magmom, pp=pp, nao=nao)
+                    init_set.update({"nao": nao})
+                    yield AtomSpecies(**init_set)
             else:
-                yield AtomSpecies(name=name, fullname=fullname, symbol=self.symbol, index=index,
-                                  rcovalent=rcovalent, mass=mass, magmom=magmom, pp=pp, nao=None)
+                yield AtomSpecies(**init_set)
 
 class AtomSpecies:
     """# AtomSpecies
@@ -78,6 +89,7 @@ class AtomSpecies:
     label, fullname, symbol, index, rcovalent, mass, magmom = \
         None, None, None, None, None, None, None
     pp, nao = None, None
+    ecutwfc = None
     
     def __init__(self, **kwargs) -> None:
         self.label = kwargs.get('label', None)
@@ -89,16 +101,21 @@ class AtomSpecies:
         self.magmom = kwargs.get('magmom', None)
         self.pp = kwargs.get('pp', None)
         self.nao = kwargs.get('nao', None)
+        self.ecutwfc = kwargs.get('ecutwfc', None)
 
     def __str__(self) -> str:
-        return f"""AtomSpecies:\nname: {self.label}, \nfullname: {self.fullname},
-symbol: {self.symbol}, \nindex: {self.index}, \ncovalent radius: {self.rcovalent},
-mass: {self.mass}, \nmagmom: {self.magmom}, \npseudopotential: {self.pp}, \nnumerical atomic orbital: {self.nao}"""
+        """overload the print function to print the AtomSpecies information"""
+        return (f"AtomSpecies: name: {self.label}, fullname: {self.fullname}, "
+                f"symbol: {self.symbol}, index: {self.index}, covalent radius: {self.rcovalent}, "
+                f"mass: {self.mass}, magmom: {self.magmom}, pseudopotential: {self.pp}, "
+                f"Recommended ecutwfc: {self.ecutwfc} Ry, numerical atomic orbital: {self.nao}")
 
     def as_dict(self) -> dict:
         return {"name": self.label, "fullname": self.fullname, "symbol": self.symbol,
                 "index": self.index, "rcovalent": self.rcovalent, "mass": self.mass,
-                "magmom": self.magmom, "pp": self.pp, "nao": self.nao}
+                "magmom": self.magmom, "pp": self.pp, "ecutwfc": self.ecutwfc, "nao": self.nao}
+
+
 
 class CellGenerator:
 
@@ -118,7 +135,7 @@ class CellGenerator:
 
         identifier = "bravis" if re.match(r"^([A-Z][a-z]?)_(sc|bcc|fcc|diamond)$", config) else "illegal"
         identifier = "bravis" if re.match(r"^([A-Z][a-z]?[A-Z][a-z]?)_(xy|xy2|xy3|x2y|x2y3|x2y5)$", config) else identifier
-        identifier = "molecule" if re.match(r"^([A-Z][a-z]?)_(dimer|trimer|tetramer)$", config) else identifier
+        identifier = "molecule" if re.match(r"^([A-Z][a-z]?)_(atom|monomer|dimer|trimer|tetramer)$", config) else identifier
         identifier = "cif" if os.path.exists(config) else identifier
         assert identifier != "illegal", f'config should be a valid Bravis lattice, molecule or CIF file: {config}'
         self.identifier = identifier
@@ -217,6 +234,7 @@ Magnetic moments: {self.magmoms}
 
     def build_molecule(molecule: int, bond_length: float, kspacing: float = -1.0):
         from apns.test.bravis_and_molecule import lookup_molecule
+        print(f"kspacing: {kspacing} (bohr-1) setting is discarded due to isolated system generation.")
         abc_angles, labels, kinds, labels_kinds_map, coords = lookup_molecule(molecule, bond_length)
         a, b, c, alpha, beta, gamma = abc_angles
         magmoms = [0] * len(coords)
