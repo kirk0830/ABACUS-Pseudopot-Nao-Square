@@ -346,7 +346,8 @@ def read_etraj_fromlog(flog, unit = "eV", term = "EKS"):
         eners = [float(line.split()[-1]) for line in f.readlines() if line.strip().startswith(header)]
     eners = [unit_conversion(ener, "eV", unit) for ener in eners]
     return np.array(eners, dtype=np.float64)
-def read_efin_fromlog(flog, unit="eV", term="EKS"):
+
+def read_e_fromlog(flog, unit="eV", term="EKS"):
     etraj = read_etraj_fromlog(flog, unit, term)
     if len(etraj) > 0:
         return etraj[-1]
