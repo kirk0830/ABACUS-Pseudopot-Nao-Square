@@ -104,12 +104,11 @@ class AtomSpecies:
         self.ecutwfc = kwargs.get('ecutwfc', None)
 
     def __str__(self) -> str:
-        return f"""AtomSpecies:\nname: {self.label}, \nfullname: {self.fullname},
-symbol: {self.symbol}, \nindex: {self.index}, \ncovalent radius: {self.rcovalent},
-return (f"AtomSpecies: name: {self.label}, fullname: {self.fullname}, "
-        f"symbol: {self.symbol}, index: {self.index}, covalent radius: {self.rcovalent}, "
-        f"mass: {self.mass}, magmom: {self.magmom}, pseudopotential: {self.pp}, "
-        f"Recommended ecutwfc: {self.ecutwfc} Ry, numerical atomic orbital: {self.nao}")
+        """overload the print function to print the AtomSpecies information"""
+        return (f"AtomSpecies: name: {self.label}, fullname: {self.fullname}, "
+                f"symbol: {self.symbol}, index: {self.index}, covalent radius: {self.rcovalent}, "
+                f"mass: {self.mass}, magmom: {self.magmom}, pseudopotential: {self.pp}, "
+                f"Recommended ecutwfc: {self.ecutwfc} Ry, numerical atomic orbital: {self.nao}")
 
     def as_dict(self) -> dict:
         return {"name": self.label, "fullname": self.fullname, "symbol": self.symbol,
