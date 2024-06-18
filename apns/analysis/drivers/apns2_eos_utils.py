@@ -54,7 +54,8 @@ def fit_birch_murnaghan(volumes, energies, as_dict=False):
         v0: min_volume,
         e0: E0,
         b0: bulk_modulus_ev_ang3,
-        b0p: bulk_deriv."""
+        b0p: bulk_deriv.
+    """
     import scipy.optimize as opt
     try:
         popt, _ = opt.curve_fit(birch_murnaghan, volumes, energies, p0=(energies[0], 1, 1, volumes[0]))
@@ -76,7 +77,7 @@ def delta_value(bm_fit1: dict,
                 vmin: float, 
                 vmax: float,
                 natom: int = 1) -> float:
-    """Calculate the delta value for two EOS fit results
+    """Calculate the delta value PER ATOM for two EOS fit results
     
     delta = sqrt(1/(vmax - vmin) * integral((E1 - E2)^2))
     
@@ -146,8 +147,8 @@ class EOSSingleCase:
     def tokenize(system: str):
         """conver the system to token used by ACWF"""
         import re
-        u_in = r"([A-Z][a-z]*)_(sc|fcc|bcc|diamond)"
-        o_in = r"([A-Z][a-z]*O)_(x\dy\d)"
+        u_in = r"([A-Z][a-z]*)_(sc|fcc|bcc|diamond)" # unaries
+        o_in = r"([A-Z][a-z]*O)_(x\dy\d)" # oxides
         assert re.match(u_in, system) or re.match(o_in, system), "The system name should be in the form of 'Element_Phase' or 'ElementO_xdyd'"
         if re.match(u_in, system):
             # expected format: unaries = r"([A-Z][a-z]*)(-X/)([SC|FCC|BCC|Diamond])"
@@ -167,3 +168,132 @@ class EOSSingleCase:
         return self.pp(), bmfit, delta
         # legend, line, scalarized data
 
+def plot(testresult: dict, ncols: int = 3, **kwargs):
+    """plot all in one-shot, from the output of calculate function
+    example:
+    ```json
+    {
+        "Si": [
+        {
+            "mpid": "xxx",
+            "AEref": {"E0": 0, "bulk_deriv": ..., "bulk_modulus_ev_ang3": ..., "min_volume": ..., "residuals": ...},
+            "dojo05": {"E0": ..., "bulk_deriv": ..., "bulk_modulus_ev_ang3": ..., "min_volume": ..., "residuals": ..., 
+                       "delta": ...,
+                       "volume": ..., "energy": ...},
+            "pd04": {"E0": ..., "bulk_deriv": ..., "bulk_modulus_ev_ang3": ..., "min_volume": ..., "residuals": ..., 
+                     "delta": ...,
+                     "volume": ..., "energy": ...},
+            ...
+        },
+        {
+            "mpid": "yyy",
+            "AEref": {"E0": 0, "bulk_deriv": ..., "bulk_modulus_ev_ang3": ..., "min_volume": ..., "residuals": ...},
+            "dojo05": {"E0": ..., "bulk_deriv": ..., "bulk_modulus_ev_ang3": ..., "min_volume": ..., "residuals": ..., 
+                       "delta": ...,
+                       "volume": ..., "energy": ...},
+            "pd04": {"E0": ..., "bulk_deriv": ..., "bulk_modulus_ev_ang3": ..., "min_volume": ..., "residuals": ..., 
+                     "delta": ...,
+                     "volume": ..., "energy": ...},
+            ...
+        },
+        ...
+        ],
+        "Al": [...]
+    }
+    ```
+    """
+    from apns.analysis.drivers.apns2_utils import convert_fpp_to_ppid
+    from apns.analysis.external_frender.styles import styles_factory
+    from apns.analysis.external_frender.figure import concatenate as figconcat
+    import matplotlib.pyplot as plt
+    import numpy as np
+    import os
+    ###################
+    # Styles setting  #
+    ###################
+    fontsize = kwargs.get("fontsize", 18)
+    colors = kwargs.get("colors", styles_factory(property="color", ndim=2))
+    marker = kwargs.get("marker", styles_factory(property="marker", ndim=1))[0]
+    markersize = kwargs.get("markersize", 10)
+    
+    subplot_height = kwargs.get("subplot_height", 10)
+    subplot_width = kwargs.get("subplot_width", 10)
+
+    feos = {}
+    # each element will create one figure
+    for element in testresult.keys():
+        print("Plotting element:", element)
+        print("Available test results for this element:", testresult[element].keys())
+        # will save fname of each figure
+        feos_element = []
+        # result[element] is a dict whose keys are mpid. Each mpid-identified structure has its own
+        # all electron reference data, and several pseudopotential data.
+        for mpid, result_ibrav in testresult[element].items():
+            print("Structure identifier (might be mp-id or bravis lattice):", mpid)
+            suptitle = f"{element} EOS ({mpid})"
+            # calculate number of subplots and their layout
+            npspots = len(result_ibrav.keys()) - 1
+            # however, if the number of subplots is less than ncols, we will set ncols to npspots
+            ncols_ = min(npspots, ncols)
+            # calculate nrows
+            nrows = npspots // ncols_ + (npspots % ncols_ > 0)
+            # calculate the figure size
+            figsize = (subplot_width*ncols_, subplot_height*nrows)
+            # create figure
+            fig, axes = plt.subplots(nrows=nrows, ncols=ncols_, figsize=figsize, squeeze=False)
+            fpps = [fpp for fpp in result_ibrav.keys() if fpp != "AEref"]
+            # sort the pnids
+            fpps.sort()
+            for i, fpp in enumerate(fpps):
+                row = i // ncols_
+                col = i % ncols_
+                print(f"Plotting: {element} {fpp} at subfigure ({row}, {col})")
+                ax = axes[row, col]
+                bm_fit = result_ibrav[fpp]
+                bm_fitref = result_ibrav["AEref"]
+                natoms = bm_fit["natoms"]
+                ###################
+                # Data operations #
+                ###################
+                vs = np.array(bm_fit["volume"])
+                # shift the energy to 0
+                eks = np.array(bm_fit["energy"]) - min(bm_fit["energy"])
+                delta = bm_fit["delta"]/natoms
+                # do inter/extrapolation on vs to let it evenly distributed in 200 points
+                vs_interp = np.linspace(min(vs)*0.995, max(vs)*1.01, 200)
+                # shift the energy to 0
+                ref_interp = birch_murnaghan(vs_interp, bm_fitref["E0"], bm_fitref["bulk_modulus_ev_ang3"], bm_fitref["bulk_deriv"], bm_fitref["min_volume"])
+                ref_interp = ref_interp - min(ref_interp)
+                # shift the energy to 0
+                fit_interp = birch_murnaghan(vs_interp, bm_fit["E0"], bm_fit["bulk_modulus_ev_ang3"], bm_fit["bulk_deriv"], bm_fit["min_volume"])
+                fit_interp = fit_interp - min(fit_interp)
+                pspotid = convert_fpp_to_ppid(fpp)
+                # plot
+                ax.plot(vs_interp/natoms, ref_interp, "-", label="AE (averaged over Wien2K and FLEUR)", color=colors[0])
+                ax.plot(vs/natoms, eks, "o", label=f"DFT: {pspotid}", markersize=markersize, markeredgecolor=colors[1], markerfacecolor="none",
+                        markeredgewidth=1.5, linestyle="None")
+                ax.plot(vs_interp/natoms, fit_interp, "-", color=colors[1])
+                ax.grid()
+                ax.set_xlabel("Volume ($\AA^3$/atom)", fontsize=fontsize)
+                ax.set_ylabel("Kohn-Sham energy (Shifted, $\Delta E_{KS}$) (eV)", fontsize=fontsize)
+                ax.legend(fontsize=fontsize)
+                ax.annotate(f"$\Delta$ = {delta*1e3:.2f} meV/atom", xy=(0.5, 0.5), xycoords="axes fraction", fontsize=fontsize)
+                # set fontsize of xticks and yticks
+                ax.tick_params(axis="both", labelsize=fontsize*0.9)
+                # set font as Arial
+                plt.rcParams["font.family"] = "Arial"
+                # set super title
+                fig.suptitle(suptitle, fontsize=fontsize*1.2)
+
+            # save the figure
+            feos_element.append(f"eos_{element}_{mpid}.png")
+            plt.savefig(feos_element[-1])
+            plt.close()
+
+        # concatenate all figures
+        ftemp = figconcat(feos_element, direction="v", remove_after_quit=True)
+        # rename to eos_{element}.png
+        os.rename(ftemp, f"eos_{element}.png")
+        feos.update({element: f"eos_{element}.png"})
+
+    return feos

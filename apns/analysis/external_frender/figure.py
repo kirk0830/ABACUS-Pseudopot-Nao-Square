@@ -1,5 +1,5 @@
-def concenate(figures: list, direction: str, remove_after_quit: bool = False):
-    """concenate figures in the given direction, horizontally or vertically.
+def concatenate(figures: list, direction: str, remove_after_quit: bool = False):
+    """concatenate figures in the given direction, horizontally or vertically.
     Figures are given as .png, .svg or .jpg, or .bmp files."""
     d = "v" if direction.lower() in ["v", "vertical"] else "h"
     import os
@@ -29,7 +29,7 @@ def concenate(figures: list, direction: str, remove_after_quit: bool = False):
             new_im.paste(im, (x_offset, 0))
             x_offset += im.size[0]
 
-    feos = f"eos_concenated_{d}.png"
+    feos = f"eos_concatenated_{d}.png"
     new_im.save(feos)
     
     if remove_after_quit:

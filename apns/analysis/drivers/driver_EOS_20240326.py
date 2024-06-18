@@ -183,6 +183,7 @@ def plot(testresult: dict, ncols: int = 3, **kwargs):
     }
     ```
     """
+    from apns.analysis.drivers.apns2_utils import convert_fpp_to_ppid
     ###################
     # Styles setting  #
     ###################
@@ -265,8 +266,8 @@ def plot(testresult: dict, ncols: int = 3, **kwargs):
             plt.savefig(feos_element[-1])
             plt.close()
 
-        # concenate all figures
-        ftemp = ameff.concenate(feos_element, direction="v", remove_after_quit=True)
+        # concatenate all figures
+        ftemp = ameff.concatenate(feos_element, direction="v", remove_after_quit=True)
         # rename to eos_{element}.png
         os.rename(ftemp, f"eos_{element}.png")
         feos.update({element: f"eos_{element}.png"})

@@ -241,6 +241,40 @@ def read_natom(fout):
             return int(m.group(1))
     return None
 
+def read_voltraj(fout, unit = "A"):
+    """qe stdout is like:
+    ```
+     unit-cell volume          =      94.3341 (a.u.)^3
+     ...
+     new unit-cell volume =     95.57987 a.u.^3 (    14.16348 Ang^3 )
+     new unit-cell volume =     96.69895 a.u.^3 (    14.32931 Ang^3 )
+     ...
+     new unit-cell volume =     10.0000 a.u.^3 (  100.0000 Ang^3 )
+     ...
+     new unit-cell volume =     99.93738 a.u.^3 (    14.80919 Ang^3 )
+     unit-cell volume          =      99.9374 (a.u.)^3
+    ```
+    will grep both these two lines
+    """
+    import re
+    with open(fout, 'r') as f:
+        lines = f.readlines()
+    voltraj = []
+    for line in lines:
+        m_init = re.match(r"unit-cell volume\s+=\s+([\d\.\-]+)\s+\(a\.u\.\)\^3", line)
+        m_traj = re.match(r"new unit-cell volume\s+=\s+([\d\.\-]+)\s+a\.u\.\^3\s+\(\s+([\d\.\-]+)\s+Ang\^3\s+\)", line)
+        if m_init or m_traj:
+            voltraj.append(float(m_init.group(1) if m_init else m_traj.group(1)))
+    fac_ = unit_conversion(1.0, "a.u.", unit)
+    return [vol * fac_**3 for vol in voltraj]
+
+def read_vol(fout, unit = "A"):
+    """return the final volume"""
+    voltraj = read_voltraj(fout, unit)
+    if len(voltraj) == 0:
+        return None
+    return voltraj[-1]
+
 import unittest
 class TestReadQespressoOut(unittest.TestCase):
     def test_read_rks_bs(self):

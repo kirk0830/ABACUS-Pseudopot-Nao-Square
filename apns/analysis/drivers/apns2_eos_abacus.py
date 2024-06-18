@@ -62,13 +62,25 @@ Pseudopotentials are used:\n{s}
                 result[system]["pptests"][idx].append(data)
     return result
 
-def main(folder: str):
-    import os
+def prepare(folder: str):
     from apns.analysis.drivers.apns2_eos_utils import EOSSingleCase, read_acwf_refdata
     jobs = collect_jobs(folder)
+    result = {}
     for system, data in jobs.items():
+        result.setdefault(system, {}).setdefault("ppcases", system)
         token = EOSSingleCase.tokenize(system)
         ref = read_acwf_refdata(token)
+        result[system].setdefault("AEref", ref)
         for i, ppcase in enumerate(data["ppcases"]):
             case = EOSSingleCase(system, ppcase, data["pptests"][i])
             pp, bmfit, delta = case()
+            result[system][pp] = bmfit
+            result[system][pp].update({"delta": delta, "volume": case.volumes, "energy": case.energies})
+    return result
+
+def main(folder: str):
+    from apns.analysis.drivers.apns2_eos_utils import plot
+    to_plot = prepare(folder)
+    feos = plot(to_plot)
+    return feos
+
