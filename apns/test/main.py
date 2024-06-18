@@ -83,8 +83,12 @@ def bind_atom_species_with_cell(atom_species_generators: list[AtomSpeciesGeneart
     return those_wanted, cell
 
 def export(paramset: dict, atomset: list, cell: Cell, fmt = "abacus") -> dict:
-    func_expr = f"write_{fmt}(paramset, atomset, cell)"
-    return eval(func_expr)
+    """with paramset, atomset and Cell, build input files for specific DFT software.
+    Development:
+    Once add new support, update the in-built dict"""
+    call_map = {"abacus": write_abacus, "qespresso": write_qespresso}
+    assert fmt in call_map, "Unsupported DFT software"
+    return call_map[fmt](paramset, atomset, cell)
 
 def write_qespresso(paramset: dict, atomset: list, cell: Cell):
     return {"pwscf.in": write_qespresso_in(paramset, atomset, cell)}
