@@ -1204,12 +1204,33 @@ def bravis_xy3(kinds: list, celldm: float):
 
 def lookup_molecule(molecule: str, bond_length: float):
     import re
-    assert re.match(r"^([A-Z][a-z]?)_(dimer|trimer|tetramer)$", molecule), f"does not match any predefined molecule: {molecule}"
+    assert re.match(r"^([A-Z][a-z]?)_(atom|monomer|dimer|trimer|tetramer)$", molecule), \
+        f"does not match any predefined molecule: {molecule}"
     assert isinstance(bond_length, float), f"must specify a float number as bond length: {bond_length}"
     kind, shape = molecule.split("_")
     shape = shape.lower()
     func_expr = f"molecule_{shape}(kind, bond_length)"
     return eval(func_expr)
+
+def molecule_monomer(kind: str, bl: float):
+    """build monomer with bond length `bl`
+    
+    Args:
+        bl (float): bond length in Angstrom
+    Returns:
+        lat (list): lattice parameters, including a, b, c and alpha, beta, gamma
+        labels (list): atom labels, each atom has one
+        kinds (list): kinds that present cell has
+        labels_kinds_map (list): mapping the index of coords to kinds, size = n_atoms
+        coords (np.ndarray): coordinates of atoms
+    """
+    import numpy as np
+    print(f"bond length is discarded for monomer: {bl}")
+    return [20, 20, 20, 90, 90, 90], [kind], [kind], \
+        [0], np.array([[0, 0, 0]])
+
+def molecule_atom(kind: str, bl: float):
+    return molecule_monomer(kind, bl)
 
 def molecule_dimer(kind: str, bl: float):
     """build dimer with bond length `bl`

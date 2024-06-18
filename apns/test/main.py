@@ -15,6 +15,7 @@ def main(inp: dict):
     import apns.test.dft_param_set as dftparam
     import apns.test.atom_species_and_cell as struparam
     import itertools as it
+    import os
     out_dir = inp["global"].get("out_dir", ".")
     folders = []
     for iset, struset in enumerate(inp["strusets"]):
@@ -34,7 +35,10 @@ Number of structure descriptors: {len(struset["desc"])}
                   pseudo_dir=inp["global"].get("pseudo_dir", "."), pptags=tags[0], 
                   orbital_dir=inp["global"].get("orbital_dir", "."), naotags=tags[1]) \
                   for s, tags in inp["atomsets"][atomset].items()]
-
+        # connect the asgens with converged ecutwfc (if possible), to support the arg `ecutwfc = "auto"`
+        if software == "abacus":
+            for asgen in asgens: 
+                asgen.connect_ecut_db(os.path.join(inp["global"].get("cache_dir", "."), "ecutwfc.json"))
         # the cell
         for desc in struset["desc"]:
             # first extract the atomspecies that really needed
@@ -117,6 +121,12 @@ def write_qespresso_in(paramset: dict, atomset: list, cell: Cell):
 
 def write_abacus(paramset: dict, atomset: list, cell: Cell):
     keys = ["INPUT", "STRU", "KPT"]
+    # here it is possible to support the converged ecutwfc value auto-set for INPUT.
+    # first get the fpp from atomset, then get the max, set to ecutwfc in paramset
+    ecut_set = paramset.get("ecutwfc", None) # if ecut_set is None or "auto", then set it to the max of fpp
+    if ecut_set is None or ecut_set == "auto":
+        ecutwfc = max([as_.ecutwfc for as_ in atomset if as_.ecutwfc is not None])
+        paramset["ecutwfc"] = ecutwfc
     vals = [write_abacus_input(paramset), write_abacus_stru(atomset, cell), write_abacus_kpt(cell)]
     return dict(zip(keys, vals))
 
