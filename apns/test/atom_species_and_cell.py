@@ -26,7 +26,8 @@ Numerical atomic orbital tags: {self.naotags}
 
     def connect_ecut_db(self, fname: str):
         """connect with the ecut database"""
-        import json, os
+        import json
+        import os
         if not os.path.exists(fname): return
         with open(fname, "r") as f:
             self.ecut_db = json.load(f)
