@@ -74,14 +74,14 @@ def write_autorun(finp: str):
     
     script = f"""import os
 cwd = os.path.abspath(os.getcwd())
-os.chdir("{out_dir}")
-for root, dirs, files in os.walk("."):
-    if "SIAB_INPUT.json" in files:
-        os.chdir(root)
-        os.system("nohup python3 {siab} -i SIAB_INPUT.json > log")
-        # then will only run the next till the current one is finished
-        os.chdir("{out_dir}") # back to the root directory
-os.chdir(cwd)
+folders = [f for f in os.listdir(cwd) if os.path.isdir(f)]
+for folder in folders:
+    if "SIAB_INPUT.json" in os.listdir(folder):
+        os.chdir(folder)
+        print(f"Running SIAB in {folder}", flush=True)
+        os.system("nohup python3 /root/deepmodeling/abacus_orbital_generation/SIAB/SIAB_nouvelle.py -i SIAB_INPUT.json > log")
+        os.chdir(cwd)
+        
 """
     with open(os.path.join(out_dir, "autorun.py"), 'w') as f:
         f.write(script)
