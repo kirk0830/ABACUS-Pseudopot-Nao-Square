@@ -995,6 +995,9 @@ def lookup_bravis_angles(bravis: str):
     return alpha, beta, gamma
 
 def lookup_bravis_lattice(bravis: str, celldm: float):
+    """lookup the lattice parameters for a given bravis lattice
+    Development:
+    Once new support on bravis lattice is added, the function should be updated"""
     import re
     assert re.match(r"^([A-Z][a-z]?)_(sc|bcc|fcc|diamond)$", bravis)\
         or re.match(r"^([A-Z][a-z]?[A-Z][a-z]?)_(xy2|xy3|x2y|x2y3|x2y5)$", bravis)\
@@ -1002,8 +1005,9 @@ def lookup_bravis_lattice(bravis: str, celldm: float):
     kinds, phase = bravis.split("_")
     kinds = [kinds] if phase in ["sc", "bcc", "fcc", "diamond"] else list(re.match(r"([A-Z][a-z]?)([A-Z][a-z]?)", kinds).groups())
     phase = phase.lower()
-    func_expr = f"bravis_{phase}(kinds, celldm)"
-    return eval(func_expr)
+    call_map = {"sc": bravis_sc, "bcc": bravis_bcc, "fcc": bravis_fcc, "diamond": bravis_diamond,
+                "xy2": bravis_x2y, "xy3": bravis_x2y, "x2y": bravis_x2y, "x2y3": bravis_x2y, "x2y5": bravis_x2y}
+    return call_map[phase](kinds, celldm)
 
 def vol_to_abc_angles(volume: float, angles: list):
     """calculate the characteristic length from the volume of the cell"""
@@ -1203,14 +1207,17 @@ def bravis_xy3(kinds: list, celldm: float):
                     [0.5, 0, 0], [0, 0.5, 0], [0, 0, 0.5]])
 
 def lookup_molecule(molecule: str, bond_length: float):
+    """look up the molecule and build the structure
+    Development:
+    Once new support on molecule is added, the function should be updated to include the new molecule."""
     import re
     assert re.match(r"^([A-Z][a-z]?)_(atom|monomer|dimer|trimer|tetramer)$", molecule), \
         f"The molecule '{molecule}' does not match any predefined patterns. Please ensure it is formatted correctly."
     assert isinstance(bond_length, float), f"must specify a float number as bond length: {bond_length}"
     kind, shape = molecule.split("_")
     shape = shape.lower()
-    func_expr = f"molecule_{shape}(kind, bond_length)"
-    return eval(func_expr)
+    call_map = {"atom": molecule_atom, "monomer": molecule_monomer, "dimer": molecule_dimer, "trimer": molecule_trimer, "tetramer": molecule_tetramer}
+    return call_map[shape](kind, bond_length)
 
 def molecule_monomer(kind: str, bl: float):
     """build monomer with bond length `bl`
