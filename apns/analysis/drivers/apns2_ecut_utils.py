@@ -114,7 +114,7 @@ def update_ecutwfc(pp: str, ecutwfc: float, cache_dir: str = "./apns_cache/ecutw
 
 def plot_log(conv_result: dict):
     import matplotlib.pyplot as plt
-    import apns.analysis.drivers.driver_EcutwfcConv_20240319 as outdated
+    import apns.analysis.drivers.apns1_ecut_abacus as outdated
     plt.rcParams["font.family"] = "Arial"
 
     # merge again that indexed like [system][pps]
@@ -145,7 +145,7 @@ def plot_log(conv_result: dict):
 
 def plot_stack(conv_result: dict):
     import matplotlib.pyplot as plt
-    import apns.analysis.drivers.driver_EcutwfcConv_20240319 as outdated
+    import apns.analysis.drivers.apns1_ecut_abacus as outdated
     plt.rcParams["font.family"] = "Arial"
 
     # merge again that indexed like [system][pps]

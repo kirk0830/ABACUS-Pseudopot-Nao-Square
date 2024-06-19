@@ -42,7 +42,7 @@ def calculate(data):
 
     return result
 
-import apns.analysis.drivers.driver_EOS_20240326 as amaddeos
+import apns.analysis.drivers.apns1_eos_abacus as amaddeos
 def calculate_delta(data):
     # calculate delta value on data yielded by calculate() function
     result = {}
