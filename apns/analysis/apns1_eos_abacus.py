@@ -23,14 +23,14 @@ def read_acwf_refdata(token: str,
         data = json.load(f)
     return data[domain][token]
 
-import re
-import apns.analysis.postprocess.eos as amape
 def cal_delta_wrtacwf(element: str, bmfit: dict, vmin: float, vmax: float, bravis: str = "unknown",
                       refdata_path: str = ACWF_DATAPATH + ACWF_REFJSON) -> float:
     """Search the best fit data from ACWF reference json file,
     because the structural data provided by Materials Project
     does not explicitly include the conventional name of crystal
     phase like BCC, FCC, Diamond, ..."""
+    from apns.analysis.apns2_eos_utils import delta_value
+    import re
     print(f"""Calculate delta value wrt. ACWF all-electron calculation results.
 element: {element}, 
 bravis: {bravis}, 
@@ -48,7 +48,7 @@ vmax: {vmax}
     if bravis != "UNKNOWN" and bravis in ["SC", "FCC", "BCC", "Diamond"]:
         token = f"{element}-X/{bravis}"
         print("Get data from token", token)
-        value = amape.delta_value(bm_fit1=bmfit, bm_fit2=data[token], vmin=vmin, vmax=vmax)
+        value = delta_value(bm_fit1=bmfit, bm_fit2=data[token], vmin=vmin, vmax=vmax)
         return value, token
     # else...
     for key in data.keys():
@@ -57,14 +57,12 @@ vmax: {vmax}
             if _match.group(1) == element:
                 print("Scan crystal phase from ACWF reference data:", key)
                 result = data[key]
-                value = amape.delta_value(bm_fit1=bmfit, bm_fit2=result, vmin=vmin, vmax=vmax)
+                value = delta_value(bm_fit1=bmfit, bm_fit2=result, vmin=vmin, vmax=vmax)
                 if value < delta:
                     delta = value
                     phase = key
     return delta, phase
 
-import os
-import apns.analysis.postprocess.read_abacus_out as amapr
 def is_outdir(files: list, fromcal: str):
     return f"running_{fromcal}.log" and\
            "STRU_ION_D" in files and\
@@ -77,13 +75,16 @@ def search(path: str, fromcal: str = "cell-relax"):
     """search the path and return the volume, energy, natom data
     the value returned is organized by (system, MPID, PNID) tuple,
     whose value is a list of tuple (volume, energy, natom) sorted by volume"""
+    import os
+    from apns.analysis.postprocess.read_abacus_out import read_natom_fromlog, read_etraj_fromlog\
+    , read_volume_fromstru, read_testconfig_fromBohriumpath
     result = {}
     for root, dirs, files in os.walk(path):
         if is_outdir(files, fromcal):
-            natom = amapr.read_natom_fromlog(f"{root}/running_{fromcal}.log")
-            eks = amapr.read_etraj_fromlog(f"{root}/running_{fromcal}.log")[-1]
-            v = amapr.read_volume_fromstru(f"{root}/STRU_ION_D", "A")
-            _, sys, mpid, pnid, _ = amapr.read_testconfig_fromBohriumpath(root)
+            natom = read_natom_fromlog(f"{root}/running_{fromcal}.log")
+            eks = read_etraj_fromlog(f"{root}/running_{fromcal}.log")[-1]
+            v = read_volume_fromstru(f"{root}/STRU_ION_D", "A")
+            _, sys, mpid, pnid, _ = read_testconfig_fromBohriumpath(root)
             result.setdefault((sys, mpid, pnid), []).append((v, eks, natom))
     
     # sort by volume
@@ -96,13 +97,13 @@ def search(path: str, fromcal: str = "cell-relax"):
 
     return result
 
-import apns.analysis.postprocess.eos as amape
-import apns.outdated.identifier as amwi
 def calculate(sys_mpid_pnid_veks: dict):
     """calculate EOS V0, E0, B0, B0', delta refer to All Electron provided by ACWF,
     result would be dict whose keys are element symbols, then values are list of dict,
     means different mpid. For each mpid, the dict contains vols and eks, and the fit result."""
-
+    import os
+    import apns.outdated.identifier as amwi
+    from apns.analysis.apns2_eos_utils import fit_birch_murnaghan
     result = {}
     for key in sys_mpid_pnid_veks.keys(): # loop over all (system, MPID, PNID) tuple
         # get source data
@@ -113,7 +114,7 @@ def calculate(sys_mpid_pnid_veks: dict):
         assert len(set(natoms)) == 1, "The number of atoms in the cell is not consistent across EOS tests."
         natoms = natoms[0]
         # fit the data
-        bm_fit = amape.birch_murnaghan_eos(vols, eks, as_dict=True)
+        bm_fit = fit_birch_murnaghan(vols, eks, as_dict=True)
         if bm_fit == (None, None, None, None):
             print(f"Failed to fit the data for {element} {mpid} {pnid}")
             continue
@@ -144,11 +145,6 @@ def calculate(sys_mpid_pnid_veks: dict):
         json.dump(data, f, indent=4)
     return result
 
-import matplotlib.pyplot as plt
-import numpy as np
-import apns.analysis.postprocess.pseudopotential as amapp
-import apns.analysis.external_frender.styles as amefs
-import apns.analysis.external_frender.figure as ameff
 def plot(testresult: dict, ncols: int = 3, **kwargs):
     """plot all in one-shot, from the output of calculate function
     example:
@@ -183,13 +179,19 @@ def plot(testresult: dict, ncols: int = 3, **kwargs):
     }
     ```
     """
-    from apns.analysis.drivers.apns2_utils import convert_fpp_to_ppid
+    import matplotlib.pyplot as plt
+    import numpy as np
+    import os
+    from apns.analysis.apns2_utils import convert_fpp_to_ppid
+    from apns.analysis.external_frender.styles import styles_factory
+    from apns.analysis.apns2_eos_utils import birch_murnaghan
+    from apns.analysis.external_frender.figure import concatenate
     ###################
     # Styles setting  #
     ###################
     fontsize = kwargs.get("fontsize", 18)
-    colors = kwargs.get("colors", amefs.styles_factory(property="color", ndim=2))
-    marker = kwargs.get("marker", amefs.styles_factory(property="marker", ndim=1))[0]
+    colors = kwargs.get("colors", styles_factory(property="color", ndim=2))
+    marker = kwargs.get("marker", styles_factory(property="marker", ndim=1))[0]
     markersize = kwargs.get("markersize", 10)
     
     subplot_height = kwargs.get("subplot_height", 10)
@@ -238,12 +240,12 @@ def plot(testresult: dict, ncols: int = 3, **kwargs):
                 # do inter/extrapolation on vs to let it evenly distributed in 200 points
                 vs_interp = np.linspace(min(vs)*0.995, max(vs)*1.01, 200)
                 # shift the energy to 0
-                ref_interp = amape.birch_murnaghan(vs_interp, bm_fitref["E0"], bm_fitref["bulk_modulus_ev_ang3"], bm_fitref["bulk_deriv"], bm_fitref["min_volume"])
+                ref_interp = birch_murnaghan(vs_interp, bm_fitref["E0"], bm_fitref["bulk_modulus_ev_ang3"], bm_fitref["bulk_deriv"], bm_fitref["min_volume"])
                 ref_interp = ref_interp - min(ref_interp)
                 # shift the energy to 0
-                fit_interp = amape.birch_murnaghan(vs_interp, bm_fit["E0"], bm_fit["bulk_modulus_ev_ang3"], bm_fit["bulk_deriv"], bm_fit["min_volume"])
+                fit_interp = birch_murnaghan(vs_interp, bm_fit["E0"], bm_fit["bulk_modulus_ev_ang3"], bm_fit["bulk_deriv"], bm_fit["min_volume"])
                 fit_interp = fit_interp - min(fit_interp)
-                pspotid, _ = amapp.testname_pspotid(element, pnid)
+                pspotid = convert_fpp_to_ppid(pnid)
                 # plot
                 ax.plot(vs_interp/natoms, ref_interp, "-", label="AE (averaged over Wien2K and FLEUR)", color=colors[0])
                 ax.plot(vs/natoms, eks, "o", label=f"DFT: {pspotid}", markersize=markersize, markeredgecolor=colors[1], markerfacecolor="none",
@@ -267,17 +269,17 @@ def plot(testresult: dict, ncols: int = 3, **kwargs):
             plt.close()
 
         # concatenate all figures
-        ftemp = ameff.concatenate(feos_element, direction="v", remove_after_quit=True)
+        ftemp = concatenate(feos_element, direction="v", remove_after_quit=True)
         # rename to eos_{element}.png
         os.rename(ftemp, f"eos_{element}.png")
         feos.update({element: f"eos_{element}.png"})
 
     return feos
 
-import apns.analysis.external_frender.htmls as amaeh
 def render_html(feos: dict):
+    from apns.analysis.external_frender.htmls import pseudopotentials
     for element, file in feos.items():
-        html = amaeh.pseudopotentials(element=element, 
+        html = pseudopotentials(element=element, 
                                       xc_functional="PBE", 
                                       software="ABACUS",
                                       fconv=f"{element}.svg",

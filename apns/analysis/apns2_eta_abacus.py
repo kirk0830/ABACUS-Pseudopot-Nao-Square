@@ -74,17 +74,38 @@ def decompose_istate(istate):
             occ[i].append([istate[i][j][k][2] for k in range(len(istate[i][j]))])
     return energy, occ
 
-
-
-def pair(collected: list, excluded: dict):
-    """pair results from collect_jobs function, store all "the same" data
-     together in one list. The "same" means all parameters except defined
-    keys in the dict excluded are the same.
-
-    - For PW vs LCAO, it should be:
-        excluded = {"ParamSet": ["basis_type"], "AtomSpecies": ["nao"]}
-    - For PW ecutwfc convergence test, it should be:
-        excluded = {"ParamSet": ["ecutwfc"]}
-      or if ultrasoft pseudopotential is used:
-        excluded = {"ParamSet": ["ecutwfc", "ecutrho"]}
+def desc_equal_pw_vs_lcao(desc1: dict, desc2: dict) -> bool:
+    """calculate the difference between two description.json contents,
+    only following are admitted to be different:
+    desc["ParamSet"]["basis_type"]
+    desc["AtomSpecies"][i]["nao"]
     """
+    from apns.analysis.apns2_utils import cal_desc_diff
+    diff = cal_desc_diff(desc1, desc2)
+    # I doubt whether it is really needed to confine the AtomSpecies
+    # must be different in nao for pw and lcao calculation...
+    # I would like to skip this check, presently
+    # if set(diff.keys()) != {"ParamSet", "AtomSpecies"}:
+    #     return False
+    if set(diff.keys()) > {"ParamSet", "AtomSpecies"}:
+        return False # but at least other keys should not be different
+    if set(diff["ParamSet"].get("basis_type", None)) != {"pw", "lcao"}:
+        return False
+    # for i in range(len(diff["AtomSpecies"])):
+    #     if set(diff["AtomSpecies"][i].keys()) != {"nao"}:
+    #         return False
+    return True
+
+def desc_equal_between_lcao(desc1: dict, desc2: dict) -> bool:
+    """calculate the difference between two description.json contents,
+    only following are admitted to be different:
+    desc["AtomSpecies"][i]["nao"]
+    """
+    from apns.analysis.apns2_utils import cal_desc_diff
+    diff = cal_desc_diff(desc1, desc2)
+    if set(diff.keys()) != {"AtomSpecies"}:
+        return False
+    for i in range(len(diff["AtomSpecies"])):
+        if set(diff["AtomSpecies"][i].keys()) != {"nao"}:
+            return False
+    return True

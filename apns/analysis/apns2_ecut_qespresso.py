@@ -8,7 +8,7 @@ def is_outdir(folder: str):
 def collect_jobs(folder: str):
     print("* * * Collect QESPRESSO result * * *".center(100))
     import apns.analysis.postprocess.read_qespresso_out as read_qe
-    from apns.analysis.drivers.apns2_utils import read_apnsjob_desc, convert_fpp_to_ppid
+    from apns.analysis.apns2_utils import read_apnsjob_desc, convert_fpp_to_ppid
     import apns.pspot.parse as ppparse
     import os, json
     result = {}
@@ -63,7 +63,7 @@ if __name__ == "__main__":
     # with open(f"{element}.md", "w") as f:
     #     f.write(html)
     # exit()
-    from apns.analysis.drivers.apns2_ecut_utils import build_sptc_from_nested
+    from apns.analysis.apns2_ecut_utils import build_sptc_from_nested
     collected = collect_jobs("12588486")
     system_and_stpcs = build_sptc_from_nested(collected)
     result = {}
@@ -75,6 +75,6 @@ if __name__ == "__main__":
             pp = stpc.pp(as_list=True)
             assert len(pp) == 1, "The pseudopotential should be unique for each test case"
             #update_ecutwfc(pp[0], ecut_conv)
-    from apns.analysis.drivers.apns2_ecut_utils import plot_log, plot_stack
+    from apns.analysis.apns2_ecut_utils import plot_log, plot_stack
     flogs = plot_log(result)
     fstacks = plot_stack(result)

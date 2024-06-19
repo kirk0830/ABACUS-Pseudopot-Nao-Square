@@ -24,7 +24,7 @@ def collect_jobs(folder: str):
 
 def main(folder: str):
     import os
-    from apns.analysis.drivers.apns2_ecoh_utils import pair, cal_e_cohesive
+    from apns.analysis.apns2_ecoh_utils import pair, cal_e_cohesive
     data = collect_jobs(folder)
     paired = pair(data)
     for desc, e_b, e_a in paired:

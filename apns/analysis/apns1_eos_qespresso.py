@@ -24,9 +24,9 @@ def collect(fjson):
     
     return result
 
-import apns.analysis.postprocess.eos as amape
 def calculate(data):
     # calculate EOS on data yielded by collect() function
+    from apns.analysis.apns2_eos_utils import fit_birch_murnaghan
     result = {}
 
     for element, v in data.items():
@@ -34,7 +34,7 @@ def calculate(data):
             for pspotid, v2 in v1.items():
                 v = data[element][mpid][pspotid]["volume"]
                 e = data[element][mpid][pspotid]["energy"]
-                bm_fit = amape.birch_murnaghan_eos(v, e, as_dict=True)
+                bm_fit = fit_birch_murnaghan(v, e, as_dict=True)
                 if bm_fit != (None, None, None, None):
                     result.setdefault(element, {}).setdefault(mpid, {})\
                         .setdefault(pspotid, {})["bm_fit"] = bm_fit
@@ -42,7 +42,7 @@ def calculate(data):
 
     return result
 
-import apns.analysis.drivers.apns1_eos_abacus as amaddeos
+import apns.analysis.apns1_eos_abacus as amaddeos
 def calculate_delta(data):
     # calculate delta value on data yielded by calculate() function
     result = {}

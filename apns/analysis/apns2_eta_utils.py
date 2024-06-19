@@ -29,3 +29,4 @@ def cal_istate_distance(band_struct_1, band_struct_2, smear: str, sigma: float, 
         float: the "eta" defined above
     """
     return 0
+

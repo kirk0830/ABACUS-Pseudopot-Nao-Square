@@ -30,7 +30,7 @@ def collect_jobs(folder: str):
     print("* * * Collect ABACUS result * * *".center(100))
     import apns.analysis.postprocess.read_abacus_out as read_abacus_out
     import os
-    from apns.analysis.drivers.apns2_utils import read_apnsjob_desc, convert_fpp_to_ppid
+    from apns.analysis.apns2_utils import read_apnsjob_desc, convert_fpp_to_ppid
     result = {}
     for root, _, files in os.walk(folder):
         if is_outdir(files, "relax"):
@@ -63,7 +63,7 @@ Pseudopotentials are used:\n{s}
     return result
 
 def prepare(folder: str):
-    from apns.analysis.drivers.apns2_eos_utils import EOSSingleCase, read_acwf_refdata
+    from apns.analysis.apns2_eos_utils import EOSSingleCase, read_acwf_refdata
     jobs = collect_jobs(folder)
     result = {}
     for system, data in jobs.items():
@@ -79,7 +79,7 @@ def prepare(folder: str):
     return result
 
 def main(folder: str):
-    from apns.analysis.drivers.apns2_eos_utils import plot
+    from apns.analysis.apns2_eos_utils import plot
     to_plot = prepare(folder)
     feos = plot(to_plot)
     return feos
