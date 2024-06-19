@@ -12,7 +12,7 @@ def search_istate(search_domain: str):
     for root, dirs, files in os.walk(search_domain):
         if "istate.info" in files:
             # get the istate
-            istate = amarao.read_istate(os.path.join(root, "istate.info"))
+            istate, _ = amarao.read_istate(os.path.join(root, "istate.info"))
             if istate is not None:
                 path.append(root)
                 istates.append(istate)

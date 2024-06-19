@@ -13,7 +13,7 @@ def collect_jobs(folder: str):
                 natom = read_abacus_out.read_natom_fromlog(os.path.join(root, file))
                 eks = read_abacus_out.read_e_fromlog(os.path.join(root, file))
                 pressure = read_abacus_out.read_pressure_fromlog(os.path.join(root, file))
-                bs = read_abacus_out.read_istate(os.path.join(root, "istate.info"))
+                bs, _ = read_abacus_out.read_istate(os.path.join(root, "istate.info"))
                 # continue if there is None among eks, pressure and bs
                 parent = os.path.dirname(root)
                 if None in [eks, pressure, bs]:
