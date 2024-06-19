@@ -110,7 +110,9 @@ def cal_desc_diff(desc1: dict, desc2: dict) -> dict:
     descriptions. Because the AtomSpecies key has value as list of dict,
     therefore make difference for each element in list and return"""
     keys = ["AtomSpecies", "Cell", "ParamSet", "CellGenerator"]
-    assert set(keys) == set(desc1.keys()) == set(desc2.keys())
+    assert set(desc1.keys()) == set(desc2.keys()), f"desc1 and desc2 should have the same keys: {desc1.keys()} != {desc2.keys()}"
+    assert set(keys) == set(desc1.keys()), f"desc1 should have keys: {keys} != {desc1.keys()}"
+    assert set(keys) == set(desc2.keys()), f"desc2 should have keys: {keys} != {desc2.keys()}"
     # the assertation above is to ensure the correctness of structure
     # it must be satisfied before comparison
     diff = {}

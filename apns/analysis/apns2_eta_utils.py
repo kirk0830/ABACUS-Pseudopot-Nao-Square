@@ -14,7 +14,7 @@ def cal_nelec(occ: list, kwt: list) -> float:
             nelec += sum([occ[i][j][k] for k in range(len(occ[i][j]))]) * kwt[j]
     return nelec
 
-def cal_istate_distance(band_struct_1, band_struct_2, smear: str, sigma: float, v: float) -> float:
+def cal_bs_dist(band_struct_1, band_struct_2, smear: str, sigma: float, v: float) -> float:
     """
     Args:
         band_struct_1 (list): a nested list storing band structure and k-weighted occupation

@@ -2,19 +2,24 @@
 # utilities for the calculation of cohesive energy
 ####
 
-def paramset_equal(paramset1: dict, paramset2: dict, excluded: list) -> bool:
-    """check if two paramsets are equal. Due to it is unnecessary to keep the 
-    same value for nspin between bulk and atom calculation (in principle, the
-    calculation of atom should/must be spin-polarized). Therefore, nspin should
-    always be excluded from the comparison."""
-    return {k: v for k, v in paramset1.items() if k not in excluded} == \
-        {k: v for k, v in paramset2.items() if k not in excluded}
+def desc_equal_bulk_vs_atom(desc1: dict, desc2: dict):
+    """for cohesive energy calculation task, only admit the difference
+    in CellGenerator["identifier"] and CellGenerator["config"]"""
+    from apns.analysis.apns2_utils import cal_desc_diff
+    diff = cal_desc_diff(desc1, desc2)
+    if set(diff.keys()) != {"CellGenerator"}:
+        return False
+    if set(diff["CellGenerator"].keys()) != {"identifier", "config"}:
+        return False
+    if set(diff["CellGenerator"]["identifier"]) != {"cif", "molecule"}:
+        return False
+    return True
 
 def pair(data: list):
     """pair the bulk and isolated atom data from
     collect_jobs function returned value"""
-    paired = []
     
+    paired = []
     # all (bulk, atom) pair should have identical sections
     # "ParamSet" and "AtomSpecies"
     # the former ensures the same calculation settings
@@ -25,9 +30,9 @@ def pair(data: list):
     # then pair the bulk and atom data
     for desc_b, e_b in bulk:
         for desc_a, e_a in atom:
-            if paramset_equal(desc_b["ParamSet"], desc_a["ParamSet"], ["nspin"]):
-                if desc_b["AtomSpecies"] == desc_a["AtomSpecies"]:
-                    paired.append((desc_b, e_b, e_a))
+            if desc_equal_bulk_vs_atom(desc_b, desc_a):
+                paired.append((desc_b, e_b, e_a))
+                break
     return paired
 
 def cal_e_cohesive(e_b: float, e_a: float, natom: int):

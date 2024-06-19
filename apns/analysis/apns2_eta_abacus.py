@@ -1,4 +1,4 @@
-""""""
+"""Band structure similarity test for ABACUS"""
 
 def collect_jobs(folder: str):
     """Collect APNS jobs for band structure similarity calculation"""
@@ -96,6 +96,19 @@ def desc_equal_pw_vs_lcao(desc1: dict, desc2: dict) -> bool:
     #         return False
     return True
 
+def desc_equal_between_pw(desc1: dict, desc2: dict) -> bool:
+    """calculate the difference between two description.json contents,
+    only following are admitted to be different:
+    desc["ParamSet"]["ecutwfc"] (optionally, ecutrho)
+    """
+    from apns.analysis.apns2_utils import cal_desc_diff
+    diff = cal_desc_diff(desc1, desc2)
+    if set(diff.keys()) != {"ParamSet"}:
+        return False
+    if set(diff["ParamSet"].keys()) + {"ecutrho"} != {"ecutwfc", "ecutrho"}:
+        return False
+    return True
+
 def desc_equal_between_lcao(desc1: dict, desc2: dict) -> bool:
     """calculate the difference between two description.json contents,
     only following are admitted to be different:
@@ -109,3 +122,175 @@ def desc_equal_between_lcao(desc1: dict, desc2: dict) -> bool:
         if set(diff["AtomSpecies"][i].keys()) != {"nao"}:
             return False
     return True
+
+def pair_pw_vs_lcao(collected: list):
+    """pair the pw and lcao data from collect_jobs function returned value"""
+    paired = []
+    pw = [(desc, ekb, occ, kwt) for desc, ekb, occ, kwt in collected if desc["ParamSet"].get("basis_type", "pw") == "pw"]
+    lcao = [(desc, ekb, occ, kwt) for desc, ekb, occ, kwt in collected if desc["ParamSet"].get("basis_type", "pw") == "lcao"]
+    # then pair the pw and lcao data
+    for pw_i in pw:
+        for lcao_i in lcao:
+            if desc_equal_pw_vs_lcao(pw_i[0], lcao_i[0]):
+                paired.append([pw_i, lcao_i])
+                break
+    return paired
+
+def pair_between_pw(collected: list):
+    """pair the pw data from collect_jobs function returned value"""
+    paired = []
+    pw = [(desc, ekb, occ, kwt) for desc, ekb, occ, kwt in collected if desc["ParamSet"].get("basis_type", "pw") == "pw"]
+    # then pair the pw data
+    paired.append([pw[0]])
+    for i in range(1, len(pw)):
+        for j in range(len(paired)):
+            if desc_equal_between_pw(pw[i][0], paired[j][0][0]):
+                paired[j].append(pw[i])
+                break
+        else:
+            paired.append([pw[i]])
+    return paired
+
+def pair_between_lcao(collected: list):
+    """pair the lcao data from collect_jobs function returned value"""
+    paired = []
+    lcao = [(desc, ekb, occ, kwt) for desc, ekb, occ, kwt in collected if desc["ParamSet"].get("basis_type", "pw") == "lcao"]
+    # then pair the lcao data
+    paired.append([lcao[0]])
+    for i in range(1, len(lcao)):
+        for j in range(len(paired)):
+            if desc_equal_between_lcao(lcao[i][0], paired[j][0][0]):
+                paired[j].append(lcao[i])
+                break
+        else:
+            paired.append([lcao[i]])
+    return paired
+
+def cal_eta_on_pair(pair: list, smear: str, sigma: float, ef_shift: float):
+    """calculate the eta value for the pair of jobs. Will return a matrix of eta values"""
+    from apns.analysis.apns2_eta_utils import cal_bs_dist
+    eta = []
+    for i in range(len(pair)):
+        # row = [cal_bs_dist()]
+        pass
+
+import unittest
+class APNS2EtaABACUSTest(unittest.TestCase):
+    def test_collect_jobs(self):
+        pass
+
+    def test_lookup_kwt(self):
+        kpoints = [[0.0, 0.0, 0.0], [0.0, 0.0, 0.1], [0.0, 0.0, 0.2], [0.0, 0.0, 0.3]]
+        kref = [[1, 0.0, 0.0, 0.0, 0.1], [2, 0.0, 0.0, 0.1, 0.1], [3, 0.0, 0.0, 0.2, 0.1], [4, 0.0, 0.0, 0.3, 0.1]]
+        self.assertEqual(lookup_kwt(kpoints, kref), [0.1, 0.1, 0.1, 0.1])
+
+    def test_clean_kwt_from_istate(self):
+        istate = [
+            [[[0, 0.0, 0.0, 0.0], [0, 0.0, 0.0, 0.1]], [[0, 0.0, 0.0, 0.2], [0, 0.0, 0.0, 0.3]]],
+            [[[0, 0.0, 0.0, 0.0], [0, 0.0, 0.0, 0.1]], [[0, 0.0, 0.0, 0.2], [0, 0.0, 0.0, 0.3]]]
+        ]
+        kwt = [0.1, 0.1, 0.1, 0.1]
+        self.assertEqual(clean_kwt_from_istate(istate, kwt), [
+            [[[0, 0.0, 0.0, 0.0], [0, 0.0, 0.0, 0.1]], [[0, 0.0, 0.0, 0.2], [0, 0.0, 0.0, 0.3]]],
+            [[[0, 0.0, 0.0, 0.0], [0, 0.0, 0.0, 0.1]], [[0, 0.0, 0.0, 0.2], [0, 0.0, 0.0, 0.3]]]
+        ])
+
+    def test_decompose_istate(self):
+        istate = [
+            [[[0, 0.0, 0.0, 0.0], [0, 0.0, 0.0, 0.1]], [[0, 0.0, 0.0, 0.2], [0, 0.0, 0.0, 0.3]]],
+            [[[0, 0.0, 0.0, 0.0], [0, 0.0, 0.0, 0.1]], [[0, 0.0, 0.0, 0.2], [0, 0.0, 0.0, 0.3]]]
+        ]
+        self.assertEqual(decompose_istate(istate), (
+            [[[0.0, 0.0], [0.0, 0.0]], [[0.0, 0.0], [0.0, 0.0]]],
+            [[[0.0, 0.1], [0.0, 0.1]], [[0.0, 0.1], [0.0, 0.1]]]
+        ))
+
+    def test_desc_equal_pw_vs_lcao(self):
+        desc1 = {
+            "ParamSet": {"basis_type": "pw"},
+            "AtomSpecies": [{"nao": 1}, {"nao": 2}]
+        }
+        desc2 = {
+            "ParamSet": {"basis_type": "lcao"},
+            "AtomSpecies": [{"nao": 1}, {"nao": 2}]
+        }
+        self.assertTrue(desc_equal_pw_vs_lcao(desc1, desc2))
+
+    def test_desc_equal_between_pw(self):
+        desc1 = {
+            "ParamSet": {"ecutwfc": 100},
+            "AtomSpecies": [{"nao": 1}, {"nao": 2}]
+        }
+        desc2 = {
+            "ParamSet": {"ecutwfc": 200},
+            "AtomSpecies": [{"nao": 1}, {"nao": 2}]
+        }
+        self.assertTrue(desc_equal_between_pw(desc1, desc2))
+
+    def test_desc_equal_between_lcao(self):
+        desc1 = {
+            "ParamSet": {"basis_type": "lcao"},
+            "AtomSpecies": [{"nao": 1}, {"nao": 2}]
+        }
+        desc2 = {
+            "ParamSet": {"basis_type": "lcao"},
+            "AtomSpecies": [{"nao": 1}, {"nao": 3}]
+        }
+        self.assertTrue(desc_equal_between_lcao(desc1, desc2))
+
+    def test_pair_pw_vs_lcao(self):
+        collected = [
+            (
+                {"ParamSet": {"basis_type": "pw"}, "AtomSpecies": [{"nao": 1}, {"nao": 2}]},
+                [[0.0, 0.0], [0.0, 0.0]],
+                [[0.0, 0.1], [0.0, 0.1]],
+                [0.1, 0.1]
+            ),
+            (
+                {"ParamSet": {"basis_type": "lcao"}, "AtomSpecies": [{"nao": 1}, {"nao": 2}]},
+                [[0.0, 0.0], [0.0, 0.0]],
+                [[0.0, 0.1], [0.0, 0.1]],
+                [0.1, 0.1]
+            )
+        ]
+        self.assertEqual(pair_pw_vs_lcao(collected), [[collected]])
+
+    def test_pair_between_pw(self):
+        collected = [
+            (
+                {"ParamSet": {"ecutwfc": 100}, "AtomSpecies": [{"nao": 1}, {"nao": 2}]},
+                [[0.0, 0.0], [0.0, 0.0]],
+                [[0.0, 0.1], [0.0, 0.1]],
+                [0.1, 0.1]
+            ),
+            (
+                {"ParamSet": {"ecutwfc": 200}, "AtomSpecies": [{"nao": 1}, {"nao": 2}]},
+                [[0.0, 0.0], [0.0, 0.0]],
+                [[0.0, 0.1], [0.0, 0.1]],
+                [0.1, 0.1]
+            )
+        ]
+        self.assertEqual(pair_between_pw(collected), [[collected[0], collected[1]]])
+
+    def test_pair_between_lcao(self):
+        collected = [
+            (
+                {"ParamSet": {"basis_type": "lcao"}, "AtomSpecies": [{"nao": 1}, {"nao": 2}]},
+                [[0.0, 0.0], [0.0, 0.0]],
+                [[0.0, 0.1], [0.0, 0.1]],
+                [0.1, 0.1]
+            ),
+            (
+                {"ParamSet": {"basis_type": "lcao"}, "AtomSpecies": [{"nao": 1}, {"nao": 3}]},
+                [[0.0, 0.0], [0.0, 0.0]],
+                [[0.0, 0.1], [0.0, 0.1]],
+                [0.1, 0.1]
+            )
+        ]
+        self.assertEqual(pair_between_lcao(collected), [[collected[0], collected[1]]])
+
+    def test_cal_eta_on_pair(self):
+        pass
+
+if __name__ == "__main__":
+    unittest.main()
