@@ -1,8 +1,8 @@
 {
     "global": {
         "mode": "test",
-        "pseudo_dir": "./download/pseudopotentials",
-        "orbital_dir": "./download/numerical_orbitals",
+        "pseudo_dir": "/root/abacus-develop/pseudopotentials",
+        "orbital_dir": "/root/abacus-develop/numerical_orbitals",
         "cache_dir": "./apns_cache",
         "out_dir": "./output"
     },
