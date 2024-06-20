@@ -249,7 +249,7 @@ def group_eos_pw_vs_lcao(out_dir: str):
     """For reuse mode, pack up the target folder to the format that abacustest support.
     For eos test between ps and lcao, should do things following:
     For each system, a folder created, INPUT, KPT and STRU files are inside.
-    A pp_orb.json should be created and specified for each element in the following way:
+    A pporb.json should be created and specified for each element in the following way:
     ```json
     {
         "H": {"pp": "H_ONCV_PBE-1.0.upf", 
@@ -314,7 +314,7 @@ def pack_eos_pw_vs_lcao(grouped, src, dst):
         # copy INPUT, STRU and KPT to dst/group_i
         for file in ["INPUT", "STRU", "KPT"]:
             shutil.copy(f"{folder}/{file}", f"{dst}/group_{i}/")
-    with open(f"{dst}/pp_orb.json", "w") as f:
+    with open(f"{dst}/pporb.json", "w") as f:
         json.dump(pp_orb, f, indent=4)
     # remove the src
     shutil.rmtree(src)
@@ -327,11 +327,11 @@ def reuse_eos_pw_vs_lcao(out_dir: str, dst: str = "abacustest_reuse_eos_pw_vs_lc
         out_dir (str): the folder contains the APNS generated results
         dst (str): the destination folder to save the transformed results
     Returns:
-        pp_orb (dict): the pseudopotential and orbital information, in the format of {"element": {"pp": "pp_file", "orb": ["orb_file1", "orb_file2", ...]}}
+        pporb (dict): the pseudopotential and orbital information, in the format of {"element": {"pp": "pp_file", "orb": ["orb_file1", "orb_file2", ...]}}
     """
     grouped = group_eos_pw_vs_lcao(out_dir)
-    pp_orb = pack_eos_pw_vs_lcao(grouped, out_dir, dst)
-    return pp_orb
+    pporb = pack_eos_pw_vs_lcao(grouped, out_dir, dst)
+    return pporb
 
 import unittest
 class TestABACUSTest(unittest.TestCase):
