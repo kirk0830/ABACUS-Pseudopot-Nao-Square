@@ -109,7 +109,7 @@ def cal_desc_diff(desc1: dict, desc2: dict) -> dict:
     """more specifically, calculate the difference between two APNS job
     descriptions. Because the AtomSpecies key has value as list of dict,
     therefore make difference for each element in list and return"""
-    keys = ["AtomSpecies", "Cell", "ParamSet", "CellGenerator"]
+    keys = ["AtomSpecies", "Cell", "DFTParamSet", "CellGenerator"]
     assert set(desc1.keys()) == set(desc2.keys()), f"desc1 and desc2 should have the same keys: {desc1.keys()} != {desc2.keys()}"
     assert set(keys) == set(desc1.keys()), f"desc1 should have keys: {keys} != {desc1.keys()}"
     assert set(keys) == set(desc2.keys()), f"desc2 should have keys: {keys} != {desc2.keys()}"
@@ -118,7 +118,7 @@ def cal_desc_diff(desc1: dict, desc2: dict) -> dict:
     diff = {}
     # first the AtomSpecies
     asdiff = [cal_dict_diff(as1, as2) for as1, as2 in zip(desc1["AtomSpecies"], desc2["AtomSpecies"])]
-    diff.update({"AtomSpeices": asdiff}) if not all([not asd for asd in asdiff]) else None
+    diff.update({"AtomSpecies": asdiff}) if not all([not asd for asd in asdiff]) else None
     # other keys
     for key in keys[1:]:
         d = cal_dict_diff(desc1[key], desc2[key])
@@ -198,7 +198,7 @@ class APNS2UtilsTest(unittest.TestCase):
                 "b": 2,
                 "c": 3
             },
-            "ParamSet": {
+            "DFTParamSet": {
                 "basis_type": "pw"
             },
             "CellGenerator": {
@@ -216,7 +216,7 @@ class APNS2UtilsTest(unittest.TestCase):
                 "b": 2,
                 "c": 3
             },
-            "ParamSet": {
+            "DFTParamSet": {
                 "basis_type": "pw"
             },
             "CellGenerator": {
@@ -226,7 +226,7 @@ class APNS2UtilsTest(unittest.TestCase):
         }
         diff = cal_desc_diff(desc1, desc2)
         self.assertEqual(diff, {
-            "AtomSpeices": [{}, {"nao": (2, 3)}]
+            "AtomSpecies": [{}, {"nao": (2, 3)}]
         })
 
 if __name__ == "__main__":

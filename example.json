@@ -93,13 +93,13 @@
             "Sr": [["US"], null]
         },
         {
-            "Ti": [["sg15", "1.0", "sr"], ["6au"]]
+            "Ti": [["sg15", "1.0", "sr"], ["8au"]]
         }
     ],
     "strusets": [
         {
-            "calculator": "qespresso", "calcset": 0,
-            "atomset": 1,
+            "calculator": "abacus", "calcset": 0,
+            "atomset": 2,
             "database": "materials_project",
             "desc": [["search", "Ti", [1.0], [0.08]]]
         }

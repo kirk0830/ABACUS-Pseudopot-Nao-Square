@@ -77,7 +77,7 @@ def decompose_istate(istate):
 def desc_equal_pw_vs_lcao(desc1: dict, desc2: dict) -> bool:
     """calculate the difference between two description.json contents,
     only following are admitted to be different:
-    desc["ParamSet"]["basis_type"]
+    desc["DFTParamSet"]["basis_type"]
     desc["AtomSpecies"][i]["nao"]
     """
     from apns.analysis.apns2_utils import cal_desc_diff
@@ -85,11 +85,11 @@ def desc_equal_pw_vs_lcao(desc1: dict, desc2: dict) -> bool:
     # I doubt whether it is really needed to confine the AtomSpecies
     # must be different in nao for pw and lcao calculation...
     # I would like to skip this check, presently
-    # if set(diff.keys()) != {"ParamSet", "AtomSpecies"}:
+    # if set(diff.keys()) != {"DFTParamSet", "AtomSpecies"}:
     #     return False
-    if set(diff.keys()) > {"ParamSet", "AtomSpecies"}:
+    if set(diff.keys()) > {"DFTParamSet", "AtomSpecies"}:
         return False # but at least other keys should not be different
-    if set(diff["ParamSet"].get("basis_type", None)) != {"pw", "lcao"}:
+    if set(diff["DFTParamSet"].get("basis_type", None)) != {"pw", "lcao"}:
         return False
     # for i in range(len(diff["AtomSpecies"])):
     #     if set(diff["AtomSpecies"][i].keys()) != {"nao"}:
@@ -99,13 +99,13 @@ def desc_equal_pw_vs_lcao(desc1: dict, desc2: dict) -> bool:
 def desc_equal_between_pw(desc1: dict, desc2: dict) -> bool:
     """calculate the difference between two description.json contents,
     only following are admitted to be different:
-    desc["ParamSet"]["ecutwfc"] (optionally, ecutrho)
+    desc["DFTParamSet"]["ecutwfc"] (optionally, ecutrho)
     """
     from apns.analysis.apns2_utils import cal_desc_diff
     diff = cal_desc_diff(desc1, desc2)
-    if set(diff.keys()) != {"ParamSet"}:
+    if set(diff.keys()) != {"DFTParamSet"}:
         return False
-    if set(diff["ParamSet"].keys()) + {"ecutrho"} != {"ecutwfc", "ecutrho"}:
+    if set(diff["DFTParamSet"].keys()) + {"ecutrho"} != {"ecutwfc", "ecutrho"}:
         return False
     return True
 
@@ -126,8 +126,8 @@ def desc_equal_between_lcao(desc1: dict, desc2: dict) -> bool:
 def pair_pw_vs_lcao(collected: list):
     """pair the pw and lcao data from collect_jobs function returned value"""
     paired = []
-    pw = [(desc, ekb, occ, kwt) for desc, ekb, occ, kwt in collected if desc["ParamSet"].get("basis_type", "pw") == "pw"]
-    lcao = [(desc, ekb, occ, kwt) for desc, ekb, occ, kwt in collected if desc["ParamSet"].get("basis_type", "pw") == "lcao"]
+    pw = [(desc, ekb, occ, kwt) for desc, ekb, occ, kwt in collected if desc["DFTParamSet"].get("basis_type", "pw") == "pw"]
+    lcao = [(desc, ekb, occ, kwt) for desc, ekb, occ, kwt in collected if desc["DFTParamSet"].get("basis_type", "pw") == "lcao"]
     # then pair the pw and lcao data
     for pw_i in pw:
         for lcao_i in lcao:
@@ -139,7 +139,7 @@ def pair_pw_vs_lcao(collected: list):
 def pair_between_pw(collected: list):
     """pair the pw data from collect_jobs function returned value"""
     paired = []
-    pw = [(desc, ekb, occ, kwt) for desc, ekb, occ, kwt in collected if desc["ParamSet"].get("basis_type", "pw") == "pw"]
+    pw = [(desc, ekb, occ, kwt) for desc, ekb, occ, kwt in collected if desc["DFTParamSet"].get("basis_type", "pw") == "pw"]
     # then pair the pw data
     paired.append([pw[0]])
     for i in range(1, len(pw)):
@@ -154,7 +154,7 @@ def pair_between_pw(collected: list):
 def pair_between_lcao(collected: list):
     """pair the lcao data from collect_jobs function returned value"""
     paired = []
-    lcao = [(desc, ekb, occ, kwt) for desc, ekb, occ, kwt in collected if desc["ParamSet"].get("basis_type", "pw") == "lcao"]
+    lcao = [(desc, ekb, occ, kwt) for desc, ekb, occ, kwt in collected if desc["DFTParamSet"].get("basis_type", "pw") == "lcao"]
     # then pair the lcao data
     paired.append([lcao[0]])
     for i in range(1, len(lcao)):
@@ -168,11 +168,19 @@ def pair_between_lcao(collected: list):
 
 def cal_eta_on_pair(pair: list, smear: str, sigma: float, ef_shift: float):
     """calculate the eta value for the pair of jobs. Will return a matrix of eta values"""
-    from apns.analysis.apns2_eta_utils import cal_bs_dist
-    eta = []
+    from apns.analysis.apns2_eta_utils import delta_band, cal_nelec
+    import numpy as np
+    eta, desc = [], []
     for i in range(len(pair)):
-        # row = [cal_bs_dist()]
-        pass
+        d, ekb, occ, kwt = pair[i]
+        nelec = cal_nelec(occ, kwt)
+        row = [delta_band(ekb, pair[j][1], nelec, kwt, smear, sigma, ef_shift) \
+               for j in range(i + 1, len(pair))]
+        row = [0.0] * i + row
+        eta.append(row)
+        desc.append(d)
+    eta = np.array(eta)
+    return desc, eta + eta.T
 
 import unittest
 class APNS2EtaABACUSTest(unittest.TestCase):
@@ -207,33 +215,33 @@ class APNS2EtaABACUSTest(unittest.TestCase):
 
     def test_desc_equal_pw_vs_lcao(self):
         desc1 = {
-            "ParamSet": {"basis_type": "pw"},
+            "DFTParamSet": {"basis_type": "pw"},
             "AtomSpecies": [{"nao": 1}, {"nao": 2}]
         }
         desc2 = {
-            "ParamSet": {"basis_type": "lcao"},
+            "DFTParamSet": {"basis_type": "lcao"},
             "AtomSpecies": [{"nao": 1}, {"nao": 2}]
         }
         self.assertTrue(desc_equal_pw_vs_lcao(desc1, desc2))
 
     def test_desc_equal_between_pw(self):
         desc1 = {
-            "ParamSet": {"ecutwfc": 100},
+            "DFTParamSet": {"ecutwfc": 100},
             "AtomSpecies": [{"nao": 1}, {"nao": 2}]
         }
         desc2 = {
-            "ParamSet": {"ecutwfc": 200},
+            "DFTParamSet": {"ecutwfc": 200},
             "AtomSpecies": [{"nao": 1}, {"nao": 2}]
         }
         self.assertTrue(desc_equal_between_pw(desc1, desc2))
 
     def test_desc_equal_between_lcao(self):
         desc1 = {
-            "ParamSet": {"basis_type": "lcao"},
+            "DFTParamSet": {"basis_type": "lcao"},
             "AtomSpecies": [{"nao": 1}, {"nao": 2}]
         }
         desc2 = {
-            "ParamSet": {"basis_type": "lcao"},
+            "DFTParamSet": {"basis_type": "lcao"},
             "AtomSpecies": [{"nao": 1}, {"nao": 3}]
         }
         self.assertTrue(desc_equal_between_lcao(desc1, desc2))
@@ -241,13 +249,13 @@ class APNS2EtaABACUSTest(unittest.TestCase):
     def test_pair_pw_vs_lcao(self):
         collected = [
             (
-                {"ParamSet": {"basis_type": "pw"}, "AtomSpecies": [{"nao": 1}, {"nao": 2}]},
+                {"DFTParamSet": {"basis_type": "pw"}, "AtomSpecies": [{"nao": 1}, {"nao": 2}]},
                 [[0.0, 0.0], [0.0, 0.0]],
                 [[0.0, 0.1], [0.0, 0.1]],
                 [0.1, 0.1]
             ),
             (
-                {"ParamSet": {"basis_type": "lcao"}, "AtomSpecies": [{"nao": 1}, {"nao": 2}]},
+                {"DFTParamSet": {"basis_type": "lcao"}, "AtomSpecies": [{"nao": 1}, {"nao": 2}]},
                 [[0.0, 0.0], [0.0, 0.0]],
                 [[0.0, 0.1], [0.0, 0.1]],
                 [0.1, 0.1]
@@ -258,13 +266,13 @@ class APNS2EtaABACUSTest(unittest.TestCase):
     def test_pair_between_pw(self):
         collected = [
             (
-                {"ParamSet": {"ecutwfc": 100}, "AtomSpecies": [{"nao": 1}, {"nao": 2}]},
+                {"DFTParamSet": {"ecutwfc": 100}, "AtomSpecies": [{"nao": 1}, {"nao": 2}]},
                 [[0.0, 0.0], [0.0, 0.0]],
                 [[0.0, 0.1], [0.0, 0.1]],
                 [0.1, 0.1]
             ),
             (
-                {"ParamSet": {"ecutwfc": 200}, "AtomSpecies": [{"nao": 1}, {"nao": 2}]},
+                {"DFTParamSet": {"ecutwfc": 200}, "AtomSpecies": [{"nao": 1}, {"nao": 2}]},
                 [[0.0, 0.0], [0.0, 0.0]],
                 [[0.0, 0.1], [0.0, 0.1]],
                 [0.1, 0.1]
@@ -275,13 +283,13 @@ class APNS2EtaABACUSTest(unittest.TestCase):
     def test_pair_between_lcao(self):
         collected = [
             (
-                {"ParamSet": {"basis_type": "lcao"}, "AtomSpecies": [{"nao": 1}, {"nao": 2}]},
+                {"DFTParamSet": {"basis_type": "lcao"}, "AtomSpecies": [{"nao": 1}, {"nao": 2}]},
                 [[0.0, 0.0], [0.0, 0.0]],
                 [[0.0, 0.1], [0.0, 0.1]],
                 [0.1, 0.1]
             ),
             (
-                {"ParamSet": {"basis_type": "lcao"}, "AtomSpecies": [{"nao": 1}, {"nao": 3}]},
+                {"DFTParamSet": {"basis_type": "lcao"}, "AtomSpecies": [{"nao": 1}, {"nao": 3}]},
                 [[0.0, 0.0], [0.0, 0.0]],
                 [[0.0, 0.1], [0.0, 0.1]],
                 [0.1, 0.1]

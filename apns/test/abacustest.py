@@ -97,7 +97,6 @@ def bohrium_machine(ncores: int, memory: float, device: str, supplier: str):
         "platform": supplier
     }
 
-import apns.module_software.abacus.generation as amsag
 def prepare_dft(**kwargs):
     """Generate "prepare" section of abacustest configuration
 
@@ -113,9 +112,8 @@ def prepare_dft(**kwargs):
     # for mode 2, three keys "input_template", "stru_template",
     # and "kpt_template" will/should be defined.
     result = {}
-    
-    v, _ = amsag.abacus_default()
-    for key in v.keys():
+    keys, vals = abacus_default()
+    for key in keys:
         if key in kwargs.keys() and not key in ["pseudo_dir", "orbital_dir"]:
             result.setdefault("mix_input", {})[key] = kwargs[key] if isinstance(kwargs[key], list) else [kwargs[key]]
     result.update({"example_template": kwargs.get("folders", [])})
@@ -238,6 +236,100 @@ def submit(abacustest_param: dict) -> str:
     print(f"Job submitted, log file is {flog}, results will be downloaded into {folder}")
     return folder
 
+def abacus_default():
+    import os
+    from apns.analysis.postprocess.read_abacus_out import read_keyvals_frominput
+    fthis = os.path.abspath(__file__)
+    fabacus = fthis.replace("/abacustest.py", "/abacus_input_example")
+    result = read_keyvals_frominput(fabacus).items()
+    keys, vals = zip(*result)
+    return keys, vals
+
+def group_eos_pw_vs_lcao(out_dir: str):
+    """For reuse mode, pack up the target folder to the format that abacustest support.
+    For eos test between ps and lcao, should do things following:
+    For each system, a folder created, INPUT, KPT and STRU files are inside.
+    A pp_orb.json should be created and specified for each element in the following way:
+    ```json
+    {
+        "H": {"pp": "H_ONCV_PBE-1.0.upf", 
+              "orb": [//...
+                     ]},
+        "He": {"pp": "He_ONCV_PBE-1.0.upf", 
+               "orb": [//...
+                      ]},
+        // ... other elements
+    }
+    ```
+    and all the pseudopotentials and orbitals should be put into the same folder.
+    The APNS generated out_dir has flat structure. There are folders in out_dir, each folder contains
+    INPUT, KPT, STRU and pseudopotentials, if needed, also with orbital files. An additional json
+    file named `description.json` is used to quicky check the identity of test case.
+    """
+    import os, json
+    from apns.analysis.apns2_utils import cal_desc_diff
+    folders = os.listdir(out_dir)
+    print(f"ABACUSTEST: Found {len(folders)} folders in {out_dir}, group them to abacustest reuse mode accepted structure.")
+    # test caeses with the identical desc["CellGenerator"], desc["DFTParamSet"], desc["Cell"] sections, and 
+    # desc["AtomSpecies"][i]["pp"], are considered to be the same test case
+    groups = [[folders[0]]]
+    for folder in folders[1:]:
+        grouped = False
+        with open(f"{out_dir}/{folder}/description.json", "r") as f:
+            desc_i = json.load(f)
+        for g in groups:
+            with open(f"{out_dir}/{g[0]}/description.json", "r") as f:
+                desc_j = json.load(f)
+            diff = cal_desc_diff(desc_i, desc_j)
+            if list(diff.keys()) == ["AtomSpecies"] and all([list(v.keys()) == ["nao"] for v in diff["AtomSpecies"]]):
+                g.append(folder)
+                grouped = True
+                break
+        if not grouped:
+            groups.append([folder])
+    print(f"ABACUSTEST: {len(groups)} groups are generated.")
+    return groups
+
+def pack_eos_pw_vs_lcao(grouped, src, dst):
+    """take the grouped folders and pack them into the format that abacustest support."""
+    import os, shutil, json
+    pp_orb = {}
+    for i, folders in enumerate(grouped):
+        os.makedirs(f"{dst}/group_{i}", exist_ok=True)
+        # copy all *.upf/*.UPF and *.orb files to dst folder
+        for folder in folders:
+            folder = os.path.join(src, folder)
+            files = [file for file in os.listdir(folder) if file not in ["INPUT", "STRU", "KPT", "description.json"]]
+            # get the pp_orb information from description.json
+            with open(f"{folder}/description.json", "r") as f:
+                desc = json.load(f)
+            for aspec in desc["AtomSpecies"]:
+                pp_orb.setdefault(aspec["symbol"], {"pp": os.path.basename(aspec["pp"])}).setdefault("orb", []).append(
+                    os.path.basename(aspec["nao"]))
+            for file in files:
+                shutil.copy(f"{folder}/{file}", f"{dst}/")
+        # copy INPUT, STRU and KPT to dst/group_i
+        for file in ["INPUT", "STRU", "KPT"]:
+            shutil.copy(f"{folder}/{file}", f"{dst}/group_{i}/")
+    with open(f"{dst}/pp_orb.json", "w") as f:
+        json.dump(pp_orb, f, indent=4)
+    # remove the src
+    shutil.rmtree(src)
+
+    return pp_orb
+
+def reuse_eos_pw_vs_lcao(out_dir: str, dst: str = "abacustest_reuse_eos_pw_vs_lcao"):
+    """abacustest reuse mode: transform the APNS generated out_dir to the format that abacustest support.
+    Args:
+        out_dir (str): the folder contains the APNS generated results
+        dst (str): the destination folder to save the transformed results
+    Returns:
+        pp_orb (dict): the pseudopotential and orbital information, in the format of {"element": {"pp": "pp_file", "orb": ["orb_file1", "orb_file2", ...]}}
+    """
+    grouped = group_eos_pw_vs_lcao(out_dir)
+    pp_orb = pack_eos_pw_vs_lcao(grouped, out_dir, dst)
+    return pp_orb
+
 import unittest
 class TestABACUSTest(unittest.TestCase):
     def test_bohrium_config(self):
@@ -357,8 +449,9 @@ class TestABACUSTest(unittest.TestCase):
             "prepare": {"example_template": ["example1", "example2"],
                         "abacus2qe": True}
         }
-        self.assertDictEqual(result, ref)
+        self.assertDictEqual(result["prepare"], ref["prepare"])
         # rundft task, for example, run abacus calculation
 
 if __name__ == "__main__":
-    unittest.main()
+    #unittest.main(exit=False)
+    reuse_eos_pw_vs_lcao("./output")

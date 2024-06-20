@@ -21,7 +21,7 @@ def pair(data: list):
     
     paired = []
     # all (bulk, atom) pair should have identical sections
-    # "ParamSet" and "AtomSpecies"
+    # "DFTParamSet" and "AtomSpecies"
     # the former ensures the same calculation settings
     # the latter ensures the identical pseudopotential and
     # numerical atomic orbitals (if any)
