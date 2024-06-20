@@ -303,9 +303,12 @@ def pack_eos_pw_vs_lcao(grouped, src, dst):
             # get the pp_orb information from description.json
             with open(f"{folder}/description.json", "r") as f:
                 desc = json.load(f)
-            for aspec in desc["AtomSpecies"]:
-                pp_orb.setdefault(aspec["symbol"], {"pp": os.path.basename(aspec["pp"])}).setdefault("orb", []).append(
+            for label in dict.fromkeys(desc["Cell"]["labels"]):
+                il = desc["Cell"]["labels"].index(label)
+                aspec = desc["AtomSpecies"][desc["Cell"]["labels_kinds_map"][il]]
+                pp_orb.setdefault(label, {"pp": os.path.basename(aspec["pp"])}).setdefault("orb", []).append(
                     os.path.basename(aspec["nao"]))
+                pp_orb[label]["orb"] = list(set(pp_orb[label]["orb"])) # remove duplicates
             for file in files:
                 shutil.copy(f"{folder}/{file}", f"{dst}/")
         # copy INPUT, STRU and KPT to dst/group_i
