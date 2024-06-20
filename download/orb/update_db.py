@@ -5,7 +5,9 @@ PSEUDO_DIR = "download/upf"
 FPPDATABASE = PSEUDO_DIR + "/database.json"
 
 def initialize(refresh: bool = False):
-    import os, json, re
+    import os
+    import json
+    import re
     from apns.test.tag_search import TagSearcher
     if not os.path.exists(FORBDATABASE):
         with open(FORBDATABASE, "w") as f:
@@ -41,7 +43,7 @@ def initialize(refresh: bool = False):
                             orbtags = tags
                         tags_add = [rcut + "au", ecut + "Ry", conf] + orbtags
                         if re.search(re_folder, root) and re.match(re_file, file):
-                            if not key in orb_db:
+                            if key not in orb_db:
                                 orb_db.setdefault(key, []).extend(tags_add)
                             if not set(tags_add) <= set(orb_db[key]):
                                 print(f"Appending tags {tags_add} to {key}...")

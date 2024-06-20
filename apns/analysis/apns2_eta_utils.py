@@ -46,14 +46,15 @@ def delta_band(band_energy1, band_energy2, n_elec, wk, smearing, smearing_sigma,
     from scipy.special import erf
     from scipy.optimize import brentq, minimize_scalar
     # occupation function
-    if smearing == 'gaussian':
-        f_occ = lambda x, x0: 0.5 * (1.0 - erf((x - x0) / smearing_sigma)) \
+    def f_occ(x, x0):
+        if smearing == 'gaussian':
+            return 0.5 * (1.0 - erf((x - x0) / smearing_sigma)) \
                 if smearing_sigma > 0 else 0.5 * (1 - np.sign(x - x0))
-    elif smearing == 'fermi-dirac':
-        f_occ = lambda x, x0: 1.0 / (1.0 + np.exp((x - x0) / smearing_sigma)) \
+        elif smearing == 'fermi-dirac':
+            return 1.0 / (1.0 + np.exp((x - x0) / smearing_sigma)) \
                 if smearing_sigma > 0 else 0.5 * (1 - np.sign(x - x0))
-    else:
-        raise ValueError('Unknown smearing method: %s'%smearing)
+        else:
+            raise ValueError('Unknown smearing method: %s'%smearing)
 
     # convert to arrays for convenience
     be1 = np.array(band_energy1)

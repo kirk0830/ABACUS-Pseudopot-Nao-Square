@@ -266,7 +266,8 @@ def group_eos_pw_vs_lcao(out_dir: str):
     INPUT, KPT, STRU and pseudopotentials, if needed, also with orbital files. An additional json
     file named `description.json` is used to quicky check the identity of test case.
     """
-    import os, json
+    import os
+    import json
     from apns.analysis.apns2_utils import cal_desc_diff
     folders = os.listdir(out_dir)
     print(f"ABACUSTEST: Found {len(folders)} folders in {out_dir}, group them to abacustest reuse mode accepted structure.")
@@ -292,7 +293,9 @@ def group_eos_pw_vs_lcao(out_dir: str):
 
 def pack_eos_pw_vs_lcao(grouped, src, dst):
     """take the grouped folders and pack them into the format that abacustest support."""
-    import os, shutil, json
+    import os
+    import shutil
+    import json
     pp_orb = {}
     for i, folders in enumerate(grouped):
         os.makedirs(f"{dst}/group_{i}", exist_ok=True)

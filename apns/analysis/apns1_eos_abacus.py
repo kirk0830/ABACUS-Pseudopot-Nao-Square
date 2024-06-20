@@ -51,7 +51,7 @@ vmax: {vmax}
         value = delta_value(bm_fit1=bmfit, bm_fit2=data[token], vmin=vmin, vmax=vmax)
         return value, token
     # else...
-    for key in data.keys():
+    for key in data:
         _match = re.match(syspatn, key)
         if _match is not None:
             if _match.group(1) == element:
@@ -79,7 +79,7 @@ def search(path: str, fromcal: str = "cell-relax"):
     from apns.analysis.postprocess.read_abacus_out import read_natom_fromlog, read_etraj_fromlog\
     , read_volume_fromstru, read_testconfig_fromBohriumpath
     result = {}
-    for root, dirs, files in os.walk(path):
+    for root, _, files in os.walk(path):
         if is_outdir(files, fromcal):
             natom = read_natom_fromlog(f"{root}/running_{fromcal}.log")
             eks = read_etraj_fromlog(f"{root}/running_{fromcal}.log")[-1]
@@ -191,7 +191,7 @@ def plot(testresult: dict, ncols: int = 3, **kwargs):
     ###################
     fontsize = kwargs.get("fontsize", 18)
     colors = kwargs.get("colors", styles_factory(property="color", ndim=2))
-    marker = kwargs.get("marker", styles_factory(property="marker", ndim=1))[0]
+    #marker = kwargs.get("marker", styles_factory(property="marker", ndim=1))[0]
     markersize = kwargs.get("markersize", 10)
     
     subplot_height = kwargs.get("subplot_height", 10)

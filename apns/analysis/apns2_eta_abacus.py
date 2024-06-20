@@ -2,7 +2,9 @@
 
 def collect_jobs(folder: str):
     """Collect APNS jobs for band structure similarity calculation"""
-    import os, json, re
+    import os
+    import json
+    import re
     from apns.analysis.postprocess.read_abacus_out import read_istate, read_kpoints
     print("* * * Collect APNS jobs * * *".center(100))
     result = []
@@ -10,8 +12,15 @@ def collect_jobs(folder: str):
         for file in files:
             if re.match(r"(running_)(\w+)(\.log)", file):
                 parent = os.path.dirname(root)
-                with open(os.path.join(parent, "description.json"), "r") as f:
-                    desc = json.load(f)
+                try:
+                    with open(os.path.join(parent, "description.json"), "r") as f:
+                        desc = json.load(f)
+                except FileNotFoundError:  
+                    print(f"File not found in {parent}")  
+                    continue  
+                except json.JSONDecodeError:  
+                    print(f"Invalid JSON format in {parent}")  
+                    continue
                 # we will have istate.info in this folder
                 fistate = os.path.join(root, "istate.info")
                 if not fistate:
@@ -40,12 +49,8 @@ def lookup_kwt(kpoints, kref):
     
     will return a list of kpoints weight, in the same order as kpoints read in 
     the istate.info file."""
-    kwt = []
-    for k in kpoints:
-        for i in range(len(kref)):
-            if k == kref[i][1:4]:
-                kwt.append(kref[i][-1])
-                break
+    kref_dict = {tuple(k[1:4]): k[-1] for k in kref}  
+    kwt = [kref_dict.get(tuple(k), 0) for k in kpoints]
     return kwt
     
 def clean_kwt_from_istate(istate, kwt):
@@ -53,6 +58,8 @@ def clean_kwt_from_istate(istate, kwt):
     is already multiplied by the weight of kpoints, kwt"""
     for i in range(len(istate)): # loop over spin
         for j in range(len(istate[i])): # loop over kpoints
+            if kwt[j] == 0:
+                raise ValueError(f"Zero kpoints weight at {j}th kpoint")
             istate[i][j][-1] /= kwt[j]
     return istate
 

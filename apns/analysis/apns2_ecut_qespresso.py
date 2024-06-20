@@ -9,8 +9,9 @@ def collect_jobs(folder: str):
     print("* * * Collect QESPRESSO result * * *".center(100))
     import apns.analysis.postprocess.read_qespresso_out as read_qe
     from apns.analysis.apns2_utils import read_apnsjob_desc, convert_fpp_to_ppid
-    import apns.pspot.parse as ppparse
-    import os, json
+    from apns.pspot.parse import z_valence
+    import os
+    import json
     result = {}
     for root, _, files in os.walk(folder):
         if is_outdir(root):
@@ -28,7 +29,7 @@ def collect_jobs(folder: str):
             ecutwfc = desc["DFTParamSet"]["system"]["ecutwfc"]
             pps = [a["pp"] for a in atom_species]
             ppids = [convert_fpp_to_ppid(pp) for pp in pps]
-            zvals = [ppparse.z_valence(os.path.join(root, pp)) for pp in pps]
+            zvals = [z_valence(os.path.join(root, pp)) for pp in pps]
             s = "\n".join(ppids)
             print(f"""In folder {root}
 Structure tested: {system}

@@ -35,14 +35,14 @@ def initialize(refresh: bool = False) -> list[str]:
     if os.path.exists(TAGRULES):
         with open(TAGRULES) as f:
             rules = json.load(f)
-        for root, dirs, files in os.walk(PSEUDO_DIR): # big triangle code is a bad practice...
+        for root, _, files in os.walk(PSEUDO_DIR): # big triangle code is a bad practice...
             for file in files:
                 if file.lower().endswith(".upf"): # if there is any pseudopotential file, then add tags
                     key = os.path.abspath(os.path.join(root, file)) # key is directly the full path of file
                     for rule in rules["rules"]: # add tags according to rules, iterate over all rules
                         re_folder, re_file, tags = rule["re.folder"], rule["re.file"], rule["tags"]
                         if re.search(re_folder, root) and re.match(re_file, file):
-                            if not key in database: # it is the first time to add tags, so add element tag
+                            if key not in database: # it is the first time to add tags, so add element tag
                                 # the parse of pseudopotential will be slow, so need to reduce this operation
                                 # as much as possible
                                 pp = ampp.as_dict(key)
@@ -72,13 +72,14 @@ def complete_tag(if_without: list, add: list, fdb: str):
     """for all pseudopotential files, if without tags in `if_without`, add tags in `add`
     useful for some pseudopotentials marked as "fr" and "full-relativistic", while those
      not fr, add "sr" and "scalar-relativistic" """
-    import os, json
+    import os
+    import json
     assert os.path.exists(fdb), "database file not found"
     with open(fdb) as f:
         database = json.load(f)
     
     record = []
-    for fpp in database.keys():
+    for fpp in database:
         if not set(if_without) <= set(database[fpp]):
             print(f"Appending tags {add} to {fpp}...")
             record.append(fpp)
