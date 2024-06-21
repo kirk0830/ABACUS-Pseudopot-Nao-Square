@@ -1,8 +1,8 @@
 {
     "global": {
         "mode": "test",
-        "pseudo_dir": "./download/pseudopotentials",
-        "orbital_dir": "./download/numerical_orbitals",
+        "pseudo_dir": "/root/abacus-develop/pseudopotentials",
+        "orbital_dir": "/root/abacus-develop/numerical_orbitals",
         "cache_dir": "./apns_cache",
         "out_dir": "./output"
     },
@@ -18,8 +18,8 @@
     },
     "abacus": [
         {
-            "ecutwfc": 40,
-            "calculation": "relax",
+            "ecutwfc": 100,
+            "calculation": "scf",
             "basis_type": "pw",
             "cal_force": 1,
             "cal_stress": 1,
@@ -93,15 +93,33 @@
             "Sr": [["US"], null]
         },
         {
-            "Ti": [["sg15", "1.0", "sr"], ["6au"]]
+            "H": [["sg15", "1.0", "sr"], ["10au", "SimulatedAnnealing"]],
+            "He": [["sg15", "1.0", "sr"], ["10au", "SimulatedAnnealing"]],
+            "Li": [["sg15", "1.0", "sr"], ["10au", "SimulatedAnnealing"]],
+            "Be": [["sg15", "1.0", "sr"], ["10au", "SimulatedAnnealing"]],
+            "B": [["sg15", "1.0", "sr"], ["10au", "SimulatedAnnealing"]],
+            "C": [["sg15", "1.0", "sr"], ["10au", "SimulatedAnnealing"]],
+            "N": [["sg15", "1.0", "sr"], ["10au", "SimulatedAnnealing"]],
+            "O": [["sg15", "1.0", "sr"], ["10au", "SimulatedAnnealing"]],
+            "F": [["sg15", "1.0", "sr"], ["10au", "SimulatedAnnealing"]],
+            "Ne": [["sg15", "1.0", "sr"], ["10au", "SimulatedAnnealing"]]
         }
     ],
     "strusets": [
         {
-            "calculator": "qespresso", "calcset": 0,
-            "atomset": 1,
+            "calculator": "abacus", "calcset": 0,
+            "atomset": 2,
             "database": "materials_project",
-            "desc": [["search", "Ti", [1.0], [0.08]]]
+            "desc": [["search", "H", [1.0], [0.1]],
+                     ["search", "He", [1.0], [0.1]],
+                     ["search", "Li", [1.0], [0.1]],
+                     ["search", "Be", [1.0], [0.1]],
+                     ["search", "B", [1.0], [0.1]],
+                     ["search", "C", [1.0], [0.1]],
+                     ["search", "N", [1.0], [0.1]],
+                     ["search", "O", [1.0], [0.1]],
+                     ["search", "F", [1.0], [0.1]],
+                     ["search", "Ne", [1.0], [0.1]]]
         }
     ]
 }

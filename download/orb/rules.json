@@ -1,0 +1,43 @@
+{
+    "description": "this file contains the rules for taging orbital files. All rules will be applied one-by-one to all files. Tags are added by appending instead of replacing. For example the first rule only specifies for all files in this folder, will share sg15, norm-conserving, NC, ONCV, ONCVPSP tags. Then the second rule will add 1.0, v1.0 tags to files that match the regex. The third rule will add 1.1, v1.1 tags to files that match the regex. The fourth rule will add 1.2, v1.2 tags ..., the fifth rule will add fr, full-relativistic, rel tags to files that match the regex.",
+    "rules": [
+        {
+            "re.folder": "SG15\\-Version1p0__AllOrbitals\\-Version1p0",
+            "re.file": "^([A-Z][a-z]?)(_gga_\\d+(\\.\\d+)?au_\\d+(\\.\\d+)?Ry.*\\.orb)$",
+            "tags": [["sg15", "1.0", "sr"], 
+                     ["1.0", "SimulatedAnnealing"]]
+        },
+        {
+            "re.folder": "SG15\\-Version1p0__AllOrbitals\\-Version2p0",
+            "re.file": "^([A-Z][a-z]?)(_gga_\\d+(\\.\\d+)?au_\\d+(\\.\\d+)?Ry.*\\.orb)$",
+            "tags": [["sg15", "1.0", "sr"], 
+                     ["2.0", "pytorch.SWAT"]]
+        },
+        {
+            "re.folder": "SG15\\-Version1p0__AllOrbitals\\-Version2p1",
+            "re.file": "^([A-Z][a-z]?)(_gga_\\d+(\\.\\d+)?au_\\d+(\\.\\d+)?Ry.*\\.orb)$",
+            "tags": [["sg15", "1.0", "sr"], 
+                     ["2.1", "bfgs"]]
+        },
+        {
+            "re.folder": "occ\\.occ\\.occ",
+            "re.file": "^([A-Z][a-z]?)(_gga_\\d+(\\.\\d+)?au_\\d+(\\.\\d+)?Ry.*\\.orb)$",
+            "tags": ["occ.occ.occ"]
+        },
+        {
+            "re.folder": "occ\\.occ\\.all",
+            "re.file": "^([A-Z][a-z]?)(_gga_\\d+(\\.\\d+)?au_\\d+(\\.\\d+)?Ry.*\\.orb)$",
+            "tags": ["occ.occ.all"]
+        },
+        {
+            "re.folder": "short\\-sp",
+            "re.file": "^([A-Z][a-z]?)(_gga_\\d+(\\.\\d+)?au_\\d+(\\.\\d+)?Ry.*\\.orb)$",
+            "tags": ["short-sp"]
+        },
+        {
+            "re.folder": "\\-monomer",
+            "re.file": "^([A-Z][a-z]?)(_gga_\\d+(\\.\\d+)?au_\\d+(\\.\\d+)?Ry.*\\.orb)$",
+            "tags": ["monomer"]
+        }
+    ]
+}

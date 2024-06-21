@@ -89,7 +89,7 @@ class EcutSingleCase:
     
     def pp(self, as_list: bool = False):
         """return the pseudopotential string"""
-        from apns.analysis.drivers.apns2_utils import convert_fpp_to_ppid
+        from apns.analysis.apns2_utils import convert_fpp_to_ppid
         return self.pps if as_list else "|".join([convert_fpp_to_ppid(pp) for pp in self.pps])
     
     def zval(self, as_list: bool = False):
@@ -114,7 +114,7 @@ def update_ecutwfc(pp: str, ecutwfc: float, cache_dir: str = "./apns_cache/ecutw
 
 def plot_log(conv_result: dict):
     import matplotlib.pyplot as plt
-    import apns.analysis.drivers.driver_EcutwfcConv_20240319 as outdated
+    import apns.analysis.apns1_ecut_abacus as outdated
     plt.rcParams["font.family"] = "Arial"
 
     # merge again that indexed like [system][pps]
@@ -145,7 +145,7 @@ def plot_log(conv_result: dict):
 
 def plot_stack(conv_result: dict):
     import matplotlib.pyplot as plt
-    import apns.analysis.drivers.driver_EcutwfcConv_20240319 as outdated
+    import apns.analysis.apns1_ecut_abacus as outdated
     plt.rcParams["font.family"] = "Arial"
 
     # merge again that indexed like [system][pps]

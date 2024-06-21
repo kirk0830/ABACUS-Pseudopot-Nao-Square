@@ -141,7 +141,7 @@ class EOSSingleCase:
     
     def pp(self, as_list: bool = False):
         """return the pseudopotential string"""
-        from apns.analysis.drivers.apns2_utils import convert_fpp_to_ppid
+        from apns.analysis.apns2_utils import convert_fpp_to_ppid
         return self.pps if as_list else "|".join([convert_fpp_to_ppid(pp) for pp in self.pps])
     
     def tokenize(system: str):
@@ -202,7 +202,7 @@ def plot(testresult: dict, ncols: int = 3, **kwargs):
     }
     ```
     """
-    from apns.analysis.drivers.apns2_utils import convert_fpp_to_ppid
+    from apns.analysis.apns2_utils import convert_fpp_to_ppid
     from apns.analysis.external_frender.styles import styles_factory
     from apns.analysis.external_frender.figure import concatenate as figconcat
     import matplotlib.pyplot as plt
