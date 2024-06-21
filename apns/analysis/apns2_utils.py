@@ -36,9 +36,7 @@ def handle_pd04(fpp: str):
     import os
     family, version = "PD04", ""
     appendix = re.match(r"([A-Z][a-z]?)([\d\+\-\_\w]*)(\.PD04\.PBE\.UPF)", os.path.basename(fpp)).group(2)
-    if appendix is None:
-        appendix = ""
-    elif len(appendix) == 0:
+    if appendix is None or len(appendix) == 0:
         appendix = ""
     elif appendix[0] in ["+", "-"]:
         appendix = appendix[1:]
@@ -81,9 +79,7 @@ def handle_pseudo_dojo(fpp: str):
         family, version, appendix = "PseudoDojo", "0.4", "fr"
     elif "pbe_s_sr" in fpp:
         family, version, appendix = "PseudoDojo", "0.3", "sr"
-    elif "nc-sr-04_pbe_standard_upf" in fpp:
-        family, version, appendix = "PseudoDojo", "0.4", "sr"
-    elif "nc-sr-04-3plus_pbe_standard_upf" in fpp:
+    elif "nc-sr-04_pbe_standard_upf" in fpp or "nc-sr-04-3plus_pbe_standard_upf" in fpp:
         family, version, appendix = "PseudoDojo", "0.4", "sr"
     elif "pseudos_ac_she" in fpp:
         family, version = "PseudoDojo", "1.0"
@@ -116,7 +112,7 @@ def convert_fpp_to_ppid(fpp: str):
         "gth": handle_gth,
         "psl": handle_psl
     }
-    for key in func_map.keys():
+    for key in func_map:
         if key in fpp:
             family, version, appendix = func_map[key](fpp)
             return f"{family} v{version} ({appendix})".replace("v ", "").replace("()", "")
@@ -151,7 +147,7 @@ def cal_dict_diff(desc1: dict, desc2: dict) -> dict:
 
     diff = {}
     for k, v in desc1.items():
-        v_ = desc2.get(k, None)
+        v_ = desc2.get(k)
         if isinstance(v, dict):
             _diff = cal_dict_diff(v, v_)
             diff.update({k: _diff}) if _diff else None

@@ -148,6 +148,8 @@ def pair_between_pw(collected: list):
     paired = []
     pw = [(desc, ekb, occ, kwt) for desc, ekb, occ, kwt in collected if desc["DFTParamSet"].get("basis_type", "pw") == "pw"]
     # then pair the pw data
+    if len(pw) == 0:
+        return paired
     paired.append([pw[0]])
     for i in range(1, len(pw)):
         for j in range(len(paired)):
