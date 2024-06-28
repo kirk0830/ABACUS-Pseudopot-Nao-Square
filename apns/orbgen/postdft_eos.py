@@ -58,10 +58,10 @@ def _cal_delta(bm1: dict, bm2: dict, natom: int, vmin: float, vmax: float):
     """calculate the delta value between two Birch-Murnaghan fits"""
     from apns.analysis.apns2_eos_utils import delta_value as delta
     if bm1 is None:
-        print(f"bm1 is None, cannot calculate delta")
+        print("bm1 is None, cannot calculate delta")
         return None
     if bm2 is None:
-        print(f"bm2 is None, cannot calculate delta")
+        print("bm2 is None, cannot calculate delta")
         return None
     return delta(bm1, bm2, vmin, vmax, natom)
 
@@ -83,7 +83,7 @@ def cal_wrt_pw(pw: dict, lcao: dict):
         - dict, the data structure that stores the delta and demin values
     """
     from apns.analysis.apns2_eos_utils import fit_birch_murnaghan as fit_bm
-    out = {s: {} for s in pw.keys() if s in lcao.keys()} # initialize the output
+    out = {s: {} for s in pw if s in lcao} # initialize the output
     for system, data_pw in pw.items():
         ntests_pw = len(data_pw["pptests"])
         assert len(data_pw["ppcases"]) == ntests_pw, "number of tests should be the same as number of cases"
@@ -113,7 +113,7 @@ def print_postdft(result: dict):
     from apns.analysis.apns2_utils import convert_forb_to_orbid, convert_fpp_to_ppid
     for system, data in result.items():
         print(f"System {system}")
-        for i, ppcase in enumerate(data["ppcases"]):
+        for _, ppcase in enumerate(data["ppcases"]):
             ppcase = [convert_fpp_to_ppid(pp) for pp in ppcase]
             ppcase = ", ".join(ppcase)
             print(f"  Pseudopotential case {ppcase}")

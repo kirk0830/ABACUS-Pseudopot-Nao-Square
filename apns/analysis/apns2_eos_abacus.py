@@ -54,8 +54,8 @@ Numerical atomic orbitals are used:\n{orbstr}
 """)        
             pps = [pps, orbs]
             data = {"eks": eks, "volume": vol, "natom": natom}
-            idx = -1 if result.get(system, None) is None \
-                or result[system].get("ppcases", None) is None \
+            idx = -1 if result.get(system) is None \
+                or result[system].get("ppcases") is None \
                     or result[system]["ppcases"].count(pps) == 0 \
                 else result[system]["ppcases"].index(pps)
             if idx == -1:

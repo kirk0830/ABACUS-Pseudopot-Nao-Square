@@ -155,7 +155,7 @@ def cal_delta_pw_vs_lcao(nested_pw: dict, nested_lcao: dict):
     """calculate the delta value between PW and LCAO results."""
     result = {}
     assert nested_pw.keys() == nested_lcao.keys(), "the systems in PW and LCAO are not the same"
-    for system in nested_pw.keys(): # can loop over either keys of nested_pw or nested_lcao
+    for system in nested_pw: # can loop over either keys of nested_pw or nested_lcao
         pw = nested_pw[system]
         for lcao in nested_lcao[system]:
             delta = _cal_delta(pw, lcao)

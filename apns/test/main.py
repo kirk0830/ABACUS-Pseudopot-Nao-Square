@@ -1,9 +1,16 @@
 def run(finp: str):
-    import json
+    import json, os
     import apns.test.citation as amc
     from apns.test.abacustest import auto_api
-    with open(finp, "r") as f:
-        inp = json.load(f)
+
+    if not os.path.exists(finp):
+        raise FileNotFoundError(f"Input file not found: {finp}")
+    try:
+        with open(finp, "r") as f:
+            inp = json.load(f)
+    except json.JSONDecodeError:
+        raise ValueError("Invalid JSON format in input file")
+
     #folders = main(inp)
     folder = auto_api(inp, main(inp))
     amc.citation()

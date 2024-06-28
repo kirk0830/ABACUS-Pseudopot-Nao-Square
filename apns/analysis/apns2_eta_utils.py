@@ -6,11 +6,10 @@ def cal_nelec(occ: list, kwt: list = None) -> float:
     """integrate the occupation number over kpoints.
     Args:
         occ (list): the occupation number, in the form of [ispin][ik][iband]
-        kwt (list): the weight of kpoints, in the form of [ik]
+        kwt (list, optional): the weight of kpoints, in the form of [ik]. Defaults to a list of ones if not provided.
     """
     nelec = 0.0
-    if kwt is None:
-        kwt = [1.0] * len(occ[0])
+    kwt = kwt or [1.0] * len(occ[0])
     for i in range(len(occ)): # loop over spin
         for j in range(len(occ[i])): # loop over kpoints
             nelec += sum([occ[i][j][k] for k in range(len(occ[i][j]))]) * kwt[j]

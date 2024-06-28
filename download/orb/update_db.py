@@ -1,35 +1,71 @@
-ORBITAL_DIR = "../numerical_orbitals"
-TAGRULES = ORBITAL_DIR + "/rules.json"
-FORBDATABASE = ORBITAL_DIR + "/database.json"
-PSEUDO_DIR = "../pseudopotentials"
-FPPDATABASE = PSEUDO_DIR + "/database.json"
-
-def initialize(refresh: bool = False):
-    import os
-    import json
-    import re
+"""NOTE: this script is for updating the local (user-specific) library of numerical orbitals.
+Therefore the following path is not general. specify with the one fit your own file structure."""
+def initialize(orbital_dir: str = "/root/abacus-develop/numerical_orbitals", 
+               pseudo_dir: str = "/root/abacus-develop/pseudopotentials", 
+               refresh: bool = False):
+    """(re-)initialize the database.json file in one folder, for describing the numerical orbitals
+    files within. Based on tag searching system implemented in APNS. For rules how to set tags
+    on the numerical orbitals, see the rules.json file in the same folder.
+    
+    Args:
+        orbital_dir (str): the folder containing the numerical orbitals
+        pseudo_dir (str): the folder containing the pseudopotentials
+        refresh (bool): whether to refresh the database file
+    
+    Returns:
+        list[str]: a list of unclassified numerical orbital files
+    
+    Note:
+        always take care on the returned value, because it may contain some unclassified files.
+        If so, you need to manually tag them or update the rules file.
+    """
+    import os, json, re
     from apns.test.tag_search import TagSearcher
-    if not os.path.exists(FORBDATABASE):
-        with open(FORBDATABASE, "w") as f:
+    
+    # check if the database file exists, if not, create one
+    fdb_orb = os.path.join(orbital_dir, "database.json")
+    if not os.path.exists(fdb_orb):
+        with open(fdb_orb, "w") as f:
             json.dump({}, f)
+    
+    # no matter what workflow is (refresh or not), always create a database file.
+    # while if not refresh, return an empty list
     if not refresh:
         return []
+    
+    # else, if refresh, update the database file with the rules. But due to there
+    # would be some unclassified files, return them for further manual tagging.
     orbs_unclassified = []
-    with open(FORBDATABASE) as f:
+    with open(fdb_orb) as f:
         orb_db = json.load(f)
-    pp_searcher = TagSearcher(FPPDATABASE)
+    
+    # because orb is based on the pseudopotential, so first initialize the pseudopotential database
+    fdb_pp = os.path.join(pseudo_dir, "database.json")
+    pp_searcher = TagSearcher(fdb_pp) # with this, can search local available pseudopotential
+
+    # orbpat, for matching the numerical orbital file name
     orbpat = r"([A-Z][a-z]?)_gga_(\d+(\.\d+)?)au_(\d+(\.\d+)?)Ry_(.*)\.orb"
-    if os.path.exists(TAGRULES):
-        with open(TAGRULES) as f:
+
+    # read the rules file, according to user preset rules, tag the numerical orbital files
+    ftag = os.path.join(orbital_dir, "rules.json")
+    if os.path.exists(ftag):
+        with open(ftag) as f:
             rules = json.load(f)
-        for root, _, files in os.walk(ORBITAL_DIR):
+        
+        # loop over all the numerical orbital files, and tag them according to the rules
+        for root, _, files in os.walk(orbital_dir):
             for file in files:
-                if file.lower().endswith(".orb"):
-                    element, rcut, _, ecut, _, conf = re.match(orbpat, file).groups()
+                # match the file name with the pattern
+                m = re.match(orbpat, file)
+                if m:
+                    element, rcut, _, ecut, _, conf = m.groups()
                     key = os.path.abspath(os.path.join(root, file))
+
+                    # scan the rules, if the file matches the rule, add the tags to the database
                     for rule in rules["rules"]:
                         re_folder, re_file, tags = rule["re.folder"], rule["re.file"], rule["tags"]
                         if len(tags) == 2 and all([isinstance(taggrp, list) for taggrp in tags]):
+
                             # sometimes it is needed to add its corresponding upf file as a tag of the orbital file
                             # then there will be two groups of tags, the first is for pseudopotential, the second is for orbital
                             pptags, orbtags = tags[0], tags[1]
@@ -41,6 +77,7 @@ def initialize(refresh: bool = False):
                         else:
                             # otherwise the tags are for the orbital file only
                             orbtags = tags
+
                         tags_add = [rcut + "au", ecut + "Ry", conf] + orbtags
                         if re.search(re_folder, root) and re.match(re_file, file):
                             if key not in orb_db:
@@ -52,7 +89,7 @@ def initialize(refresh: bool = False):
                         #     print(f"WARNING: Regular expression does not match:\
                         #           \n{re_folder} <= {root},\n{re_file} <= {file}")
                     orbs_unclassified.append(key) if key not in orb_db else None
-        with open(FORBDATABASE, "w") as f:
+        with open(fdb_orb, "w") as f:
             json.dump(orb_db, f, indent=4)
     else:
         raise FileNotFoundError("Rules file not found")
@@ -61,5 +98,5 @@ you can update the rules file to include these files, or manually add tags to th
     return orbs_unclassified
 
 if __name__ == "__main__":
-    orbs = initialize(True)
+    orbs = initialize(refresh=True)
     print(orbs)

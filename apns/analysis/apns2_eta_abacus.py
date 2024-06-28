@@ -40,10 +40,19 @@ def _parse_folder(folder: str):
         - occ: list, the occupation number, in the form of [ispin][ik][iband]
         - kwt: list, the weight of kpoints, in the form of [ik]
     """
-    import os
+    import os, json
     from apns.analysis.postprocess.read_abacus_out import read_istate, read_kpoints
     fistate = os.path.join(folder, "istate.info")
-    temp = read_istate(fistate) # istate to be indiced by nspin, then k
+
+    try:
+        temp = read_istate(fistate) # istate to be indiced by nspin, then k
+    except FileNotFoundError:
+        print(f"istate.info file not found in {folder}")
+        return None
+    except json.JSONDecodeError:
+        print(f"Invalid format in istate.info file in {folder}")
+        return None
+    
     if temp is None:
         return None
     istate, kpoints = temp
