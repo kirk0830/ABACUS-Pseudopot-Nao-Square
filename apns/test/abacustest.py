@@ -93,8 +93,7 @@ def bohrium_config(**kwargs):
         return {}
     # if there are already set environment variables, return an empty dictionary
     if {"BOHRIUM_USERNAME", "BOHRIUM_PASSWORD", "BOHRIUM_PROJECT_ID"}.issubset(os.environ.keys()):
-        return {}
-    print(kwargs)
+        return {} # abacustest will read from environment variables, dont worry
     username = kwargs.get("bohrium.account", None)
     password = kwargs.get("bohrium.password", None)
     project_id = kwargs.get("project_id", None)
