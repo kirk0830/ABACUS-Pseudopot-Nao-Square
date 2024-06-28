@@ -1,17 +1,15 @@
 """Band structure similarity test for ABACUS"""
 
-def collect_jobs(folder: str):
+def collect(folder: str):
     """Collect APNS jobs for band structure similarity calculation"""
-    import os
-    import json
-    import re
-    from apns.analysis.postprocess.read_abacus_out import read_istate, read_kpoints
+    import os, json, re
     print("* * * Collect APNS jobs * * *".center(100))
     result = []
     for root, _, files in os.walk(folder):
         for file in files:
             if re.match(r"(running_)(\w+)(\.log)", file):
                 parent = os.path.dirname(root)
+                print(f"Collecting from {parent}")
                 try:
                     with open(os.path.join(parent, "description.json"), "r") as f:
                         desc = json.load(f)
@@ -21,24 +19,46 @@ def collect_jobs(folder: str):
                 except json.JSONDecodeError:  
                     print(f"Invalid JSON format in {parent}")  
                     continue
-                # we will have istate.info in this folder
-                fistate = os.path.join(root, "istate.info")
-                if not fistate:
-                    print(f"Warning: {parent} does not have istate.info")
-                istate, kpoints = read_istate(fistate)
-                fkpoints = os.path.join(root, "kpoints")
-                kref = read_kpoints(fkpoints)
-                # because the occ information in istate is multiplied by kpoints weight,
-                # need divide it.
-                kwt = lookup_kwt(kpoints, kref)
-                istate = clean_kwt_from_istate(istate, kwt)
-                ekb, occ = decompose_istate(istate)
+                temp = _parse_folder(root)
+                if not temp: continue
+                ekb, occ, kwt = temp
                 result.append((desc, ekb, occ, kwt))
                 # note! desc is a dict, ekb and occ are nested like [ispin][ik][iband]
                 # kwt is a list of kpoints weight
     return result
 
-def lookup_kwt(kpoints, kref):
+def _parse_folder(folder: str):
+    """for eta-calculation specific, parse the folder to get the ekb, occ, kwt data.
+    
+    Args:
+        - folder: str, the folder to be parsed, should contain the following files:
+            - istate.info
+            - kpoints
+    
+    Returns:
+        - ekb: list, the energy of bands, in the form of [ispin][ik][iband]
+        - occ: list, the occupation number, in the form of [ispin][ik][iband]
+        - kwt: list, the weight of kpoints, in the form of [ik]
+    """
+    import os
+    from apns.analysis.postprocess.read_abacus_out import read_istate, read_kpoints
+    fistate = os.path.join(folder, "istate.info")
+    temp = read_istate(fistate) # istate to be indiced by nspin, then k
+    if temp is None:
+        return None
+    istate, kpoints = temp
+    fkpoints = os.path.join(folder, "kpoints")
+    kref = read_kpoints(fkpoints)[0]
+    # because the occ information in istate is multiplied by kpoints weight,
+    # need divide it.
+    kwt = _lookup_kwt(kpoints, kref)
+    nspin = len(istate)
+    assert nspin in [1, 2], f"nspin should be 1 or 2, but got {nspin}"
+    #istate = _clean_kwt_from_istate(istate, kwt)
+    ekb, occ = _decompose_istate(istate)
+    return ekb, occ, kwt
+
+def _lookup_kwt(kpoints, kref):
     """lookup the kpoints weight by comparing between the coordinate extracted
     from istate.info with the kpoints file extracted kref.
     kpoints has the simple format like: 
@@ -49,21 +69,49 @@ def lookup_kwt(kpoints, kref):
     
     will return a list of kpoints weight, in the same order as kpoints read in 
     the istate.info file."""
-    kref_dict = {tuple(k[1:4]): k[-1] for k in kref}  
-    kwt = [kref_dict.get(tuple(k), 0) for k in kpoints]
-    return kwt
+    def eq(k1, k2):
+        return abs(k1[0] - k2[0]) < 1e-5 and abs(k1[1] - k2[1]) < 1e-5 and abs(k1[2] - k2[2]) < 1e-5
+    # convert kref to nested list from list of ndarray
+    kref_ = [k[1:4] for k in kref]
+    wref_ = [k[4] for k in kref]
+    # then compare the kpoints with kref and find the weight
+    out = []
+    for i, k in enumerate(kpoints):
+        if eq(k, kref_[i]): # ideal shortcut
+            out.append(wref_[i])
+            continue
+        else: # otherwise search all in kref_
+            j = -1
+            for j_, k_ in enumerate(kref_):
+                if eq(k, k_):
+                    j = j_
+                    break
+            if j != -1:
+                out.append(wref_[j])
+                continue
+        raise ValueError(f"Cannot find the kpoints weight for {k}")
+    assert len(out) == len(kpoints), "kpoints weight should be the same as the number of kpoints"
+    return out
     
-def clean_kwt_from_istate(istate, kwt):
+def _clean_kwt_from_istate(istate, kwt):
     """clean the kpoints weight from istate, because in istate.info file the occpuation
     is already multiplied by the weight of kpoints, kwt"""
+    # check length
+    nks = [len(ist) for ist in istate]
+    assert all([n == nks[0] for n in nks]), "nks should be the same for all spins"
+    nks = nks[0]
+    assert nks == len(kwt), "kpoints weight should be the same as the number of kpoints"
     for i in range(len(istate)): # loop over spin
         for j in range(len(istate[i])): # loop over kpoints
-            if kwt[j] == 0:
-                raise ValueError(f"Zero kpoints weight at {j}th kpoint")
-            istate[i][j][-1] /= kwt[j]
+            w = kwt[j]
+            for k in range(len(istate[i][j])): # loop over bands
+                _, e, occ = istate[i][j][k]
+                if abs(w) < 1e-4 and abs(occ) > 1e-3:
+                    raise ValueError(f"Weight is 0, but occupation is not 0: {occ}")
+                istate[i][j][k][2] = occ / w if abs(w) > 1e-4 else 0.0
     return istate
 
-def decompose_istate(istate):
+def _decompose_istate(istate):
     """seperate the istate into energy and occupation,
     indexed by spin and kpoint, respectively.
     istate is the data has structure like:
@@ -81,7 +129,7 @@ def decompose_istate(istate):
             occ[i].append([istate[i][j][k][2] for k in range(len(istate[i][j]))])
     return energy, occ
 
-def desc_equal_pw_vs_lcao(desc1: dict, desc2: dict) -> bool:
+def _desc_equal_pw_vs_lcao(desc1: dict, desc2: dict) -> bool:
     """calculate the difference between two description.json contents,
     only following are admitted to be different:
     desc["DFTParamSet"]["basis_type"]
@@ -103,7 +151,7 @@ def desc_equal_pw_vs_lcao(desc1: dict, desc2: dict) -> bool:
     #         return False
     return True
 
-def desc_equal_between_pw(desc1: dict, desc2: dict) -> bool:
+def _desc_equal_between_pw(desc1: dict, desc2: dict) -> bool:
     """calculate the difference between two description.json contents,
     only following are admitted to be different:
     desc["DFTParamSet"]["ecutwfc"] (optionally, ecutrho)
@@ -116,7 +164,7 @@ def desc_equal_between_pw(desc1: dict, desc2: dict) -> bool:
         return False
     return True
 
-def desc_equal_between_lcao(desc1: dict, desc2: dict) -> bool:
+def _desc_equal_between_lcao(desc1: dict, desc2: dict) -> bool:
     """calculate the difference between two description.json contents,
     only following are admitted to be different:
     desc["AtomSpecies"][i]["nao"]
@@ -130,28 +178,31 @@ def desc_equal_between_lcao(desc1: dict, desc2: dict) -> bool:
             return False
     return True
 
-def pair_pw_vs_lcao(collected: list):
-    """pair the pw and lcao data from collect_jobs function returned value"""
+def pair_pw_lcao(collected: list):
+    """pair the pw and lcao data from collect function returned value"""
     paired = []
     pw = [(desc, ekb, occ, kwt) for desc, ekb, occ, kwt in collected if desc["DFTParamSet"].get("basis_type", "pw") == "pw"]
     lcao = [(desc, ekb, occ, kwt) for desc, ekb, occ, kwt in collected if desc["DFTParamSet"].get("basis_type", "pw") == "lcao"]
+    print(f"# of pw tests: {len(pw)}")
+    print(f"# of lcao tests: {len(lcao)}")
     # then pair the pw and lcao data
     for pw_i in pw:
         for lcao_i in lcao:
-            if desc_equal_pw_vs_lcao(pw_i[0], lcao_i[0]):
+            desc_pw, desc_lcao = pw_i[0], lcao_i[0]
+            if _desc_equal_pw_vs_lcao(desc_pw, desc_lcao):
                 paired.append([pw_i, lcao_i])
-                break
+    print(f"# of paired tests: {len(paired)}")
     return paired
 
 def pair_between_pw(collected: list):
-    """pair the pw data from collect_jobs function returned value"""
+    """pair the pw data from collect function returned value"""
     paired = []
     pw = [(desc, ekb, occ, kwt) for desc, ekb, occ, kwt in collected if desc["DFTParamSet"].get("basis_type", "pw") == "pw"]
     # then pair the pw data
     paired.append([pw[0]])
     for i in range(1, len(pw)):
         for j in range(len(paired)):
-            if desc_equal_between_pw(pw[i][0], paired[j][0][0]):
+            if _desc_equal_between_pw(pw[i][0], paired[j][0][0]):
                 paired[j].append(pw[i])
                 break
         else:
@@ -159,14 +210,14 @@ def pair_between_pw(collected: list):
     return paired
 
 def pair_between_lcao(collected: list):
-    """pair the lcao data from collect_jobs function returned value"""
+    """pair the lcao data from collect function returned value"""
     paired = []
     lcao = [(desc, ekb, occ, kwt) for desc, ekb, occ, kwt in collected if desc["DFTParamSet"].get("basis_type", "pw") == "lcao"]
     # then pair the lcao data
     paired.append([lcao[0]])
     for i in range(1, len(lcao)):
         for j in range(len(paired)):
-            if desc_equal_between_lcao(lcao[i][0], paired[j][0][0]):
+            if _desc_equal_between_lcao(lcao[i][0], paired[j][0][0]):
                 paired[j].append(lcao[i])
                 break
         else:
@@ -197,7 +248,7 @@ class APNS2EtaABACUSTest(unittest.TestCase):
     def test_lookup_kwt(self):
         kpoints = [[0.0, 0.0, 0.0], [0.0, 0.0, 0.1], [0.0, 0.0, 0.2], [0.0, 0.0, 0.3]]
         kref = [[1, 0.0, 0.0, 0.0, 0.1], [2, 0.0, 0.0, 0.1, 0.1], [3, 0.0, 0.0, 0.2, 0.1], [4, 0.0, 0.0, 0.3, 0.1]]
-        self.assertEqual(lookup_kwt(kpoints, kref), [0.1, 0.1, 0.1, 0.1])
+        self.assertEqual(_lookup_kwt(kpoints, kref), [0.1, 0.1, 0.1, 0.1])
 
     def test_clean_kwt_from_istate(self):
         istate = [
@@ -205,7 +256,7 @@ class APNS2EtaABACUSTest(unittest.TestCase):
             [[[0, 0.0, 0.0, 0.0], [0, 0.0, 0.0, 0.1]], [[0, 0.0, 0.0, 0.2], [0, 0.0, 0.0, 0.3]]]
         ]
         kwt = [0.1, 0.1, 0.1, 0.1]
-        self.assertEqual(clean_kwt_from_istate(istate, kwt), [
+        self.assertEqual(_clean_kwt_from_istate(istate, kwt), [
             [[[0, 0.0, 0.0, 0.0], [0, 0.0, 0.0, 0.1]], [[0, 0.0, 0.0, 0.2], [0, 0.0, 0.0, 0.3]]],
             [[[0, 0.0, 0.0, 0.0], [0, 0.0, 0.0, 0.1]], [[0, 0.0, 0.0, 0.2], [0, 0.0, 0.0, 0.3]]]
         ])
@@ -215,7 +266,7 @@ class APNS2EtaABACUSTest(unittest.TestCase):
             [[[0, 0.0, 0.0, 0.0], [0, 0.0, 0.0, 0.1]], [[0, 0.0, 0.0, 0.2], [0, 0.0, 0.0, 0.3]]],
             [[[0, 0.0, 0.0, 0.0], [0, 0.0, 0.0, 0.1]], [[0, 0.0, 0.0, 0.2], [0, 0.0, 0.0, 0.3]]]
         ]
-        self.assertEqual(decompose_istate(istate), (
+        self.assertEqual(_decompose_istate(istate), (
             [[[0.0, 0.0], [0.0, 0.0]], [[0.0, 0.0], [0.0, 0.0]]],
             [[[0.0, 0.1], [0.0, 0.1]], [[0.0, 0.1], [0.0, 0.1]]]
         ))
@@ -229,7 +280,7 @@ class APNS2EtaABACUSTest(unittest.TestCase):
             "DFTParamSet": {"basis_type": "lcao"},
             "AtomSpecies": [{"nao": 1}, {"nao": 2}]
         }
-        self.assertTrue(desc_equal_pw_vs_lcao(desc1, desc2))
+        self.assertTrue(_desc_equal_pw_vs_lcao(desc1, desc2))
 
     def test_desc_equal_between_pw(self):
         desc1 = {
@@ -240,7 +291,7 @@ class APNS2EtaABACUSTest(unittest.TestCase):
             "DFTParamSet": {"ecutwfc": 200},
             "AtomSpecies": [{"nao": 1}, {"nao": 2}]
         }
-        self.assertTrue(desc_equal_between_pw(desc1, desc2))
+        self.assertTrue(_desc_equal_between_pw(desc1, desc2))
 
     def test_desc_equal_between_lcao(self):
         desc1 = {
@@ -251,9 +302,9 @@ class APNS2EtaABACUSTest(unittest.TestCase):
             "DFTParamSet": {"basis_type": "lcao"},
             "AtomSpecies": [{"nao": 1}, {"nao": 3}]
         }
-        self.assertTrue(desc_equal_between_lcao(desc1, desc2))
+        self.assertTrue(_desc_equal_between_lcao(desc1, desc2))
 
-    def test_pair_pw_vs_lcao(self):
+    def test_pair_pw_lcao(self):
         collected = [
             (
                 {"DFTParamSet": {"basis_type": "pw"}, "AtomSpecies": [{"nao": 1}, {"nao": 2}]},
@@ -268,7 +319,7 @@ class APNS2EtaABACUSTest(unittest.TestCase):
                 [0.1, 0.1]
             )
         ]
-        self.assertEqual(pair_pw_vs_lcao(collected), [[collected]])
+        self.assertEqual(pair_pw_lcao(collected), [[collected]])
 
     def test_pair_between_pw(self):
         collected = [

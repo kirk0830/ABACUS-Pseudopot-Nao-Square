@@ -1,12 +1,11 @@
 def is_outdir(files: list, fromcal: str):
     return f"running_{fromcal}.log" and\
-           "STRU_ION_D" in files and\
            "INPUT" in files and\
            "STRU_READIN_ADJUST.cif" in files and\
            "istate.info" in files and\
            "kpoints" in files
 
-def collect_jobs(folder: str):
+def collect(folder: str, calc_type: str = "relax"):
     """collect APNS EOS test jobs data in structure like:
     ```json
     {
@@ -33,23 +32,27 @@ def collect_jobs(folder: str):
     from apns.analysis.apns2_utils import read_apnsjob_desc, convert_fpp_to_ppid
     result = {}
     for root, _, files in os.walk(folder):
-        if is_outdir(files, "relax"):
-            natom = read_abacus_out.read_natom_fromlog(os.path.join(root, "running_relax.log"))
-            eks = read_abacus_out.read_e_fromlog(os.path.join(root, "running_relax.log"))
-            vol = read_abacus_out.read_volume_fromstru(os.path.join(root, "STRU_ION_D"), "A")
+        if is_outdir(files, calc_type):
+            natom = read_abacus_out.read_natom_fromlog(os.path.join(root, f"running_{calc_type}.log"))
+            eks = read_abacus_out.read_e_fromlog(os.path.join(root, f"running_{calc_type}.log"))
             parent = os.path.dirname(root)
+            vol = read_abacus_out.read_volume_fromstru(os.path.join(parent, "STRU"), "A")
             atom_species, cellgen = read_apnsjob_desc(os.path.join(parent, "description.json"))
             system = os.path.basename(cellgen["config"])
             pps = [a["pp"] for a in atom_species]
+            orbs = [a["nao"] for a in atom_species]
             ppids = [convert_fpp_to_ppid(pp) for pp in pps]
-            s = "\n".join(ppids)
+            ppstr = "\n".join(ppids)
+            orbstr = "\n".join(orbs) if all([orb is not None for orb in orbs]) else "none"
             print(f"""In folder {parent}
 Structure tested: {system}
 Number of atoms: {natom}
 Final Kohn-Sham energy: {eks}
 Volume: {vol} A^3
-Pseudopotentials are used:\n{s}
-""")
+Pseudopotentials are used:\n{ppstr}
+Numerical atomic orbitals are used:\n{orbstr}
+""")        
+            pps = [pps, orbs]
             data = {"eks": eks, "volume": vol, "natom": natom}
             idx = -1 if result.get(system, None) is None \
                 or result[system].get("ppcases", None) is None \
@@ -62,9 +65,9 @@ Pseudopotentials are used:\n{s}
                 result[system]["pptests"][idx].append(data)
     return result
 
-def prepare(folder: str):
+def prepare(folder: str, calc_type: str = "relax"):
     from apns.analysis.apns2_eos_utils import EOSSingleCase, read_acwf_refdata
-    jobs = collect_jobs(folder)
+    jobs = collect(folder, calc_type)
     result = {}
     for system, data in jobs.items():
         result.setdefault(system, {}).setdefault("ppcases", system)

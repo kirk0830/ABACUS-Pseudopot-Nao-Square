@@ -2,7 +2,7 @@
 After 2024 04 30, each pseudopotential file is described by
 a series of tags. Then accessing pseudopotential file would
 be the process of roll and roll tag-filtering task"""
-PSEUDO_DIR = "./download/upf"
+PSEUDO_DIR = "../pseudopotentials"
 
 TAGRULES = PSEUDO_DIR + "/rules.json"
 """this file saves rules to add tags onto various pseudopotential

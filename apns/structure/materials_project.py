@@ -73,12 +73,14 @@ natom4 (of magmom):       {natom4}
 """)
                 if natom4 > 0:
                     structure = primitive if natom2 == natom4 else conventional
-                    assert structure.num_sites == natom4, f"ERROR: {mp_id} number of atoms not match"
+                    if structure.num_sites != natom4:
+                        print(f"SEVERE WARNING: {mp_id} number of atoms not match")
+                        magmom = [0.0] * structure.num_sites
                 else:
                     structure = primitive
                     natom_min = min([natom for natom in [natom1, natom2, natom3] if natom > 0])
                     assert structure.num_sites == natom_min
-                    magmom = [0.0] * structure.num_sites
+                    magmom = [0.0] * natom_min
                 
                 natom = structure.num_sites
                 filtered_structure.append((natom, mp_id, structure, magmom))

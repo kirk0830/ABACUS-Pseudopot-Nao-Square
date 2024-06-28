@@ -62,7 +62,7 @@ def fit_birch_murnaghan(volumes, energies, as_dict=False):
     except RuntimeError:
         data = "\n".join([f"{volumes[i]:.4f} {energies[i]:.4f}" for i in range(len(volumes))])
         print(f"Failed to fit the Birch-Murnaghan EOS. Source data:\n{data}")
-        return None, None, None, None
+        return None
     if as_dict:
         return {
             "min_volume": popt[3],

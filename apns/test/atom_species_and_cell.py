@@ -63,6 +63,16 @@ Numerical atomic orbital tags: {self.naotags}
             else:
                 yield AtomSpecies(**init_set)
 
+    def inflate(folded: dict):
+        """expand the folded dict to the full dict if there are __element__ and __tags__
+        two lists exist in folded dict. Expand to let every element in __element__ list
+        has such value. If there is multiple definition, always let the one outside 
+        __element__ overwrite the one inside __element__."""
+        plain = {k: v for k, v in folded.items() if k not in ["__element__", "__tags__"]}
+        for element in folded.get("__element__", []):
+            plain.update({element: folded.get("__tags__", [])}) if element not in plain else None
+        return plain
+
 class AtomSpecies:
     """# AtomSpecies
     AtomSpecies is a prototype decoupling static AtomSpecies information with the dynamic
@@ -380,11 +390,11 @@ class TestAtomSpeciesGenerator(unittest.TestCase):
         self.assertEqual(times, 1)
         os.remove(fdatabase)
 
-        asg = AtomSpeciesGeneartor('Si', "./download/pseudopotentials/", ["Si", "PBE", "NC", "sg15", "sr"])
+        asg = AtomSpeciesGeneartor('Si', "/root/abacus-develop/pseudopotentials/", ["Si", "PBE", "NC", "sg15", "sr"])
         times = 0
-        ref = {'/root/abacus-develop/ABACUS-Pseudopot-Nao-Square/download/pseudopotentials/sg15_oncv_upf_2020-02-06/Si_ONCV_PBE-1.2.upf', 
-               '/root/abacus-develop/ABACUS-Pseudopot-Nao-Square/download/pseudopotentials/sg15_oncv_upf_2020-02-06/Si_ONCV_PBE-1.0.upf', 
-               '/root/abacus-develop/ABACUS-Pseudopot-Nao-Square/download/pseudopotentials/sg15_oncv_upf_2020-02-06/Si_ONCV_PBE-1.1.upf'}
+        ref = {'/root/abacus-develop/pseudopotentials/sg15_oncv_upf_2020-02-06/Si_ONCV_PBE-1.2.upf', 
+               '/root/abacus-develop/pseudopotentials/sg15_oncv_upf_2020-02-06/Si_ONCV_PBE-1.0.upf', 
+               '/root/abacus-develop/pseudopotentials/sg15_oncv_upf_2020-02-06/Si_ONCV_PBE-1.1.upf'}
         result = []
         for as_ in asg():
             result.append(as_.pp)
@@ -392,6 +402,23 @@ class TestAtomSpeciesGenerator(unittest.TestCase):
         result = set(result)
         self.assertEqual(result, ref)
         self.assertEqual(times, 3)
+
+    def test_inflate(self):
+        folded = {"__element__": ["Si", "Ge"], "__tags__": ["tag1", "tag2"]}
+        plain = AtomSpeciesGeneartor.inflate(folded)
+        self.assertEqual(plain, {"Si": ["tag1", "tag2"], "Ge": ["tag1", "tag2"]})
+
+        folded = {"__element__": ["Si", "Ge"], "__tags__": ["tag1", "tag2"], "Si": ["tag3", "tag4"]}
+        plain = AtomSpeciesGeneartor.inflate(folded)
+        self.assertEqual(plain, {"Si": ["tag3", "tag4"], "Ge": ["tag1", "tag2"]})
+
+        folded = {"Si": ["tag3", "tag4"], "Ge": ["tag1", "tag2"]}
+        plain = AtomSpeciesGeneartor.inflate(folded)
+        self.assertEqual(plain, {"Si": ["tag3", "tag4"], "Ge": ["tag1", "tag2"]})
+
+        folded = {"Si": ["tag3", "tag4"], "Ge": ["tag1", "tag2"], "__element__": ["Si", "Ge"], "__tags__": ["tag1", "tag2"]}
+        plain = AtomSpeciesGeneartor.inflate(folded)
+        self.assertEqual(plain, {"Si": ["tag3", "tag4"], "Ge": ["tag1", "tag2"]})
 
 class TestCellGeneartor(unittest.TestCase):
 

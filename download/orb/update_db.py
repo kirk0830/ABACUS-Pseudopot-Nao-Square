@@ -1,7 +1,7 @@
-ORBITAL_DIR = "download/orb"
+ORBITAL_DIR = "../numerical_orbitals"
 TAGRULES = ORBITAL_DIR + "/rules.json"
 FORBDATABASE = ORBITAL_DIR + "/database.json"
-PSEUDO_DIR = "download/upf"
+PSEUDO_DIR = "../pseudopotentials"
 FPPDATABASE = PSEUDO_DIR + "/database.json"
 
 def initialize(refresh: bool = False):

@@ -17,7 +17,7 @@ def desc_equal_bulk_vs_atom(desc1: dict, desc2: dict):
 
 def pair(data: list):
     """pair the bulk and isolated atom data from
-    collect_jobs function returned value"""
+    collect function returned value"""
     
     paired = []
     # all (bulk, atom) pair should have identical sections

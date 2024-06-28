@@ -122,6 +122,14 @@ def convert_fpp_to_ppid(fpp: str):
             return f"{family} v{version} ({appendix})".replace("v ", "").replace("()", "")
     raise ValueError(f"Unrecognized pseudopotential file: {fpp}")
 
+def convert_forb_to_orbid(forb: str):
+    import os, re
+    forb = os.path.basename(forb)
+    rcut = re.search(r"\d+(\.\d+)?au", forb).group(0)
+    ecut = re.search(r"\d+(\.\d+)?Ry", forb).group(0)
+    conf = forb.split("_")[-1].split(".")[0]
+    return f"{rcut}, {ecut} ({conf})"
+
 def cal_dict_diff(desc1: dict, desc2: dict) -> dict:
     """calculate diff between two dict. For the same key, if the value is different,
     record the difference in tuple, the first element is from desc1, the second is from desc2.
@@ -182,6 +190,18 @@ def cal_desc_diff(desc1: dict, desc2: dict) -> dict:
         d = cal_dict_diff(desc1[key], desc2[key])
         diff.update({key: d}) if d else None
     return diff
+
+def stru_rev_map(structure: str, basename: bool = False):
+    """export the reverse map from file name to chemical formula"""
+    import json, os
+    with open(structure, "r") as f:
+        data = json.load(f)
+    rev_map_ = {}
+    for k, v in data.items():
+        for v_ in v:
+            f = os.path.basename(v_["file"]) if basename else v_["file"]
+            rev_map_[f] = k + f" ({f})"
+    return rev_map_
 
 import unittest
 class APNS2UtilsTest(unittest.TestCase):

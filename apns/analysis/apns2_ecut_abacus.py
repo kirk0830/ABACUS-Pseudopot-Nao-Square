@@ -1,6 +1,6 @@
 """this file is for greping and rendering svg plots of ecutwfc convergence test for new version of APNS"""
 
-def collect_jobs(folder: str):
+def collect(folder: str):
     print("* * * Collect ABACUS result * * *".center(100))
     import apns.analysis.postprocess.read_abacus_out as read_abacus_out
     import apns.pspot.parse as ppparse
@@ -80,7 +80,7 @@ if __name__ == "__main__":
     # exit()
     from apns.analysis.apns2_ecut_utils import update_ecutwfc, build_sptc_from_nested\
     , EcutSingleCase
-    collected = collect_jobs("12506574")
+    collected = collect("12506574")
     system_and_stpcs = build_sptc_from_nested(collected)
     result = {}
     for s, stpcs in system_and_stpcs.items():

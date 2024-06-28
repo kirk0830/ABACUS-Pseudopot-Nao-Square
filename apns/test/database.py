@@ -1,5 +1,7 @@
 """use function to get value from dict, to avoid unexpected change on dict
-DO NOT GET VALUE FROM DICT DIRECTLY"""
+DO NOT GET VALUE FROM DICT DIRECTLY
+
+There is also a good resources: https://pubchem.ncbi.nlm.nih.gov/periodic-table/"""
 PERIODIC_TABLE_TOFULLNAME = {
     'H': 'Hydrogen', 'He': 'Helium', 'Li': 'Lithium', 'Be': 'Beryllium', 'B': 'Boron', 'C': 'Carbon', 'N': 'Nitrogen',
     'O': 'Oxygen', 'F': 'Fluorine', 'Ne': 'Neon', 'Na': 'Sodium', 'Mg': 'Magnesium', 'Al': 'Aluminium',
