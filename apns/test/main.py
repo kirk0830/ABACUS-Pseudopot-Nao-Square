@@ -1,5 +1,6 @@
 def run(finp: str):
-    import json, os
+    import json
+    import os
     import apns.test.citation as amc
     from apns.test.abacustest import auto_api
 
@@ -9,7 +10,7 @@ def run(finp: str):
         with open(finp, "r") as f:
             inp = json.load(f)
     except json.JSONDecodeError:
-        raise ValueError("Invalid JSON format in input file")
+        raise ValueError("Invalid JSON format in input file") from None
 
     #folders = main(inp)
     folder = auto_api(inp, main(inp))

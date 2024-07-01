@@ -19,7 +19,9 @@ def initialize(orbital_dir: str = "/root/abacus-develop/numerical_orbitals",
         always take care on the returned value, because it may contain some unclassified files.
         If so, you need to manually tag them or update the rules file.
     """
-    import os, json, re
+    import os
+    import json
+    import re
     from apns.test.tag_search import TagSearcher
     
     # check if the database file exists, if not, create one
