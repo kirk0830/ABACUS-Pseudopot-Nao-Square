@@ -19,7 +19,8 @@ Example:
 
 """
 
-ABACUS_IMAGE = "registry.dp.tech/deepmodeling/abacus-intel:latest"
+#ABACUS_IMAGE = "registry.dp.tech/deepmodeling/abacus-intel:latest"
+ABACUS_IMAGE = "registry.dp.tech/dptech/abacus:3.6.4" # this is for submit large batch of jobs, but need to always update
 QE_IMAGE = "registry.dp.tech/dptech/prod-471/abacus-vasp-qe:20230116"
 VASP_IMAGE = "registry.dp.tech/dptech/prod-471/abacus-vasp-qe:20230116"
 PYTHON_IMAGE = "python:3.8"
@@ -33,27 +34,38 @@ def read_apns_inp(fname: str) -> dict:
         inp = json.load(f)
     return inp.get("abacustest", {})
 
-import time
-import apns.test.compress as amic
-def auto_api(test_setting: dict, folders: list):
+def manual_submit(username, password, project_id, ncores, memory, folders):
+    import time
     jobgroup = f"apns_{time.strftime('%Y-%m-%d_%H-%M-%S', time.localtime())}"
-    auto_submit = True
-    # get bohrium_login section, username, password and project_id all required, if not, wont run
-    auto_submit = "username" in test_setting.keys()
-    auto_submit = "password" in test_setting.keys() and auto_submit
-    auto_submit = "project_id" in test_setting.keys() and auto_submit
+    run_dft = [{"ifrun": True, "job_folders": folders, "command": ABACUS_COMMAND, "ncores": ncores, "memory": memory}]
+    param = write_abacustest_param(jobgroup_name=jobgroup, 
+                                   bohrium_login={"bohrium.account": username, "bohrium.password": password, "project_id": project_id}, 
+                                   rundft=run_dft)
+    result_folder = submit(param)
+    return result_folder
+
+def auto_api(test_setting: dict, folders: list):
+    import time
+    #import shutil
+    
+    auto_submit = test_setting["global"].get("auto_submit", False)
+    
+    jobgroup = f"apns_{time.strftime('%Y-%m-%d_%H-%M-%S', time.localtime())}"
     run_dft = [{"ifrun": True, "job_folders": folders, "command": ABACUS_COMMAND,
                 "ncores": test_setting.get("ncores", 32), "memory": test_setting.get("memory", 64)}]
     if auto_submit:
-        param = write_abacustest_param(jobgroup_name=jobgroup, bohrium_login=test_setting, rundft=run_dft)
+        param = write_abacustest_param(jobgroup_name=jobgroup, 
+                                       bohrium_login=test_setting["credentials"]["abacustest"], 
+                                       rundft=run_dft)
         result_folder = submit(param)
         return result_folder
-    else:
-        print("Job is not submitted, compress to one zip file instead")
-        fjob = f"{jobgroup}.zip"
-        amic.pack(folders, fjob)
-        os.system("rm -rf {}".format(" ".join(folders)))
-        return None
+    # else:
+    #     print("Job is not submitted, compress to one zip file instead")
+    #     fjob = f"{jobgroup}.zip"
+    #     # use shutil to do the compress
+    #     shutil.make_archive(fjob, "zip", folders)
+    #     os.system("rm -rf {}".format(" ".join(folders)))
+    #     return None
 
 def bohrium_config(**kwargs):
     """Configure Bohrium account information
@@ -65,12 +77,25 @@ def bohrium_config(**kwargs):
 
     Returns:
         bohrium settings: dict, involved in abacustest configuration
+    
+    Note:
+        However, this way is highly not recommended, because the password is stored in plain text. For abacustest, 
+        there is an alternative way in which the account and password can be read from two environment variables:
+        ```
+        export BOHRIUM_USERNAME=<bohrium-email>
+        export BOHRIUM_PASSWORD=<bohrium-password>
+        export BOHRIUM_PROJECT_ID=<bohrium-project-id>
+        ```
     """
+    import os
     # if kwargs is empty, return an empty dictionary
     if not kwargs:
         return {}
-    username = kwargs.get("username", None)
-    password = kwargs.get("password", None)
+    # if there are already set environment variables, return an empty dictionary
+    if {"BOHRIUM_USERNAME", "BOHRIUM_PASSWORD", "BOHRIUM_PROJECT_ID"}.issubset(os.environ.keys()):
+        return {} # abacustest will read from environment variables, dont worry
+    username = kwargs.get("bohrium.account", None)
+    password = kwargs.get("bohrium.password", None)
     project_id = kwargs.get("project_id", None)
     assert username and password and project_id, "Please provide Bohrium username, password, and project id."
     return {
@@ -187,6 +212,9 @@ def setup_dft(**kwargs):
     }
     if machine is not None:
         result["bohrium"] = machine
+    # on demand is always on, avoiding to be killed
+    result["bohrium"]["on_demand"] = 1
+
     if rundft:
         result["group_size"] = group_size
         result["sub_save_path"] = sub_save_path
@@ -209,6 +237,7 @@ def write_abacustest_param(jobgroup_name: str, bohrium_login: dict, save_dir: st
     Returns:
         dict: abacustest param.json contents
     """
+    import time
     save_dir = save_dir if len(save_dir) > 0 else f"abacustest-autosubmit-{time.strftime('%Y-%m-%d_%H-%M-%S', time.localtime())}"
     result = {
         "bohrium_group_name": jobgroup_name,
@@ -227,9 +256,11 @@ def write_abacustest_param(jobgroup_name: str, bohrium_login: dict, save_dir: st
     return result
 
 def submit(abacustest_param: dict) -> str:
+    import time
     fparam = f"param-{time.strftime('%Y-%m-%d_%H-%M-%S', time.localtime())}.json"
     with open(fparam, "w") as f:
         json.dump(abacustest_param, f, indent=4)
+    
     folder = abacustest_param.get("save_path", "result")
     flog = fparam.rsplit(".", 1)[0] + ".log"
     os.system(f"nohup abacustest submit -p {fparam} > {flog}&")
@@ -245,7 +276,14 @@ def abacus_default():
     keys, vals = zip(*result)
     return keys, vals
 
-def group_eos_pw_vs_lcao(out_dir: str):
+####
+# Convert APNS output collection to abacustest reuse model
+####
+
+####
+# Reuse: 011_LcaoVSPw_eos
+####
+def _group_eos_pw_vs_lcao(out_dir: str):
     """For reuse mode, pack up the target folder to the format that abacustest support.
     For eos test between ps and lcao, should do things following:
     For each system, a folder created, INPUT, KPT and STRU files are inside.
@@ -291,7 +329,7 @@ def group_eos_pw_vs_lcao(out_dir: str):
     print(f"ABACUSTEST: {len(groups)} groups are generated.")
     return groups
 
-def pack_eos_pw_vs_lcao(grouped, src, dst):
+def _pack_eos_pw_vs_lcao(grouped, src, dst):
     """take the grouped folders and pack them into the format that abacustest support."""
     import os
     import shutil
@@ -332,8 +370,8 @@ def reuse_eos_pw_vs_lcao(out_dir: str, dst: str = "abacustest_reuse_eos_pw_vs_lc
     Returns:
         pporb (dict): the pseudopotential and orbital information, in the format of {"element": {"pp": "pp_file", "orb": ["orb_file1", "orb_file2", ...]}}
     """
-    grouped = group_eos_pw_vs_lcao(out_dir)
-    pporb = pack_eos_pw_vs_lcao(grouped, out_dir, dst)
+    grouped = _group_eos_pw_vs_lcao(out_dir)
+    pporb = _pack_eos_pw_vs_lcao(grouped, out_dir, dst)
     return pporb
 
 import unittest
@@ -460,4 +498,23 @@ class TestABACUSTest(unittest.TestCase):
 
 if __name__ == "__main__":
     #unittest.main(exit=False)
-    reuse_eos_pw_vs_lcao("./output")
+    #reuse_eos_pw_vs_lcao("./output")
+    import os, time
+    src = "/root/documents/simulation/orbgen/apns-orbgen-project/nelec_delta_test/lcao-v2.0"
+    jobgroup = "u-nspin2_lcao-v2.0"
+    fgroup = os.path.join(src, jobgroup)
+    os.chdir(fgroup)
+    folders = os.listdir()
+    manual_submit("_", "_", "28682", 32, 64, folders)
+    time.sleep(10)
+    print(f"ABACUSTEST: Jobgroup {jobgroup} submitted.")
+    exit()
+    jobgroups = os.listdir(src)
+    for jobgroup in jobgroups:
+        fgroup = os.path.join(src, jobgroup)
+        os.chdir(fgroup)
+        folders = os.listdir()
+        manual_submit("_", "_", "28682", 32, 64, folders)
+        time.sleep(10)
+        print(f"ABACUSTEST: Jobgroup {jobgroup} submitted.")
+        os.chdir(src)

@@ -1,6 +1,6 @@
 """this file is for greping and rendering svg plots of ecutwfc convergence test for new version of APNS"""
 
-def collect_jobs(folder: str):
+def collect(folder: str):
     print("* * * Collect ABACUS result * * *".center(100))
     import apns.analysis.postprocess.read_abacus_out as read_abacus_out
     import apns.pspot.parse as ppparse
@@ -37,8 +37,8 @@ Pseudopotentials are used:\n{s}
 """)
                 data = {"ecutwfc": ecutwfc, "eks": eks, "pressure": pressure, "istate": bs, "natom": natom, "z_valence": zvals}
                 # band structure is not easy to print, therefore omitted
-                idx = -1 if result.get(system, None) is None \
-                    or result[system].get("ppcases", None) is None \
+                idx = -1 if result.get(system) is None \
+                    or result[system].get("ppcases") is None \
                         or result[system]["ppcases"].count(pps) == 0 \
                     else result[system]["ppcases"].index(pps)
                 if idx == -1:
@@ -78,9 +78,8 @@ if __name__ == "__main__":
     # with open(f"{element}.md", "w") as f:
     #     f.write(html)
     # exit()
-    from apns.analysis.apns2_ecut_utils import update_ecutwfc, build_sptc_from_nested\
-    , EcutSingleCase
-    collected = collect_jobs("12506574")
+    from apns.analysis.apns2_ecut_utils import update_ecutwfc, build_sptc_from_nested
+    collected = collect("12506574")
     system_and_stpcs = build_sptc_from_nested(collected)
     result = {}
     for s, stpcs in system_and_stpcs.items():

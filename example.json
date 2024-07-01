@@ -12,6 +12,7 @@
         "abacustest": {
             "bohrium.account": "register your account on Bohrium: https://bohrium.dp.tech/",
             "bohrium.password": "then you type your password here",
+            "project_id": "your project id where fees will be charged",
             "ncores": 32,
             "memory": 64
         }
@@ -20,11 +21,12 @@
         {
             "ecutwfc": 100,
             "calculation": "scf",
-            "basis_type": "pw",
+            "basis_type": "lcao",
             "cal_force": 1,
             "cal_stress": 1,
-            "nspin": 1,
-            "symmetry": 1
+            "nspin": 2,
+            "symmetry": 1,
+            "nelec_delta": [0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0]
         },
         {
             "ecutwfc": [20, 30, 40, 50, 60, 70, 80, 90, 100, 150, 200],
@@ -93,16 +95,8 @@
             "Sr": [["US"], null]
         },
         {
-            "H": [["sg15", "1.0", "sr"], ["10au", "SimulatedAnnealing"]],
-            "He": [["sg15", "1.0", "sr"], ["10au", "SimulatedAnnealing"]],
-            "Li": [["sg15", "1.0", "sr"], ["10au", "SimulatedAnnealing"]],
-            "Be": [["sg15", "1.0", "sr"], ["10au", "SimulatedAnnealing"]],
-            "B": [["sg15", "1.0", "sr"], ["10au", "SimulatedAnnealing"]],
-            "C": [["sg15", "1.0", "sr"], ["10au", "SimulatedAnnealing"]],
-            "N": [["sg15", "1.0", "sr"], ["10au", "SimulatedAnnealing"]],
-            "O": [["sg15", "1.0", "sr"], ["10au", "SimulatedAnnealing"]],
-            "F": [["sg15", "1.0", "sr"], ["10au", "SimulatedAnnealing"]],
-            "Ne": [["sg15", "1.0", "sr"], ["10au", "SimulatedAnnealing"]]
+            "__element__": ["Ti", "Cu"],
+            "__tags__": [["sg15", "1.0", "sr"], ["pytorch.SWAT"]]
         }
     ],
     "strusets": [
@@ -110,16 +104,8 @@
             "calculator": "abacus", "calcset": 0,
             "atomset": 2,
             "database": "materials_project",
-            "desc": [["search", "H", [1.0], [0.1]],
-                     ["search", "He", [1.0], [0.1]],
-                     ["search", "Li", [1.0], [0.1]],
-                     ["search", "Be", [1.0], [0.1]],
-                     ["search", "B", [1.0], [0.1]],
-                     ["search", "C", [1.0], [0.1]],
-                     ["search", "N", [1.0], [0.1]],
-                     ["search", "O", [1.0], [0.1]],
-                     ["search", "F", [1.0], [0.1]],
-                     ["search", "Ne", [1.0], [0.1]]]
+            "desc": [["search", "Ti", [1.0], [0.1]],
+                     ["search", "Cu", [1.0], [0.1]]]
         }
     ]
 }

@@ -5,7 +5,7 @@ def is_outdir(folder: str):
     b = b and os.path.exists(os.path.join(folder, "pwscf.in"))
     return b
 
-def collect_jobs(folder: str):
+def collect(folder: str):
     print("* * * Collect QESPRESSO result * * *".center(100))
     import apns.analysis.postprocess.read_qespresso_out as read_qe
     from apns.analysis.apns2_utils import read_apnsjob_desc, convert_fpp_to_ppid
@@ -30,8 +30,8 @@ Volume: {vol} A^3
 Pseudopotentials are used:\n{s}
 """)
             data = {"eks": eks, "volume": vol, "natom": natom}
-            idx = -1 if result.get(system, None) is None \
-                or result[system].get("ppcases", None) is None \
+            idx = -1 if result.get(system) is None \
+                or result[system].get("ppcases") is None \
                     or result[system]["ppcases"].count(pps) == 0 \
                 else result[system]["ppcases"].index(pps)
             if idx == -1:
@@ -43,7 +43,7 @@ Pseudopotentials are used:\n{s}
 
 def prepare(folder: str):
     from apns.analysis.apns2_eos_utils import EOSSingleCase, read_acwf_refdata
-    jobs = collect_jobs(folder)
+    jobs = collect(folder)
     result = {}
     for system, data in jobs.items():
         result.setdefault(system, {}).setdefault("ppcases", system)

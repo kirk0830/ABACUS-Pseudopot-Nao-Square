@@ -118,6 +118,18 @@ def convert_fpp_to_ppid(fpp: str):
             return f"{family} v{version} ({appendix})".replace("v ", "").replace("()", "")
     raise ValueError(f"Unrecognized pseudopotential file: {fpp}")
 
+def convert_forb_to_orbid(forb: str):
+    import os, re
+    forb = os.path.basename(forb)
+    rcut_match = re.search(r"\d+(\.\d+)?au", forb)
+    ecut_match = re.search(r"\d+(\.\d+)?Ry", forb)
+    if not rcut_match or not ecut_match:
+        raise ValueError("Invalid format for forbidden string")
+    rcut = rcut_match.group(0)
+    ecut = ecut_match.group(0)
+    conf = forb.split("_")[-1].split(".")[0]
+    return f"{rcut}, {ecut} ({conf})"
+
 def cal_dict_diff(desc1: dict, desc2: dict) -> dict:
     """calculate diff between two dict. For the same key, if the value is different,
     record the difference in tuple, the first element is from desc1, the second is from desc2.
@@ -178,6 +190,25 @@ def cal_desc_diff(desc1: dict, desc2: dict) -> dict:
         d = cal_dict_diff(desc1[key], desc2[key])
         diff.update({key: d}) if d else None
     return diff
+
+def stru_rev_map(structure: str, basename: bool = False):
+    """export the reverse map from file name to chemical formula"""
+    import json, os
+    try:
+        with open(structure, "r") as f:
+            data = json.load(f)
+    except FileNotFoundError:
+        print(f"File not found: {structure}")
+        return {}
+    except json.JSONDecodeError:
+        print(f"Invalid JSON format in file: {structure}")
+        return {}
+    rev_map_ = {}
+    for k, v in data.items():
+        for v_ in v:
+            f = os.path.basename(v_["file"]) if basename else v_["file"]
+            rev_map_[f] = k + f" ({f})"
+    return rev_map_
 
 import unittest
 class APNS2UtilsTest(unittest.TestCase):

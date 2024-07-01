@@ -2,13 +2,14 @@
 # utilties for calculating the band structure similarity between two band structures
 ####
 
-def cal_nelec(occ: list, kwt: list) -> float:
+def cal_nelec(occ: list, kwt: list = None) -> float:
     """integrate the occupation number over kpoints.
     Args:
         occ (list): the occupation number, in the form of [ispin][ik][iband]
-        kwt (list): the weight of kpoints, in the form of [ik]
+        kwt (list, optional): the weight of kpoints, in the form of [ik]. Defaults to a list of ones if not provided.
     """
     nelec = 0.0
+    kwt = kwt or [1.0] * len(occ[0])
     for i in range(len(occ)): # loop over spin
         for j in range(len(occ[i])): # loop over kpoints
             nelec += sum([occ[i][j][k] for k in range(len(occ[i][j]))]) * kwt[j]
@@ -59,7 +60,10 @@ def delta_band(band_energy1, band_energy2, n_elec, wk, smearing, smearing_sigma,
     # convert to arrays for convenience
     be1 = np.array(band_energy1)
     be2 = np.array(band_energy2)
-    wk = np.array(wk).reshape(1, len(wk), 1)
+    
+    # convert spinless weight to the one with spin
+    nspin = len(be1)
+    wk = np.array(wk).reshape(1, len(wk), 1) * (2 / nspin)
 
     n_elec1, n_elec2 = n_elec if isinstance(n_elec, tuple) else (n_elec, n_elec)
 
@@ -76,6 +80,8 @@ def delta_band(band_energy1, band_energy2, n_elec, wk, smearing, smearing_sigma,
     res = minimize_scalar(lambda omega: np.sum(wk * f_avg * (be1 - be2 + omega)**2), \
             (-10, 10), method='brent')
 
+    omega = res.x
     eta = np.sqrt(res.fun / np.sum(wk * f_avg))
+    eta_max = np.max(np.abs(be1 - be2 + omega))
 
-    return eta if not return_all else (eta, efermi1, efermi2, res.x)
+    return (eta, eta_max) if not return_all else (eta, eta_max, efermi1, efermi2, omega)

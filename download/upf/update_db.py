@@ -2,40 +2,30 @@
 After 2024 04 30, each pseudopotential file is described by
 a series of tags. Then accessing pseudopotential file would
 be the process of roll and roll tag-filtering task"""
-PSEUDO_DIR = "./download/upf"
 
-TAGRULES = PSEUDO_DIR + "/rules.json"
-"""this file saves rules to add tags onto various pseudopotential
-files. The rules are in the form of a dictionary, where the value
-of key `rules` is a list of dictionaries, each dictionary contains
-`re.folder`, `re.file` and `tags` keys. The `re.folder` and `re.file`
-are regular expressions to match the folder and file name, respectively.
-If two regular expressions are matched, the tags will be added to the
-pseudopotential file. The `tags` key is a list of tags to be added."""
-FDATABASE = PSEUDO_DIR + "/database.json"
-"""this file to save all descriptions of pseudopotential files
-is hard-coded as database.json"""
-
-
-def initialize(refresh: bool = False) -> list[str]:
+def initialize(pseudo_dir: str = "/root/abacus-develop/pseudopotentials", 
+               refresh: bool = False) -> list[str]:
     import os
     import json
     import apns.pspot.parse as ampp
     import apns.pspot.parse_special.GBRV_Vanderbilt as amppsg
     """initialize will create a database file if not exists"""
-    if not os.path.exists(FDATABASE):
-        with open(FDATABASE, "w") as f:
+    fdb = os.path.join(pseudo_dir, "database.json")
+    if not os.path.exists(fdb):
+        with open(fdb, "w") as f:
             json.dump({}, f)
     # refresh the database with TAGRULES
     if not refresh:
         return []
     upfs_unclassified = []
-    with open(FDATABASE) as f:
+    with open(fdb) as f:
         database = json.load(f)
-    if os.path.exists(TAGRULES):
-        with open(TAGRULES) as f:
+    
+    ftag = os.path.join(pseudo_dir, "rules.json")
+    if os.path.exists(ftag):
+        with open(ftag) as f:
             rules = json.load(f)
-        for root, _, files in os.walk(PSEUDO_DIR): # big triangle code is a bad practice...
+        for root, _, files in os.walk(pseudo_dir): # big triangle code is a bad practice...
             for file in files:
                 if file.lower().endswith(".upf"): # if there is any pseudopotential file, then add tags
                     key = os.path.abspath(os.path.join(root, file)) # key is directly the full path of file
@@ -59,9 +49,9 @@ def initialize(refresh: bool = False) -> list[str]:
                                 database[key] = list(set(database[key] + tags))
                     upfs_unclassified.append(key) if key not in database else None
         # save the database
-        with open(FDATABASE, "w") as f:
+        with open(fdb, "w") as f:
             json.dump(database, f, indent=4)
-        complete_tag(["fr", "full-relativistic"], ["sr", "scalar-relativistic"], FDATABASE)
+        complete_tag(["fr", "full-relativistic"], ["sr", "scalar-relativistic"], fdb)
     else:
         raise FileNotFoundError("Rules file not found")
     print(f"""there are {len(upfs_unclassified)} unclassified pseudopotential files, see returned value for details.
@@ -118,5 +108,5 @@ if __name__ == "__main__":
     # print(fail_upfs)
     # exit()
     import apns.test.tag_search as ts
-    searcher = ts.TagSearcher(FDATABASE)
+    searcher = ts.TagSearcher("/root/abacus-develop/pseudopotentials")
     print("\n".join(searcher(False, False, "Sr", "sr", "DOJO")))

@@ -452,56 +452,124 @@ def read_pressure_fromlog(flog):
     return None
 
 """File: STRU/STRU_ION_D"""
-def read_stru(fstruiond):
-    """STRU_ION_D file is generated after relax, it for instance like:
-    ```plaintext
-    ATOMIC_SPECIES
-    Si 28.0855 Si_ONCV_PBE-1.0.upf upf201
+def _parse_coordinate_line(line):
+    '''
+    Parses a coordinate line (which may include extra parameters) in the ATOMIC_POSITIONS block.
 
-    LATTICE_CONSTANT
-    1.92678975467
+    A coordinate line always contains the x, y, z coordinates of an atom, and may also include
+        - whether an atom is frozen in MD or relaxation
+        - initial velocity of an atom in MD or relaxation
+        - magnetic moment of an atom
 
-    LATTICE_VECTORS
-        3.8492784000     0.0000000000     0.0000000000 #latvec1
-        1.9246390700     3.3335741200     0.0000000000 #latvec2
-        1.9246388000     1.1111903900     3.1429226100 #latvec3
+    See https://abacus.deepmodeling.com/en/latest/advanced/input_files/stru.html#More-Key-Words
+    for details.
 
-    ATOMIC_POSITIONS
-    Direct
+    '''
+    fields = line.split()
+    result = { 'coord' : [float(x) for x in fields[0:3]] }
 
-    Si #label
-    0 #magnetism
-    2 #number of atoms
-        0.8750000000     0.8750000000     0.8750000000 m  1  1  1
-        0.1250000000     0.1250000000     0.1250000000 m  1  1  1
-    ```
-    """
-    with open(fstruiond, "r") as f:
-        lines = [line.strip() for line in f.readlines()]
-    
-    def read_lattice_constant(lines):
-        for i, line in enumerate(lines):
-            if line.startswith("LATTICE_CONSTANT"):
-                return float(lines[i+1])
-        return None
+    idx = 3
+    while idx < len(fields):
+        if fields[idx].isdigit(): # no keyword, 0/1 -> frozen atom
+            result['m'] = [int(x) for x in fields[idx:idx+3]]
+            idx += 3
+        elif fields[idx] == 'm': # frozen atom
+            result['m'] = [int(x) for x in fields[idx+1:idx+4]]
+            idx += 4
+        elif fields[idx] in ['v', 'vel', 'velocity']: # initial velocity
+            result['v'] = [float(x) for x in fields[idx+1:idx+4]]
+            idx += 4
+        elif fields[idx] in ['mag', 'magmom']:
+            '''
+            here we assume that frozen atom info cannot be placed after a collinear mag info without a keyword
+            i.e., the following coordinate line
+                0.0 0.0 0.0 mag 1.0 0 0 0
+            is not allowed; one must explicitly specify 'm' in this case:
+                0.0 0.0 0.0 mag 1.0 m 0 0 0
 
-    def read_lattice_vectors(lines):
-        for i, line in enumerate(lines):
-            if line.startswith("LATTICE_VECTORS"):
-                return np.array([line.split()[:3] for line in lines[i+1:i+4]], dtype=np.float32)
-        return None
+            '''
+            if idx + 2 < len(fields) and fields[idx+2] == 'angle1':
+                result['mag'] = ('Spherical', [float(fields[idx+1]), float(fields[idx+3]), float(fields[idx+5])])
+                idx += 6
+            elif idx + 2 < len(fields) and fields[idx+2][0].isdigit():
+                result['mag'] = ('Cartesian', [float(fields[idx+1]), float(fields[idx+2]), float(fields[idx+3])])
+                idx += 4
+            else: # collinear
+                result['mag'] = float(fields[idx+1])
+                idx += 2
+        else:
+            raise ValueError('Error: unknown keyword %s'%fields[idx])
 
-    return {"lattice_constant": read_lattice_constant(lines),
-            "lattice_vectors": read_lattice_vectors(lines)}
+    return result
+
+def _atomic_positions_gen(lines):
+    '''
+    Iteratively generates info per species from the ATOMIC_POSITIONS block.
+
+    '''
+    natom = int(lines[2])
+    yield { 'symbol': lines[0], 'mag_each': float(lines[1]), 'natom': natom, \
+            'atom': [ _parse_coordinate_line(line) for line in lines[3:3+natom] ] }
+    if len(lines) > 3 + natom:
+        yield from _atomic_positions_gen(lines[3+natom:])
+
+def read_stru(fpath):
+    '''
+    Builds a STRU dict from a ABACUS STRU file.
+
+    Returns
+    -------
+        A dict containing the following keys-value pairs:
+        'species' : list of dict
+            List of atomic species. Each dict contains 'symbol', 'mass', 'pp_file',
+            and optionally 'pp_type'.
+        
+    '''
+    block_title = ['ATOMIC_SPECIES', 'NUMERICAL_ORBITAL', 'LATTICE_CONSTANT', 'LATTICE_PARAMETER', \
+            'LATTICE_VECTORS', 'ATOMIC_POSITIONS']
+
+    _trim = lambda line: line.split('#')[0].split('//')[0].strip(' \t\n')
+    with open(fpath, 'r') as f:
+        lines = [_trim(line).replace('\t', ' ') for line in f.readlines() if len(_trim(line)) > 0]
+
+    # break the content into blocks
+    delim = [i for i, line in enumerate(lines) if line in block_title] + [len(lines)]
+    blocks = { lines[delim[i]] : lines[delim[i]+1:delim[i+1]] for i in range(len(delim) - 1) }
+
+    stru = {}
+    #============ LATTICE_CONSTANT/PARAMETER/VECTORS ============
+    stru['lat'] = {'const': float(blocks['LATTICE_CONSTANT'][0])}
+    if 'LATTICE_VECTORS' in blocks:
+        stru['lat']['vec'] = [[float(x) for x in line.split()] for line in blocks['LATTICE_VECTORS']]
+    elif 'LATTICE_PARAMETER' in blocks:
+        stru['lat']['param'] = [float(x) for x in blocks['LATTICE_PARAMETERS'].split()]
+
+    #============ ATOMIC_SPECIES ============
+    stru['species'] = [ dict(zip(['symbol', 'mass', 'pp_file', 'pp_type'], line.split())) for line in blocks['ATOMIC_SPECIES'] ]
+    for s in stru['species']:
+        s['mass'] = float(s['mass'])
+
+    #============ NUMERICAL_ORBITAL ============
+    if 'NUMERICAL_ORBITAL' in blocks:
+        for i, s in enumerate(stru['species']):
+            s['orb_file'] = blocks['NUMERICAL_ORBITAL'][i]
+
+    #============ ATOMIC_POSITIONS ============
+    stru['coord_type'] = blocks['ATOMIC_POSITIONS'][0]
+    index = { s['symbol'] : i for i, s in enumerate(stru['species']) }
+    for ap in _atomic_positions_gen(blocks['ATOMIC_POSITIONS'][1:]):
+        stru['species'][index[ap['symbol']]].update(ap)
+
+    return stru
 
 """File: STRU/STRU_ION_D"""
 def read_volume_fromstru(fstruiond, unit = "Bohr"):
 
     result = read_stru(fstruiond)
-    lattice_vectors = result["lattice_vectors"] # in angstrom
-    lattice_constant = result["lattice_constant"] # in Bohr/angstrom * multiplier
+    lattice_vectors = result["lat"]["vec"] # in angstrom
+    lattice_constant = result["lat"]["const"] # in Bohr/angstrom * multiplier
 
-    lv_inbohr = lattice_vectors * lattice_constant
+    lv_inbohr = np.array(lattice_vectors) * lattice_constant
     volume = np.linalg.det(lv_inbohr)*unit_conversion(1.0, "Bohr", unit)**3
     return volume
 
@@ -515,13 +583,24 @@ class ReadAbacusOutTest(unittest.TestCase):
     def test_read_volume_fromstru(self):
         fstruiond = "STRU_ION_D"
         with open(fstruiond, "w") as f:
-            f.write("""LATTICE_CONSTANT
+            f.write("""
+ATOMIC_SPECIES
+Si 28.0855 Si_ONCV_PBE-1.0.upf upf201
+                    
+LATTICE_CONSTANT
 1.0
                     
 LATTICE_VECTORS
 1.0 0.0 0.0
 0.0 1.0 0.0
 0.0 0.0 1.0
+                    
+ATOMIC_POSITIONS
+Direct
+Si
+0.00
+1
+0.00 0.00 0.00
 """)
         result = read_volume_fromstru(fstruiond)
         result_inangstrom = read_volume_fromstru(fstruiond, "A")
@@ -585,10 +664,17 @@ Si #label
 """)
         result = read_stru(fstruiond)
         os.remove(fstruiond)
-        self.assertAlmostEqual(result["lattice_constant"], 1.92678975467, delta=1e-6)
-        self.assertAlmostEqual(result["lattice_vectors"][0, 0], 3.8492784000, delta=1e-6)
-        self.assertAlmostEqual(result["lattice_vectors"][1, 1], 3.3335741200, delta=1e-6)
-        self.assertAlmostEqual(result["lattice_vectors"][2, 2], 3.1429226100, delta=1e-6)
+        ref = {'lat': {'const': 1.92678975467, 
+                       'vec': [[3.8492784, 0.0, 0.0], 
+                               [1.92463907, 3.33357412, 0.0], 
+                               [1.9246388, 1.11119039, 3.14292261]]},
+                        'species': [
+                            {'symbol': 'Si', 'mass': 28.0855, 'pp_file': 'Si_ONCV_PBE-1.0.upf', 'pp_type': 'upf201', 'mag_each': 0.0, 'natom': 2, 'atom': [{'coord': [0.875, 0.875, 0.875], 'm': [1, 1, 1]},
+                                                                                                                                                           {'coord': [0.125, 0.125, 0.125], 'm': [1, 1, 1]}]
+                            }
+                        ], 
+                        'coord_type': 'Direct'}
+        self.assertEqual(result, ref)
 
     def test_unit_conversion(self):
         self.assertAlmostEqual(unit_conversion(1.0, "eV", "Ry"), 1/13.6)

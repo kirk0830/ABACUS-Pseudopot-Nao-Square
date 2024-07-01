@@ -5,7 +5,7 @@ def is_outdir(folder: str):
     b = b and os.path.exists(os.path.join(folder, "pwscf.in"))
     return b
 
-def collect_jobs(folder: str):
+def collect(folder: str):
     print("* * * Collect QESPRESSO result * * *".center(100))
     import apns.analysis.postprocess.read_qespresso_out as read_qe
     from apns.analysis.apns2_utils import read_apnsjob_desc, convert_fpp_to_ppid
@@ -41,8 +41,8 @@ Pseudopotentials are used:\n{s}
 """)
             data = {"ecutwfc": ecutwfc, "eks": eks, "pressure": press, "istate": bs,
                     "natom": natom, "z_valence": zvals}
-            idx = -1 if result.get(system, None) is None \
-                or result[system].get("ppcases", None) is None \
+            idx = -1 if result.get(system) is None \
+                or result[system].get("ppcases") is None \
                     or result[system]["ppcases"].count(pps) == 0 \
                 else result[system]["ppcases"].index(pps)
             if idx == -1:
@@ -65,7 +65,7 @@ if __name__ == "__main__":
     #     f.write(html)
     # exit()
     from apns.analysis.apns2_ecut_utils import build_sptc_from_nested
-    collected = collect_jobs("12588486")
+    collected = collect("12588486")
     system_and_stpcs = build_sptc_from_nested(collected)
     result = {}
     for s, stpcs in system_and_stpcs.items():

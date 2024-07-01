@@ -20,24 +20,9 @@
                      ["2.1", "bfgs"]]
         },
         {
-            "re.folder": "occ\\.occ\\.occ",
+            "re.folder": "20240618",
             "re.file": "^([A-Z][a-z]?)(_gga_\\d+(\\.\\d+)?au_\\d+(\\.\\d+)?Ry.*\\.orb)$",
-            "tags": ["occ.occ.occ"]
-        },
-        {
-            "re.folder": "occ\\.occ\\.all",
-            "re.file": "^([A-Z][a-z]?)(_gga_\\d+(\\.\\d+)?au_\\d+(\\.\\d+)?Ry.*\\.orb)$",
-            "tags": ["occ.occ.all"]
-        },
-        {
-            "re.folder": "short\\-sp",
-            "re.file": "^([A-Z][a-z]?)(_gga_\\d+(\\.\\d+)?au_\\d+(\\.\\d+)?Ry.*\\.orb)$",
-            "tags": ["short-sp"]
-        },
-        {
-            "re.folder": "\\-monomer",
-            "re.file": "^([A-Z][a-z]?)(_gga_\\d+(\\.\\d+)?au_\\d+(\\.\\d+)?Ry.*\\.orb)$",
-            "tags": ["monomer"]
+            "tags": ["20240618"]
         }
     ]
 }

@@ -1,10 +1,21 @@
 def run(finp: str):
     import json
+    import os
     import apns.test.citation as amc
-    with open(finp, "r") as f:
-        inp = json.load(f)
-    main(inp)
+    from apns.test.abacustest import auto_api
+
+    if not os.path.exists(finp):
+        raise FileNotFoundError(f"Input file not found: {finp}")
+    try:
+        with open(finp, "r") as f:
+            inp = json.load(f)
+    except json.JSONDecodeError:
+        raise ValueError("Invalid JSON format in input file") from None
+
+    #folders = main(inp)
+    folder = auto_api(inp, main(inp))
     amc.citation()
+    return folder
 
 def main(inp: dict):
     # then collect structures, update the descriptor in inp
@@ -34,7 +45,7 @@ Number of structure descriptors: {len(struset["desc"])}
         asgens = [struparam.AtomSpeciesGeneartor(symbol=s, 
                   pseudo_dir=inp["global"].get("pseudo_dir", "."), pptags=tags[0], 
                   orbital_dir=inp["global"].get("orbital_dir", "."), naotags=tags[1]) \
-                  for s, tags in inp["atomsets"][atomset].items()]
+                  for s, tags in struparam.AtomSpeciesGeneartor.inflate(inp["atomsets"][atomset]).items()]
         # connect the asgens with converged ecutwfc (if possible), to support the arg `ecutwfc = "auto"`
         if software == "abacus":
             for asgen in asgens: 
