@@ -34,10 +34,18 @@ def read_apns_inp(fname: str) -> dict:
         inp = json.load(f)
     return inp.get("abacustest", {})
 
+def abacus_command(run_abacus: str = "abacus", 
+                   stdout: str = "out.log", 
+                   omp_num_threads: int = 1,
+                   mpi_np: int = 16) -> str:
+    return f"OMP_NUM_THREADS={omp_num_threads} mpirun -n {mpi_np} {run_abacus} | tee {stdout}"
+
 def manual_submit(username, password, project_id, ncores, memory, folders):
     import time
     jobgroup = f"apns_{time.strftime('%Y-%m-%d_%H-%M-%S', time.localtime())}"
-    run_dft = [{"ifrun": True, "job_folders": folders, "command": ABACUS_COMMAND, "ncores": ncores, "memory": memory}]
+    run_dft = [{"ifrun": True, "job_folders": folders, 
+                "command": abacus_command("abacus", "out.log", 1, int(ncores/2)), # because hyperthreading... the c32 just means 16 cores
+                "ncores": ncores, "memory": memory}]
     param = write_abacustest_param(jobgroup_name=jobgroup, 
                                    bohrium_login={"bohrium.account": username, "bohrium.password": password, "project_id": project_id}, 
                                    rundft=run_dft)
@@ -50,9 +58,11 @@ def auto_api(test_setting: dict, folders: list):
     
     auto_submit = test_setting["global"].get("auto_submit", False)
     
+    ncores = test_setting.get("ncores", 32)
     jobgroup = f"apns_{time.strftime('%Y-%m-%d_%H-%M-%S', time.localtime())}"
-    run_dft = [{"ifrun": True, "job_folders": folders, "command": ABACUS_COMMAND,
-                "ncores": test_setting.get("ncores", 32), "memory": test_setting.get("memory", 64)}]
+    run_dft = [{"ifrun": True, "job_folders": folders, 
+                "command": abacus_command("abacus", "out.log", 1, int(ncores/2)), # because hyperthreading... the c32 just means 16 cores
+                "ncores": ncores, "memory": test_setting.get("memory", 64)}]
     if auto_submit:
         param = write_abacustest_param(jobgroup_name=jobgroup, 
                                        bohrium_login=test_setting["credentials"]["abacustest"], 
@@ -500,21 +510,22 @@ if __name__ == "__main__":
     #unittest.main(exit=False)
     #reuse_eos_pw_vs_lcao("./output")
     import os, time
-    src = "/root/documents/simulation/orbgen/apns-orbgen-project/nelec_delta_test/lcao-v2.0"
-    jobgroup = "u-nspin2_lcao-v2.0"
-    fgroup = os.path.join(src, jobgroup)
-    os.chdir(fgroup)
+    #src = "/root/documents/simulation/orbgen/apns-orbgen-project/ecoh_test/lcao-v2.1/"
+    #jobgroup = "long-sp_ecohtest_lcao-v2.1"
+    #fgroup = os.path.join(src, jobgroup)
+    #os.chdir(fgroup)
+    os.chdir("/root/documents/simulation/abacus/test2/")
     folders = os.listdir()
     manual_submit("_", "_", "28682", 32, 64, folders)
+    #print(f"ABACUSTEST: Jobgroup {jobgroup} submitted.")
     time.sleep(10)
-    print(f"ABACUSTEST: Jobgroup {jobgroup} submitted.")
     exit()
-    jobgroups = os.listdir(src)
+    jobgroups = [j for j in os.listdir(src) if os.path.isdir(os.path.join(src, j))]
     for jobgroup in jobgroups:
         fgroup = os.path.join(src, jobgroup)
         os.chdir(fgroup)
         folders = os.listdir()
-        manual_submit("_", "_", "28682", 32, 64, folders)
-        time.sleep(10)
+        manual_submit("_", "_", "28682", 2, 16, folders)
         print(f"ABACUSTEST: Jobgroup {jobgroup} submitted.")
+        time.sleep(10)
         os.chdir(src)

@@ -39,7 +39,7 @@ def cal_wrt_pw(pw, lcao, smearing: str = "gaussian", sigma: float = 0.01, efermi
     ```
     """
 
-    nelec_thr = 1e-6
+    nelec_thr = 1e-4
 
     # Python basic module
     import os
@@ -67,8 +67,22 @@ def cal_wrt_pw(pw, lcao, smearing: str = "gaussian", sigma: float = 0.01, efermi
         nelec_lcao = cal_nelec(occ_lcao)
         assert abs(nelec_lcao - nelec_pw) <= nelec_thr, \
             f"number of electrons should be the same (at precision {nelec_thr}): {nelec_pw} != {nelec_lcao}"
-
-        eta, eta_max = delta_band(ekb_pw, ekb_lcao, nelec_pw, kwt, smearing, sigma, efermi_shift)
+        try:
+            eta, eta_max = delta_band(ekb_pw, ekb_lcao, nelec_pw, kwt, smearing, sigma, efermi_shift)
+        except TypeError as e:
+            nbnd_pw = len(ekb_pw[0][0])
+            nbnd_lcao = len(ekb_lcao[0][0])
+            if nbnd_pw > nbnd_lcao:
+                print(f"""{e} in calculating eta for
+PW: {desc_pw['CellGenerator']['config']}, with 
+LCAO: {desc_lcao['CellGenerator']['config']}
+calculation. This is always because of default nbands setting strategy inconsistent between PW and LCAO that
+nbands must be smaller than or equal to the number of basis functions. Will truncate PW nbands to match LCAO
+nbands.""")
+                ekb_pw = [[band[:nbnd_lcao] for band in spin] for spin in ekb_pw]
+                eta, eta_max = delta_band(ekb_pw, ekb_lcao, nelec_pw, kwt, smearing, sigma, efermi_shift)
+                continue
+        eta, eta_max = float(eta), float(eta_max)
 
         # save eta
         # basic information
@@ -100,9 +114,9 @@ def cal_wrt_pw(pw, lcao, smearing: str = "gaussian", sigma: float = 0.01, efermi
             iorbs = out[system]["pptests"][ipps]["orbcases"].index(orbs)
             
         if iorbs == -1:
-            out[system]["pptests"][ipps]["orbtests"].append([(eta, eta_max)])
+            out[system]["pptests"][ipps]["orbtests"].append([[eta, eta_max]])
         else:
-            out[system]["pptests"][ipps]["orbtests"][iorbs].append((eta, eta_max))
+            out[system]["pptests"][ipps]["orbtests"][iorbs].append([eta, eta_max])
 
     return out
 
@@ -127,14 +141,127 @@ def print_postdft(result: dict):
                 print(f"      Eta: {etas}")
                 print(f"      Eta_max: {eta_maxs}")
 
+def _chessboard(fname: str, ppcase: str, pptest: dict, subplots: list = ["eta", "etamax"], scale: float = 1):
+    """draw a chessboard plot for the eta and eta_max values for one ppcase.
+    will first get all numerical orbital information and extract rcut, orbconf two dimensional data, 
+    then eta and eta_max will be represented by color
+
+    Args:
+        ppcase: dict, orbtest data of one pseudopotential, in which orbcases and orbtests must be included  
+        scale: float, scale of the plot, default is 1
+    
+    Returns:
+        None
+    
+    """
+    import os, re
+    import numpy as np
+    import matplotlib.pyplot as plt
+
+    assert "orbcases" and "orbtests" in pptest, "pptest should have orbcases and orbtests"
+    orbcases = pptest["orbcases"]
+    orbtests = pptest["orbtests"]
+    assert len(orbcases) == len(orbtests), "orbcases and orbtests should have the same length"
+    assert len(orbcases) > 0, "orbcases should not be empty" # then length of orbtests can be indirectly asserted
+
+    orbcases = [[os.path.basename(orb) for orb in orbs] for orbs in orbcases] # will only support the case that len(orbs) == 1
+    assert all(len(orbs) == 1 for orbs in orbcases), "only support the case that len(orbs) == 1"
+    orbcases = [orb[0] for orb in orbcases]
+    orbpat = r"[A-Z][a-z]?_gga_(\d+)au_.*Ry_(\d+\w+)\.orb"
+    orbcases = [re.match(orbpat, orb) for orb in orbcases]
+
+    assert all(orb_ is not None for orb_ in orbcases), "orbconf should match the pattern"
+    orbcases = [(int(orb_.group(1)), orb_.group(2)) for orb_ in orbcases]
+
+    # use the following to allocate a figure
+    nrcuts = len(set([orb[0] for orb in orbcases]))
+    norbconfs = len(set([orb[1] for orb in orbcases]))
+    # build map from rcut to ircut, orbconf to iorbconf
+    rcut_map = {rcut: i for i, rcut in enumerate(sorted(set([orb[0] for orb in orbcases])))}
+    orbconf_map = {orbconf: i for i, orbconf in enumerate(sorted(set([orb[1] for orb in orbcases])))}
+    
+    # build data
+    # data eta is indexed by orbtests[iorbtest][itest][0], first shrink to [iorbtest][0] by taking average
+    eta = [[vt[0] for vt in orbt] for orbt in orbtests]
+    eta = [sum(orbt)/len(orbt)*1e3 for orbt in eta]
+    eta_matrix = np.zeros((nrcuts, norbconfs))
+    for iorbcase, (rcut, orbconf) in enumerate(orbcases):
+        eta_matrix[rcut_map[rcut], orbconf_map[orbconf]] = eta[iorbcase]
+
+    eta_max = [[vt[1] for vt in orbt] for orbt in orbtests]
+    eta_max = [sum(orbt)/len(orbt)*1e3 for orbt in eta_max]
+    eta_max_matrix = np.zeros((nrcuts, norbconfs))
+    for iorbcase, (rcut, orbconf) in enumerate(orbcases):
+        eta_max_matrix[rcut_map[rcut], orbconf_map[orbconf]] = eta_max[iorbcase]
+
+    # plot
+    fig, ax = plt.subplots(1, len(subplots), figsize=(5*len(subplots)*scale, 6*scale))
+    # set suptitle
+    ppcase = [os.path.basename(pp) for pp in ppcase]
+    ppcase = "_AND_".join(ppcase)
+    fig.suptitle(ppcase, fontsize=14*scale)
+    
+    if "eta" in subplots:
+        ax_ = ax if len(subplots) == 1 else ax[0]
+        im = ax_.imshow(eta_matrix*1e3, cmap="coolwarm", interpolation="nearest")
+        ax_.set_title("$\eta$ (meV)", fontsize=12*scale)
+        ax_.set_xticks(np.arange(norbconfs))
+        ax_.set_yticks(np.arange(nrcuts))
+        ax_.set_xticklabels(sorted(orbconf_map.keys()), fontsize=10*scale)
+        ax_.set_yticklabels(sorted(rcut_map.keys()), fontsize=10*scale)
+        ax_.set_xlabel("Orbital Configuration", fontsize=12*scale)
+        ax_.set_ylabel("rcut (au)", fontsize=12*scale)
+        plt.setp(ax_.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
+        for irow in range(nrcuts):
+            for icol in range(norbconfs):
+                text = f"{eta_matrix[irow, icol]:.4f}" if eta_matrix[irow, icol] != 0 else "NO DATA"
+                ax_.text(icol, irow, text, ha="center", va="center", color="black", fontsize=10*scale)
+        # block edge
+        for irow in range(nrcuts+1):
+            ax_.axhline(irow-0.5, color="black", lw=1)
+        for icol in range(norbconfs+1):
+            ax_.axvline(icol-0.5, color="black", lw=1)
+    
+    if "etamax" in subplots:
+        ax_ = ax if len(subplots) == 1 else ax[1]
+        im = ax_.imshow(eta_max_matrix*1e3, cmap="coolwarm", interpolation="nearest")
+        ax_.set_title("$\eta_{max}$ (meV)", fontsize=12*scale)
+        ax_.set_xticks(np.arange(norbconfs))
+        ax_.set_yticks(np.arange(nrcuts))
+        ax_.set_xticklabels(sorted(orbconf_map.keys()), fontsize=10*scale)
+        ax_.set_yticklabels(sorted(rcut_map.keys()), fontsize=10*scale)
+        ax_.set_xlabel("Orbital Configuration", fontsize=12*scale)
+        ax_.set_ylabel("rcut (au)", fontsize=12*scale)
+        plt.setp(ax_.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
+        for irow in range(nrcuts):
+            for icol in range(norbconfs):
+                text = f"{eta_max_matrix[irow, icol]:.4f}" if eta_max_matrix[irow, icol] != 0 else "NO DATA"
+                ax_.text(icol, irow, text, ha="center", va="center", color="black", fontsize=10*scale)
+        # block edge
+        for irow in range(nrcuts+1):
+            ax_.axhline(irow-0.5, color="black", lw=1)
+        for icol in range(norbconfs+1):
+            ax_.axvline(icol-0.5, color="black", lw=1)
+
+    fig.tight_layout()
+    plt.savefig(fname)
+    plt.close()
+
+def plot_chessboard(result: dict, subplots: list = ["eta", "etamax"]):
+    for system, data in result.items():
+        for i, ppcase in enumerate(data["ppcases"]):
+            ppcase = [os.path.basename(pp) for pp in ppcase]
+            pptest = data["pptests"][i]
+            _chessboard(f"{system}_{i}.png", ppcase, pptest, subplots)
+
 import unittest
 class TestPostdftEta(unittest.TestCase):
 
-    def est_cal_wrt_pw_minimal(self):
+    def test_cal_wrt_pw_minimal(self):
         from apns.analysis.apns2_eta_abacus import _parse_folder
         from apns.analysis.apns2_eta_utils import delta_band, cal_nelec
-        lcao = _parse_folder("./test_files/lcao/")
-        pw = _parse_folder("./test_files/pw/")
+        lcao = _parse_folder("/root/documents/simulation/abacus/Ag_eos_v2.1/lcao/OUT.ABACUS")
+        pw = _parse_folder("/root/documents/simulation/abacus/Ag_eos_v2.1/pw/OUT.ABACUS")
         
         ekb_lcao, occ_lcao, kwt = lcao
         ekb_pw, occ_pw, _ = pw
@@ -148,15 +275,31 @@ if __name__ == "__main__":
     
     unittest.main(exit=False)
 
-    import os
+    import os, json
     # select jobgroup
-    group = "sus"
+    group = "short-sp.part2"
+    version_lcao = "2.1"
 
+    fjson = f"eta10_lcao-v{version_lcao}.json"
+    if not os.path.exists(fjson):
+        data = {}
+    else:
+        with open(fjson, "r") as f:
+            data = json.load(f)
+
+    # uncomment the following two lines to plot chessboard, comment out to parse source data
+    plot_chessboard(data, ["eta"])
+    exit()
+    
     # import data
-    root = "/root/documents/simulation/orbgen/apns-orbgen-project/"
+    root = "/root/documents/simulation/orbgen/apns-orbgen-project/eos_test"
     pw = load(os.path.join(root, f"pw/{group}_eostest_pw"))
-    lcao = load(os.path.join(root, f"lcao-v1.0/{group}_eostest_lcao-v1.0"))
+    lcao = load(os.path.join(root, f"lcao-v{version_lcao}/{group}_eostest_lcao-v{version_lcao}"))
 
     out = cal_wrt_pw(pw, lcao, "gaussian", 0.01, 10)
+    data.update(out)
+    with open(fjson, "w") as f:
+        json.dump(data, f)
+    
     print_postdft(out)
-    #print(out)
+    

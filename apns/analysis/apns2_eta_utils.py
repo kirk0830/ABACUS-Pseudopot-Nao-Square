@@ -57,6 +57,19 @@ def delta_band(band_energy1, band_energy2, n_elec, wk, smearing, smearing_sigma,
         else:
             raise ValueError('Unknown smearing method: %s'%smearing)
 
+    def efermi(wk, be, n_elec):
+        _nmax = np.sum(wk * f_occ(be, np.max(be)))
+        _delta = (_nmax - n_elec) / n_elec
+        if np.abs(_delta) < 1e-4 or np.abs(_delta * n_elec) <= 0.01: # 0.1% error: the case where all bands are occupied
+            print(f"WARNING: all bands are occupied in band_energy1, error of this estimation: {_delta:.4%}")
+            return np.max(be)
+        else: # if error is too large, let it directly fail
+            if _delta < 0:
+                raise ValueError(f"""WARNING: maximum possible number of electrons in band structure not-enough:
+{n_elec:.4f} vs. {_nmax:.4f} (nelec vs. nmax). This is always because of too small basis size and all
+bands are occupied, otherwise please check your data.""")
+            return brentq(lambda x: np.sum(wk * f_occ(be, x)) - n_elec, np.min(be), np.max(be))
+        
     # convert to arrays for convenience
     be1 = np.array(band_energy1)
     be2 = np.array(band_energy2)
@@ -64,24 +77,35 @@ def delta_band(band_energy1, band_energy2, n_elec, wk, smearing, smearing_sigma,
     # convert spinless weight to the one with spin
     nspin = len(be1)
     wk = np.array(wk).reshape(1, len(wk), 1) * (2 / nspin)
+    wk = 2 * wk/np.sum(wk) # normalize the weight
 
     n_elec1, n_elec2 = n_elec if isinstance(n_elec, tuple) else (n_elec, n_elec)
 
-    assert be1.shape == be2.shape and be1.shape[1] == wk.shape[1]
+    if be1.shape != be2.shape:
+        raise TypeError('Error: Inconsistent shape between two band structures.')
+    assert be1.shape[1] == wk.shape[1]
     assert smearing_sigma >= 0 and n_elec1 > 0 and n_elec2 > 0
 
-    # determine the Fermi level
-    efermi1 = brentq(lambda x: np.sum(wk * f_occ(be1, x)) - n_elec1, np.min(be1), np.max(be1))
-    efermi2 = brentq(lambda x: np.sum(wk * f_occ(be2, x)) - n_elec2, np.min(be2), np.max(be2))
+    # determine the Fermi levels for two band structures by root finding
+    efermi1 = efermi(wk, be1, n_elec1)
+    efermi2 = efermi(wk, be2, n_elec2)
 
     # geometrically averaged occupation (under shifted Fermi level)
     f_avg = np.sqrt(f_occ(be1, efermi1 + efermi_shift) * f_occ(be2, efermi2 + efermi_shift))
 
     res = minimize_scalar(lambda omega: np.sum(wk * f_avg * (be1 - be2 + omega)**2), \
             (-10, 10), method='brent')
-
+    
     omega = res.x
     eta = np.sqrt(res.fun / np.sum(wk * f_avg))
     eta_max = np.max(np.abs(be1 - be2 + omega))
+
+    # for ispin in range(nspin):
+    #     for ik in range(len(be1[ispin])):
+    #         delta = np.array(be1[ispin][ik]) - np.array(be2[ispin][ik]) + omega
+    #         # zval = 19, natom = 4, nocc = 19*2 = 38
+    #         if np.linalg.norm(delta, np.inf)*1e3 > 100:
+    #             print(f_occ(be1, efermi1 + efermi_shift)[ispin][ik], delta)
+    #             print(ispin, ik, np.linalg.norm(delta, np.inf))
 
     return (eta, eta_max) if not return_all else (eta, eta_max, efermi1, efermi2, omega)

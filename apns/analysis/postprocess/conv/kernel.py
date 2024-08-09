@@ -16,6 +16,41 @@ def default_calculator(val, val_ref):
         else:
             raise TypeError("Tend to scalarize one value respect to one list.")
 
+def Yb_special_case(path):
+    """this is a special treatment for the ecutwfc convergence test on Yb, which is, not
+    recored in Materials Project but available in Crystallography Open Database (COD). The
+    convergence test was happen to be carried out during the refactor of APNS, therefore
+    there is no source information where the structure from, and lack of the pseudopotential
+    information.
+    Luckily, for Yb, there are only finite cases so we can hard-code.
+    
+    The work's Bohrium jobgroup id is: 12310698
+    Download via Lesbegue's API:
+
+    ```bash
+    lbg jobgroup download 12310698
+    ```
+    
+    each job folder is like:
+    "/root/documents/simulation/abacus/12310698/12902679/tmp
+    /outputs/artifacts/outputs/8b044239-815e-416d-ac14-7a23030e8cad/00003/OUT.ABACUS"
+    """
+    import os
+    print(f"Parsing {path}")
+    frags = path.replace("\\", "/").split("/")
+    assert frags[-1] == "OUT.ABACUS", f"Not expected path: {path}"
+    basename = "/".join(frags[:-1])
+    print(f"Searching {basename}")
+    files = os.listdir(basename) # list all files in the parent dir
+    pnid = {"Yb3+_f--core-icmod1.PD04.PBE.UPF": "pd043+f--core-icmod1",
+            "Yb.pbe-n-nc.UPF": "pslnc031",
+            "Yb.upf": "dojo043plus",
+            "Yb_GTH_NC_LnPP1.upf": "gth",
+            "Yb-sp.PD04.PBE.UPF": "pd04sp",
+            "Yb3+_f--core.PD04.PBE.UPF": "pd043+f--core"} # there are all possible pseudopotentials
+    fupf = [f for f in files if f.upper().endswith(".UPF")][0]
+    return "Yb", "cod-9010997.cif", pnid[fupf]
+
 def search(search_domain: str, searcher: callable, scalarizer: callable = None):
 
     paths, vals = searcher(search_domain=search_domain)
@@ -23,6 +58,8 @@ def search(search_domain: str, searcher: callable, scalarizer: callable = None):
     systems, mpids, pnids = [], [], []
     for path in paths:
         _, sys, mpid, pnid, _ = amarao.read_testconfig_fromBohriumpath(path)
+        if all([not sys, not mpid, not pnid]): # Yb special case
+            sys, mpid, pnid = Yb_special_case(path)
         systems.append(sys)
         mpids.append(mpid)
         pnids.append(pnid)

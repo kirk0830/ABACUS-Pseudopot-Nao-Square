@@ -44,6 +44,9 @@ def collect(folder: str, calc_type: str = "relax"):
             ppids = [convert_fpp_to_ppid(pp) for pp in pps]
             ppstr = "\n".join(ppids)
             orbstr = "\n".join(orbs) if all([orb is not None for orb in orbs]) else "none"
+            if None in [natom, eks, vol]:
+                print(f"Error in {root}")
+                continue
             print(f"""In folder {parent}
 Structure tested: {system}
 Number of atoms: {natom}
@@ -83,7 +86,9 @@ def prepare(folder: str, calc_type: str = "relax"):
 
 def main(folder: str):
     from apns.analysis.apns2_eos_utils import plot
-    to_plot = prepare(folder)
+    to_plot = prepare(folder, "scf")
     feos = plot(to_plot)
     return feos
 
+if __name__ == "__main__":
+    feos = main("/root/documents/simulation/abacus/12891738")
