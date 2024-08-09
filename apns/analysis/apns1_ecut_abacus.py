@@ -113,7 +113,9 @@ import apns.analysis.postprocess.conv.ecutwfc_eks as amapeks
 import apns.analysis.postprocess.conv.ecutwfc_press as amapprs
 import apns.analysis.postprocess.conv.ecutwfc_istate as amapbs
 def search(path: str, ethr: float = 1e-3, pthr: float = 0.1, bsthr: float = 1e-2):
-
+    """this function will return three indexes data, they are, eks, prs and bs.
+    For each tuple, the two variables have sequence correspondence, but not
+    guaranteed across different tuples."""
     return amapeks.run(path, ethr),\
            amapprs.run(path, pthr),\
            amapbs.run(path, bsthr)
@@ -127,6 +129,7 @@ def summarize_conv(convs: list, result: dict):
 
 import apns.outdated.identifier as amwi
 def ecutwfc_convergence(convs: list):
+    import os
     # summarize the convergence results
     fresult = amwi.TEMPORARY_FOLDER + "/apns_ecutwfc_db.json"
     if os.path.exists(fresult):
@@ -138,20 +141,78 @@ def ecutwfc_convergence(convs: list):
     with open(fresult, "w") as f:
         json.dump(conv_result, f, indent=4)
 
-import os
-import apns.analysis.postprocess.pseudopotential as amppspot
 def run():
+    from apns.analysis.apns1_utils import ppfullname, apns1zval
+    import json
+    #import apns.analysis.postprocess.pseudopotential as amppspot
     # always make independent on path for run() function, instead, use entry()
     path = entry()
     # postprocess
     (conv_eks, data_eks), (conv_prs, data_prs), (conv_bs, data_bs) = search(path)
     # convergence
-    ecutwfc_convergence([conv_eks, conv_prs, conv_bs])
+    # ecutwfc_convergence([conv_eks, conv_prs, conv_bs])
     # categorize by element
-    elements, pspotids, eks_x, eks_y = categorize_byelement(conv_eks, data_eks)
-    _, _, prs_x, prs_y = categorize_byelement(conv_prs, data_prs)
-    _, _, bs_x, bs_y = categorize_byelement(conv_bs, data_bs)
+    # elements, pspotids, eks_x, eks_y = categorize_byelement(conv_eks, data_eks)
+    # _, _, prs_x, prs_y = categorize_byelement(conv_prs, data_prs)
+    # _, _, bs_x, bs_y = categorize_byelement(conv_bs, data_bs)
+    # print(elements, file=open("elements.txt", "w")) # a single layer list of elements symbol
+    # print(pspotids, file=open("pspotids.txt", "w")) # a two-layer list, the first is element and second is pspotid for each element
+    # print(eks_x, file=open("eks_x.txt", "w")) # a three-layer list, the first is element, the second is pspotid, and the third is ecutwfc value
+    # print(eks_y, file=open("eks_y.txt", "w")) # the same as eks_x, but the third layer is the data
+    # print(prs_x, file=open("prs_x.txt", "w")) # the same as eks_x, but the third layer is the data
+    # print(prs_y, file=open("prs_y.txt", "w")) # the same as eks_x, but the third layer is the data
+    # print(bs_x, file=open("bs_x.txt", "w")) # the same as eks_x, but the third layer is the data
+    # print(bs_y, file=open("bs_y.txt", "w")) # the same as eks_x, but the third layer is the data
+    
+    # print(conv_eks, file=open("conv_eks.txt", "w")) # a disordered list, contains data (elemm, mpid, pnid, ecut)
+    # print(conv_prs, file=open("conv_prs.txt", "w")) # the same as conv_eks
+    # print(conv_bs, file=open("conv_bs.txt", "w")) # the same as conv_eks
+    # print(data_eks, file=open("data_eks.txt", "w")) # the list indexed like [elem][pspotid][i] -> list of [x, y]
+    # print(data_prs, file=open("data_prs.txt", "w")) # the same as data_eks
+    # print(data_bs, file=open("data_bs.txt", "w")) # the same as data_eks
+    out = []
+    ntests = len(conv_eks)
+    assert ntests == len(conv_prs) and ntests == len(conv_bs), f"mismatch: {ntests} vs. {len(conv_prs)} vs. {len(conv_bs)}"
+    # sort conv_eks and record the index mapping
+    temp = sorted(conv_eks, key=lambda x: (x[0], x[1], x[2]))
+    index_map_ = [conv_eks.index(t) for t in temp]
+    conv_eks = temp
+    data_eks = [data_eks[i] for i in index_map_]
+    # sort conv_prs and record the index mapping
+    temp = sorted(conv_prs, key=lambda x: (x[0], x[1], x[2]))
+    index_map_ = [conv_prs.index(t) for t in temp]
+    conv_prs = temp
+    data_prs = [data_prs[i] for i in index_map_]
+    # sort conv_bs and record the index mapping
+    temp = sorted(conv_bs, key=lambda x: (x[0], x[1], x[2]))
+    index_map_ = [conv_bs.index(t) for t in temp]
+    conv_bs = temp
+    data_bs = [data_bs[i] for i in index_map_]
 
+    for i in range(ntests): # loop over all tests
+        elem, mpid, pnid, ecut_eks = conv_eks[i]
+        _e, _m, _p, ecut_prs = conv_prs[i]
+        assert elem == _e and mpid == _m and pnid == _p, f"mismatch: {elem} vs. {_e}, {mpid} vs. {_m}, {pnid} vs. {_p}"
+        _e, _m, _p, ecut_bs = conv_bs[i]
+        assert elem == _e and mpid == _m and pnid == _p, f"mismatch: {elem} vs. {_e}, {mpid} vs. {_m}, {pnid} vs. {_p}"
+        fcif = "mp-" + mpid + ".cif" if not mpid.startswith("mp-") and not mpid.endswith(".cif") else mpid + ".cif"
+        pp = ppfullname(pnid)
+        zvals = apns1zval(elem, pnid)
+        ecuts = data_eks[i][0]
+        eks = [float(e) for e in data_eks[i][1]]
+        prs = [float(p) for p in data_prs[i][1]]
+        bs = [float(b) for b in data_bs[i][1]]
+        iconv = max(ecuts.index(ecut_eks), ecuts.index(ecut_prs), ecuts.index(ecut_bs))
+        temp = {
+            "name": elem, "fcif": fcif, "pp": pp, "zvals": [float(zvals)], "ecutwfc": ecuts,
+            "de": eks, "dp": prs, "dbs": bs, "iconv": iconv
+        }
+        out.append(temp)
+        print(temp)
+    with open("out.json", "w") as f:
+        json.dump(out, f, indent=4)
+    exit()
+    
     conv_results = {}
     for iconv in range(len(conv_eks)): # loop over all system-mpid-pnid tests...
         element = conv_eks[iconv][0]
@@ -162,7 +223,9 @@ def run():
                                       max(conv_eks[iconv][3], 
                                           conv_prs[iconv][3],
                                           conv_bs[iconv][3])))
-
+        
+    print(conv_results)
+    exit()
     # set Arial as default font
     plt.rcParams["font.family"] = "Arial"
 

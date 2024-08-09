@@ -25,7 +25,7 @@ def collect(folder: str):
                 ecutwfc = abacus_input["ecutwfc"]
                 pps = [a["pp"] for a in atom_species]
                 ppids = [convert_fpp_to_ppid(pp) for pp in pps]
-                zvals = [ppparse.z_valence(os.path.join(parent, pp)) for pp in pps]
+                zvals = [float(ppparse.z_valence(os.path.join(parent, pp))) for pp in pps]
                 s = "\n".join(ppids)
                 print(f"""In folder {parent}
 Structure tested: {system}
@@ -79,17 +79,20 @@ if __name__ == "__main__":
     #     f.write(html)
     # exit()
     from apns.analysis.apns2_ecut_utils import update_ecutwfc, build_sptc_from_nested
-    collected = collect("12506574")
+    collected = collect("/root/documents/simulation/abacus/high-pressure-hydrogen-ecutwfc-test")
     system_and_stpcs = build_sptc_from_nested(collected)
     result = {}
     for s, stpcs in system_and_stpcs.items():
         for stpc in stpcs:
             pp, data = stpc()
-            result[(s, pp)] = data
+            result[": ".join([s, pp])] = data
             ecut_conv = stpc.ecuts[stpc.iconv]
             pp = stpc.pp(as_list=True)
             assert len(pp) == 1, "The pseudopotential should be unique for each test case"
-            update_ecutwfc(pp[0], ecut_conv)
+            #update_ecutwfc(pp[0], ecut_conv)
     from apns.analysis.apns2_ecut_utils import plot_log, plot_stack
+    import json
+    with open("high-pressure-hydrogen.json", "w") as f:
+        json.dump(result, f, indent=4)
     flogs = plot_log(result)
     fstacks = plot_stack(result)

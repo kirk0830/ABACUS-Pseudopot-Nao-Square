@@ -98,18 +98,22 @@ def cal_wrt_pw(pw: dict, lcao: dict):
             idxs = [j for j, pporbs_ in enumerate(data_lcao["ppcases"])\
                     if set(pporbs_[0]) == set(pps)]
             vmin, vmax = min(vol), max(vol) # for delta value calculation
-            for j in idxs:
+            for j in idxs: # for each orbital case
                 _, orbs = data_lcao["ppcases"][j]
                 _, eks_lcao, _ = _transp_vol_ener(data_lcao["pptests"][j])
-                bm_lcao = fit_bm(vol, eks_lcao, True)
-                delta_ = _cal_delta(bm_pw, bm_lcao, natom, vmin, vmax)
-                demin = _cal_demin(eks_lcao, eks_pw) # the smaller, the better
+                if len(vol) != len(eks_lcao):
+                    print(f"number of data points should be the same: {len(vol)} != {len(eks_lcao)}, from test {system}: {orbs}")
+                    delta_, demin = None, None
+                else:
+                    bm_lcao = fit_bm(vol, eks_lcao, True)
+                    delta_ = _cal_delta(bm_pw, bm_lcao, natom, vmin, vmax)
+                    demin = _cal_demin(eks_lcao, eks_pw) # the smaller, the better
                 out[system].setdefault("pptests", {}).setdefault("orbcases", []).append(orbs)
                 out[system].setdefault("pptests", {}).setdefault("orbtests", []).append({"delta": delta_, "demin": demin})
     return out
 
 def print_postdft(result: dict):
-    """print the post-DFT results"""
+    """print the post-DFT results. This function is written by Github.copilot"""
     from apns.analysis.apns2_utils import convert_forb_to_orbid, convert_fpp_to_ppid
     for system, data in result.items():
         print(f"System {system}")
@@ -124,10 +128,123 @@ def print_postdft(result: dict):
                 delta, demin = data["pptests"]["orbtests"][j]["delta"], data["pptests"]["orbtests"][j]["demin"]
                 if delta:
                     print(f"      Delta: {delta*1e3:>.4f} meV/atom")
+                else:
+                    print(f"      Delta: WARNING: delta is not successfully calculated, this may be due to the failure of fitting the Birch-Murnaghan equation!")
                 print(f"      Demin: {demin:>.4f} eV")
 
+def barplot_postdft(key: str, val: dict):
+    """plot the bar plot for the post-DFT results of one system. The system has the following structure:
+    ```python
+    key: {
+        "ppcases": [[...], [...], ...],
+        "pptests": {
+            "orbcases": [[...], [...], [...], ...],
+            "orbtests": [{"delta": ..., "demin": ...}, {...}, {...}]
+        }
+    }
+    ```
+    will plot the bar plot for the given key and val. Different ppcases are plot as different subplot,
+    then two barplot in each subplot, one for delta, one for demin. x axis are the orbcases (use 
+    os.path.basename to wash).
+    """
+    import os
+    import matplotlib.pyplot as plt
+    import numpy as np
+    from apns.analysis.apns2_utils import convert_forb_to_orbid, convert_fpp_to_ppid
+
+    fig, axs = plt.subplots(len(val["ppcases"]), 2, figsize=(20, 10*len(val["ppcases"])), squeeze=False)
+    # suptitle as the key
+    fig.suptitle(key, fontsize=20)
+    for i, ppcase in enumerate(val["ppcases"]):
+        # build up title
+        ppcase = [convert_fpp_to_ppid(pp) for pp in ppcase]
+        ppcase = " + ".join(ppcase)
+
+        # extract data, for checking if there is None in orbtests
+        delta = [d["delta"] for d in val["pptests"]["orbtests"]]
+        demin = [d["demin"] for d in val["pptests"]["orbtests"]]
+        invalid = [d["delta"] is None or d["demin"] is None for d in val["pptests"]["orbtests"]]
+        if all(invalid):
+            print(f"all invalid data for {ppcase}, skip")
+            continue
+
+        # delete the invalid data
+        delta = [d * 1e3 for j, d in enumerate(delta) if not invalid[j]]
+        demin = [d for j, d in enumerate(demin) if not invalid[j]]
+
+        # update orbcases label
+        orbcases = [" + ".join([convert_forb_to_orbid(os.path.basename(orb)) for orb in orbs])\
+                    for j, orbs in enumerate(val["pptests"]["orbcases"]) if not invalid[j]]
+        x = range(len(orbcases))
+        # the orbcase will be in the format like "Xau, YRy (Z)", first sort by X and then by Z,
+        # also sort the delta and demin correspondingly
+        orbcases, delta, demin = zip(*sorted(zip(orbcases, delta, demin), 
+                                     key=lambda x: (float(x[0].split("au")[0]), 
+                                                   x[0].split("au")[1].split(" ")[-1])))
+        ######
+        # setup the left subplot
+        ######
+        ax = axs[i, 0]
+        ax.set_title(f"Pseudopotential case: {ppcase}", fontsize=17.5)
+        # draw, with gradient color, x vertical, y horizontal
+        ax.bar(x, delta, color=plt.cm.rainbow(np.linspace(0, 1, len(delta))), log=True)
+        ax.set_xticks(x)
+        ax.set_xticklabels(orbcases, rotation=45, ha="right")
+        ax.set_ylabel("$\Delta$ (meV/atom)", fontsize=15)
+        # set black edge
+        for bar in ax.patches:
+            bar.set_edgecolor("black")
+            bar.set_linewidth(0.5)
+        ######
+        # setup the right subplot
+        ######
+        ax = axs[i, 1]
+        ax.set_title(f"Pseudopotential case: {ppcase}", fontsize=17.5)
+        # draw, with gradient color, log scale
+        ax.bar(x, demin, color=plt.cm.rainbow(np.linspace(0, 1, len(demin))), log=True)
+        ax.set_xticks(x)
+        ax.set_xticklabels(orbcases, rotation=45, ha="right")
+        ax.set_ylabel("Basis completeness error (eV)", fontsize=15)
+        for bar in ax.patches:
+            bar.set_edgecolor("black")
+            bar.set_linewidth(0.5)
+
+    # readjust the layout
+    plt.tight_layout(rect=[0, 0, 1, 0.95])
+    plt.savefig(f"{key}.png")
+    plt.close()
+
+    return f"{key}.png"
+
 if __name__ == "__main__":
-    pw = load("/root/documents/simulation/orbgen/apns-orbgen-project/out/eos_pw.json")
-    lcao = load("/root/documents/simulation/orbgen/apns-orbgen-project/out/eos_lcao-v1.0.json")
+    # to save data: call apns/analysis/apns2_eos_abacus.py: collect, to get the data can be loaded by function load()
+
+    # Parse
+    from apns.analysis.apns2_eos_abacus import collect
+    import json
+    # flcao = "/root/documents/simulation/orbgen/apns-orbgen-project/eos_test/lcao-v1.0"
+    # out = collect(flcao, "scf")
+    # with open("lcao-v1.0.json", "w") as f:
+    #     json.dump(out, f)
+    # flcao = "/root/documents/simulation/orbgen/apns-orbgen-project/eos_test/lcao-v2.0"
+    # out = collect(flcao, "scf")
+    # with open("lcao-v2.0.json", "w") as f:
+    #     json.dump(out, f)
+    # flcao = "/root/documents/simulation/orbgen/apns-orbgen-project/eos_test/lcao-v2.1"
+    # out = collect(flcao, "scf")
+    # with open("lcao-v2.1.json", "w") as f:
+    #     json.dump(out, f)
+    # exit()
+
+    # Post processng
+    pw = load("/root/documents/simulation/orbgen/apns-orbgen-project/eos_test/out/pw.json")
+    lcao = load("/root/documents/simulation/orbgen/apns-orbgen-project/eos_test/out/lcao-v2.1.json")
     out = cal_wrt_pw(pw, lcao)
-    print_postdft(out)
+
+    # import json
+    # with open("lcao-v1.0-postdft.json", "w") as f:
+    #     json.dump(out, f)
+
+    for key, val in out.items():
+        barplot_postdft(key, val)
+    #print_postdft(out)

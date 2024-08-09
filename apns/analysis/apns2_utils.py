@@ -63,8 +63,8 @@ def handle_psl(fpp: str):
     import re
     import os
     family = "PSlibrary"
-    match_ = re.match(r"([A-Z][a-z]?)(\.)(rel-)?(pbe|pz)(-\w+)?(-)(rrkjus|kjpaw)(_psl\.)([\.\d]+)(\.UPF)", os.path.basename(fpp))
-    version = match_.group(9)
+    match_ = re.match(r"([A-Z][a-z]?)(\.)(rel-)?(pbe|pz)(-\w+)?(-)(rrkjus|kjpaw|nc)(_psl\.)?([\.\d]+)?(\.UPF)", os.path.basename(fpp))
+    version = "0.3.1" if match_.group(9) is None else match_.group(9)
     apps = []
     if match_.group(7): apps.append(match_.group(7).upper())
     if match_.group(3): apps.append("fr")
@@ -95,8 +95,16 @@ def handle_gth(fpp: str):
     appendix = os.path.basename(fpp).split("_")[-1].split(".")[0]
     return family, version, appendix
 
-def convert_fpp_to_ppid(fpp: str):
+def handle_20240723(fpp: str):
+    import os
+    family, version = "HighPressure", "20240723"
+    appendix = "rcut="+os.path.basename(fpp).split("-")[1]
+    return family, version, appendix
 
+def convert_fpp_to_ppid(fpp: str):
+    """Convert pseudopotential file name to pseudopotential identifier, the one
+    more human readable. The conversion is based on the pseudopotential family
+    and version. The appendix is also included in the identifier if it is not empty."""
     func_map = {
         "hgh": handle_hgh,
         "NCPP-PD04-PBE": handle_pd04,
@@ -110,13 +118,16 @@ def convert_fpp_to_ppid(fpp: str):
         "nc-sr-04-3plus_pbe_standard_upf": handle_pseudo_dojo,
         "pseudos_ac_she": handle_pseudo_dojo,
         "gth": handle_gth,
-        "psl": handle_psl
+        "psl": handle_psl,
+        "high_pressure_oncv_upf": handle_20240723
     }
+    print(f"Converting {fpp}")
     for key in func_map:
         if key in fpp:
             family, version, appendix = func_map[key](fpp)
             return f"{family} v{version} ({appendix})".replace("v ", "").replace("()", "")
-    raise ValueError(f"Unrecognized pseudopotential file: {fpp}")
+    print(f"Unrecognized pseudopotential file: {fpp}")
+    return fpp
 
 def convert_forb_to_orbid(forb: str):
     import os, re

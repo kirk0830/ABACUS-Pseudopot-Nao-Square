@@ -21,7 +21,7 @@ def read_acwf_refdata(token: str,
     import json
     with open(refdata_path, "r") as f:
         data = json.load(f)
-    return data[domain][token]
+    return data[domain].get(token, None)
 
 def cal_delta_wrtacwf(token: str, bmfit: dict, vmin: float, vmax: float,
                       refdata_path: str = ACWF_DATAPATH + ACWF_REFJSON) -> float:
@@ -36,8 +36,12 @@ vmin: {vmin},
 vmax: {vmax}
 """)
     with open(refdata_path, "r") as f:
-        data = json.load(f)["BM_fit_data"][token]
-    return delta_value(bm_fit1=bmfit, bm_fit2=data, vmin=vmin, vmax=vmax)
+        data = json.load(f)["BM_fit_data"].get(token, None)
+    if data is None:
+        print(f"Warning: the token {token} is not found in the reference data.")
+        return None
+    else:
+        return delta_value(bm_fit1=bmfit, bm_fit2=data, vmin=vmin, vmax=vmax)
 
 def birch_murnaghan(v, e0, b0, b0p, v0):
     return e0 + 9 * v0 * b0 / 16 * (b0p * ((v0 / v)**(2/3) - 1)**3 + ((v0 / v)**(2/3) - 1)**2 * (6 - 4 * (v0 / v)**(2/3)))
@@ -149,7 +153,6 @@ class EOSSingleCase:
         import re
         u_in = r"([A-Z][a-z]*)_(sc|fcc|bcc|diamond)" # unaries
         o_in = r"([A-Z][a-z]*O)_(x\dy\d)" # oxides
-        assert re.match(u_in, system) or re.match(o_in, system), "The system name should be in the form of 'Element_Phase' or 'ElementO_xdyd'"
         if re.match(u_in, system):
             # expected format: unaries = r"([A-Z][a-z]*)(-X/)([SC|FCC|BCC|Diamond])"
             elem, phase = re.match(u_in, system).groups()
@@ -158,6 +161,8 @@ class EOSSingleCase:
             # expected format: oxides = r"([A-Z][a-z]*)/(X\dO\d)"
             elem, phase = re.match(o_in, system).groups()
             return f"{elem}/X{phase}"
+        print(f"""Warning: the system \"{system}\" is not recognized by the tokenize function, maybe not standard EOS test?
+Directly return None""")
         return None
         
     def __call__(self):

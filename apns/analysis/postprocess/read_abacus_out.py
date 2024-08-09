@@ -426,14 +426,15 @@ def read_testconfig_fromBohriumpath(path: str):
     11548850/10430308/tmp/outputs/artifacts/outputs/Ar_23155_pd04_PBEecw100pwclfs1clstrs1scf/00010
     in this folder there will be OUT.ABACUS and INPUT, STRU, KPT, ...
     """
+    print(f"Reading testconfig from path: {path}")
     path = path.replace("\\", "/")
     frags = path.split("/")
     # assert the last frag must be OUT.*
     assert frags[-1].startswith("OUT.")
     #         element mpid   pnid    id
-    _tp = r"^([\w]*)(_[^_]*)(_[^_]+)(_.*)$"
+    _tp = r"^([A-Z][a-z]?)(_[^_]*)(_[^_]+)(_.*)$"
     test = ""
-    frag = frags[-2]
+    frag = frags[-3]
     _match = re.match(_tp, frag)
     if _match is not None:
         system = _match.group(1)
@@ -441,7 +442,7 @@ def read_testconfig_fromBohriumpath(path: str):
         pnid = _match.group(3)[1:]
         test = _match.group(4)[1:]
         return frag, system, mpid, pnid, test
-    return None
+    return None, None, None, None, None
 
 def read_pressure_fromlog(flog):
     with open(flog, "r") as f:
