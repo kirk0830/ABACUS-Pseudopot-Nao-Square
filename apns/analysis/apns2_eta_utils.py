@@ -82,7 +82,7 @@ bands are occupied, otherwise please check your data.""")
     n_elec1, n_elec2 = n_elec if isinstance(n_elec, tuple) else (n_elec, n_elec)
 
     if be1.shape != be2.shape:
-        raise TypeError('Error: Inconsistent shape between two band structures.')
+        raise TypeError(f'Error: Inconsistent shape between two band structures: {be1.shape} vs {be2.shape}.')
     assert be1.shape[1] == wk.shape[1]
     assert smearing_sigma >= 0 and n_elec1 > 0 and n_elec2 > 0
 

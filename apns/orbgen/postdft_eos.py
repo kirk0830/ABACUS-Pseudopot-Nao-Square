@@ -129,7 +129,7 @@ def print_postdft(result: dict):
                 if delta:
                     print(f"      Delta: {delta*1e3:>.4f} meV/atom")
                 else:
-                    print(f"      Delta: WARNING: delta is not successfully calculated, this may be due to the failure of fitting the Birch-Murnaghan equation!")
+                    print("      Delta: WARNING: delta is not successfully calculated, this may be due to the failure of fitting the Birch-Murnaghan equation!")
                 print(f"      Demin: {demin:>.4f} eV")
 
 def barplot_postdft(key: str, val: dict):

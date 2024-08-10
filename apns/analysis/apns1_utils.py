@@ -167,9 +167,8 @@ def apns1zval(elem: str, contracted: str):
     fname = "invalid"
     for key, val in data.items():
         the_key = key.replace("_", "").replace(".", "")
-        if contracted.startswith("dojo"):
-            if not contracted.endswith("sr") and not contracted.endswith("fr") and not contracted.endswith("3plus"):
-                contracted += "sr"
+        if contracted.startswith("dojo") and not (contracted.endswith("sr") or contracted.endswith("fr") or contracted.endswith("3plus")):
+            contracted += "sr"
         if contracted == "gth":
             contracted = "gthLnPP1"
         if the_key == contracted:

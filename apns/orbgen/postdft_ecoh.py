@@ -22,7 +22,7 @@ def load(src: str):
 
         # if it is pw calculation, the orbs is not necessary to be available
         basis_type = desc.get("DFTParamSet").get("basis_type")
-        assert basis_type != None, "Severe error: basis_type cannot be found in description.json"
+        assert basis_type is not None, "Severe error: basis_type cannot be found in description.json"
 
         if ipps == -1:
             initializer = {"orbcases": [], "orbtests": []} if basis_type == "lcao" else e_coh
@@ -74,7 +74,6 @@ if __name__ == "__main__":
     TZDP: 3s2p(11)
     """
     
-    import json
     # basis = "lcao-v2.1"
 
     # src = f"/root/documents/simulation/orbgen/apns-orbgen-project/ecoh_test/{basis}/"

@@ -13,11 +13,9 @@ def desc_equal_bulk_vs_atom(desc1: dict, desc2: dict):
         return False
     if set(diff["CellGenerator"]["identifier"]) != {"cif", "molecule"}:
         return False
-    if "kind" in diff["CellGenerator"].keys():
+    if "kind" in diff["CellGenerator"]:
         return False
-    if set(diff["Cell"]["periodic"]) == {True, False}:
-        return True
-    return False
+    return set(diff["Cell"]["periodic"]) == {True, False}
 
 def pair(data: list):
     """pair the bulk and isolated atom data from
