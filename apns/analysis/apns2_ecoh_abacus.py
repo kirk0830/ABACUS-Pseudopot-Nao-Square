@@ -32,14 +32,18 @@ def main(folder: str):
         e_coh = cal_e_cohesive(e_b, e_a, natom)
         system = os.path.basename(desc["CellGenerator"]["config"])
         pps = [os.path.basename(a["pp"]) for a in desc["AtomSpecies"]]
-        pps = "|".join(pps)
+        pps = ", ".join(pps)
         orbs = [os.path.basename(a["nao"]) for a in desc["AtomSpecies"]]
-        orbs = "|".join(orbs)
+        orbs = ", ".join(orbs)
         print(f"""For system {system}, 
 Number of atoms: {natom},
 Pseudopotentials:\n{pps},
 Numerical atomic orbitals:\n{orbs},
-Bulk energy: {e_b} eV,
-Atom energy: {e_a} eV,
-Cohesive energy: {e_coh} eV/atom.""")
+Bulk energy: {e_b:.4f} eV,
+Atom energy: {e_a:.4f} eV,
+Cohesive energy: {e_coh:.4f} eV/atom.
+""")
         
+
+if __name__ == "__main__":
+    main("/root/documents/simulation/orbgen/apns-orbgen-project/ecoh_test/lcao-v1.0/u-mag_ecohtest_lcao-v1.0")

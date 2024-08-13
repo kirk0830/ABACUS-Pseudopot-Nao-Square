@@ -120,7 +120,7 @@ def plot_log(conv_result: dict):
     # merge again that indexed like [system][pps]
     merged = {}
     for key, val in conv_result.items():
-        system, pps = key
+        system, pps = key.split(": ")
         merged.setdefault(system, {})[pps] = val
     figures = {s: f"{s}_logplog.svg" for s in merged.keys()}
     for s, r in merged.items(): # s stands for system and r stands for result
@@ -151,7 +151,7 @@ def plot_stack(conv_result: dict):
     # merge again that indexed like [system][pps]
     merged = {}
     for key, val in conv_result.items():
-        system, pps = key
+        system, pps = key.split(": ")
         merged.setdefault(system, {})[pps] = val
     figures = {s: f"{s}.svg" for s in merged.keys()}
     for s, r in merged.items(): # s stands for system and r stands for result
