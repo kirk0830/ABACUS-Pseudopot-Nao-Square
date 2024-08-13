@@ -220,8 +220,6 @@ if __name__ == "__main__":
     # to save data: call apns/analysis/apns2_eos_abacus.py: collect, to get the data can be loaded by function load()
 
     # Parse
-    from apns.analysis.apns2_eos_abacus import collect
-    import json
     # flcao = "/root/documents/simulation/orbgen/apns-orbgen-project/eos_test/lcao-v1.0"
     # out = collect(flcao, "scf")
     # with open("lcao-v1.0.json", "w") as f:
