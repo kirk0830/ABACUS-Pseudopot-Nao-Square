@@ -20,7 +20,7 @@ Example:
 """
 
 #ABACUS_IMAGE = "registry.dp.tech/deepmodeling/abacus-intel:latest"
-ABACUS_IMAGE = "registry.dp.tech/dptech/abacus:3.6.4" # this is for submit large batch of jobs, but need to always update
+ABACUS_IMAGE = "registry.dp.tech/dptech/abacus:3.7.3" # this is for submit large batch of jobs, but need to always update
 QE_IMAGE = "registry.dp.tech/dptech/prod-471/abacus-vasp-qe:20230116"
 VASP_IMAGE = "registry.dp.tech/dptech/prod-471/abacus-vasp-qe:20230116"
 PYTHON_IMAGE = "python:3.8"
@@ -514,18 +514,6 @@ if __name__ == "__main__":
     #jobgroup = "long-sp_ecohtest_lcao-v2.1"
     #fgroup = os.path.join(src, jobgroup)
     #os.chdir(fgroup)
-    os.chdir("/root/documents/simulation/abacus/test2/")
+    os.chdir("/root/documents/simulation/abacus/ultrasoft-20240816")
     folders = os.listdir()
     manual_submit("_", "_", "28682", 32, 64, folders)
-    #print(f"ABACUSTEST: Jobgroup {jobgroup} submitted.")
-    time.sleep(10)
-    exit()
-    jobgroups = [j for j in os.listdir(src) if os.path.isdir(os.path.join(src, j))]
-    for jobgroup in jobgroups:
-        fgroup = os.path.join(src, jobgroup)
-        os.chdir(fgroup)
-        folders = os.listdir()
-        manual_submit("_", "_", "28682", 2, 16, folders)
-        print(f"ABACUSTEST: Jobgroup {jobgroup} submitted.")
-        time.sleep(10)
-        os.chdir(src)
