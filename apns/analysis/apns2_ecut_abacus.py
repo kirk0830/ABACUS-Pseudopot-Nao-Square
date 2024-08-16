@@ -13,12 +13,13 @@ def collect(folder: str):
                 natom = read_abacus_out.read_natom_fromlog(os.path.join(root, file))
                 eks = read_abacus_out.read_e_fromlog(os.path.join(root, file))
                 pressure = read_abacus_out.read_pressure_fromlog(os.path.join(root, file))
-                bs, _ = read_abacus_out.read_istate(os.path.join(root, "istate.info"))
+                bs = read_abacus_out.read_istate(os.path.join(root, "istate.info"))
                 # continue if there is None among eks, pressure and bs
                 parent = os.path.dirname(root)
                 if None in [eks, pressure, bs]:
                     print(f"""WARNING: Present APNS job is broken: {parent}""")
                     continue
+                bs = bs[0]
                 atom_species, cellgen = read_apnsjob_desc(os.path.join(parent, "description.json"))
                 system = os.path.basename(cellgen["config"])
                 abacus_input = read_abacus_out.read_keyvals_frominput(os.path.join(parent, "INPUT"))
@@ -68,31 +69,27 @@ def repair_apnsjob(folder: str):
                 shutil.copy2(os.path.join(f"../Yb_ecutwfc_test/{f}/description.json"), os.path.join(parent, "description.json"))
 
 if __name__ == "__main__":
-    # import apns.analysis.external_frender.htmls as amaeh
-    # element = "Yb"
-    # html = amaeh.pseudopotentials(element=element, 
-    #                               xc_functional="PBE", 
-    #                               software="ABACUS",
-    #                               fconv=f"{element}.svg",
-    #                               fconvlog=f"{element}_logplot.svg")
-    # with open(f"{element}.md", "w") as f:
-    #     f.write(html)
-    # exit()
-    from apns.analysis.apns2_ecut_utils import update_ecutwfc, build_sptc_from_nested
-    collected = collect("/root/documents/simulation/abacus/high-pressure-hydrogen-ecutwfc-test")
+    from apns.analysis.apns2_ecut_utils import \
+        update_ecutwfc, build_sptc_from_nested, plot_log, plot_stack
+    import json, os
+    from apns.analysis.apns2_utils import stru_rev_map
+    sysrevmap_ = stru_rev_map("./apns_cache/structures.json", True)
+    jobpath = "/root/documents/simulation/abacus/ultrasoft-20240815/13128652"
+    collected = collect(jobpath)
     system_and_stpcs = build_sptc_from_nested(collected)
-    result = {}
+    result = []
     for s, stpcs in system_and_stpcs.items():
         for stpc in stpcs:
             pp, data = stpc()
-            result[": ".join([s, pp])] = data
+            temp = {"name": sysrevmap_[s], "fcif": s, "pp": pp}
+            temp.update(data)
+            result.append(temp)
             ecut_conv = stpc.ecuts[stpc.iconv]
             pp = stpc.pp(as_list=True)
             assert len(pp) == 1, "The pseudopotential should be unique for each test case"
-            #update_ecutwfc(pp[0], ecut_conv)
-    from apns.analysis.apns2_ecut_utils import plot_log, plot_stack
-    import json
-    with open("high-pressure-hydrogen.json", "w") as f:
-        json.dump(result, f, indent=4)
-    flogs = plot_log(result)
-    fstacks = plot_stack(result)
+            update_ecutwfc(pp[0], ecut_conv)
+
+    with open(os.path.basename(jobpath)+".json", "w") as f:
+        json.dump(result, f)
+    #flogs = plot_log(result)
+    #fstacks = plot_stack(result)

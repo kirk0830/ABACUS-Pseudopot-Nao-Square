@@ -138,10 +138,14 @@ def write_abacus(paramset: dict, atomset: list, cell: Cell):
     keys = ["INPUT", "STRU", "KPT"]
     # here it is possible to support the converged ecutwfc value auto-set for INPUT.
     # first get the fpp from atomset, then get the max, set to ecutwfc in paramset
-    ecut_set = paramset.get("ecutwfc", None) # if ecut_set is None or "auto", then set it to the max of fpp
-    if ecut_set is None or ecut_set == "auto":
+    ecutwfc_set = paramset.get("ecutwfc") # if ecut_set is None or "auto", then set it to the max of fpp
+    ecutrho_set = paramset.get("ecutrho")
+    if ecutwfc_set is None or ecutwfc_set == "auto":
         ecutwfc = max([as_.ecutwfc for as_ in atomset if as_.ecutwfc is not None])
         paramset["ecutwfc"] = ecutwfc
+    if isinstance(ecutrho_set, (int, float)) and ecutrho_set < 0: # negative value indicates the dual
+        ecutrho = ecutwfc * abs(ecutrho_set)
+        paramset["ecutrho"] = ecutrho
     vals = [write_abacus_input(paramset), write_abacus_stru(atomset, cell), write_abacus_kpt(cell)]
     return dict(zip(keys, vals))
 
