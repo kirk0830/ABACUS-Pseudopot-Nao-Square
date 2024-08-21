@@ -175,4 +175,8 @@ def _get_test_feature(job_dir: str, mat_key: str):
     import os
     from apns.analysis.postprocess.read_abacus_out import read_stru
     parsed = read_stru(os.path.join(job_dir, "/".join(mat_key, "STRU")))
-        
+
+import unittest
+class AbacustestReuseEOSPWvsLCAOTest(unittest.TestCase):
+    def test_ignore(self):
+        print("File abacustest_reuse_eos_pw_vs_lcao.py is not a unittest file.")

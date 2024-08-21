@@ -33,24 +33,26 @@ def zero_padding(xmin: float, xmax: float, dx: float, x: np.ndarray, y: np.ndarr
             ynew[i] = y[_i]
     return xnew, ynew
 
-def Gaussian_filter(x, y, sigma, normalize = True, normalize_to = 1.0):
-    """Use convolution to smooth the data y(x) with a standard deviation sigma."""
-    # check if uniform grid of x, otherwise raise an error
-    dx = x[1] - x[0]
-    if not np.allclose(np.diff(x), dx):
-        raise ValueError("The x data is not uniformly spaced.")
-    assert len(x) == len(y)
-    # if full of y < 0, first reflect the data
-    reflected = False
-    if np.all(y <= 0):
-        y = -y
-        reflected = True
+import unittest
+class APNS1DOSUtilitiesTest(unittest.TestCase):
+    def test_zero_padding(self):
+        x = np.array([1, 2, 3, 4, 5])
+        y = np.array([1, 2, 3, 4, 5])
+        xnew, ynew = zero_padding(0, 7, 1, x, y)
+        self.assertTrue(np.allclose(xnew, np.array([0, 1, 2, 3, 4, 5, 6])))
+        self.assertTrue(np.allclose(ynew, np.array([0, 1, 2, 3, 4, 5, 0])))
 
-    y_smoothed = sp.ndimage.filters.gaussian_filter1d(y, sigma/dx)
-    if normalize:
-        norm = sp.integrate.simps(y_smoothed, x)
-        y_smoothed = y_smoothed * normalize_to / norm
+        x = np.linspace(0, 2 * np.pi, 5)
+        y = np.sin(x)
+        xnew, ynew = zero_padding(0, 2 * np.pi, np.pi / 10, x, y)
+        self.assertTrue(np.allclose(xnew, np.linspace(0, 2 * np.pi, 20, endpoint=False)))
+        yref = [0.0000000e+00, 0.0000000e+00, 0.0000000e+00,  0.0000000e+00,
+                0.0000000e+00, 1.0000000e+00, 0.0000000e+00,  0.0000000e+00,
+                0.0000000e+00, 0.0000000e+00, 1.2246468e-16,  0.0000000e+00,
+                0.0000000e+00, 0.0000000e+00, 0.0000000e+00, -1.0000000e+00,
+                0.0000000e+00, 0.0000000e+00, 0.0000000e+00,  0.0000000e+00]
+        self.assertEqual(len(ynew), len(yref))
+        self.assertTrue(np.allclose(ynew, yref))
 
-    y_smoothed = y_smoothed if not reflected else -y_smoothed
-
-    return y_smoothed
+if __name__ == "__main__":
+    unittest.main()

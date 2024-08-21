@@ -109,3 +109,14 @@ bands are occupied, otherwise please check your data.""")
     #             print(ispin, ik, np.linalg.norm(delta, np.inf))
 
     return (eta, eta_max) if not return_all else (eta, eta_max, efermi1, efermi2, omega)
+
+import unittest
+class TestAPNS2EtaUtilities(unittest.TestCase):
+    def test_cal_nelec(self):
+        pass
+
+    def test_delta_band(self):
+        pass
+
+if __name__ == "__main__":
+    unittest.main()

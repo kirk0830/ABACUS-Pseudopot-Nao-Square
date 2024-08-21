@@ -1,3 +1,9 @@
+"""Main Citations
+By downloading Content from Materials Project, you agree to accept the Creative Commons Attribution 4.0 License implying that the Content may be copied, distributed, transmitted, and adapted, without obtaining specific permission from the Materials Project, provided proper attribution is given to the Materials Project.
+
+If you use the Materials Project as a resource in your research, please cite the following work:
+Jain A, Ong S P, Hautier G, et al. Commentary: The Materials Project: A materials genome approach to accelerating materials innovation[J]. APL materials, 2013, 1(1)."""
+
 from mp_api.client import MPRester
 import apns.outdated.identifier as amwi
 import os

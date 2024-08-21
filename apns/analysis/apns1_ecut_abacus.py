@@ -725,7 +725,9 @@ def shift_lineplots(xs: list, ys: list, **kwargs):
         plt.text(0.5, 0.925, supcomment, **supcomment_style)
 
     return fig, ax
-            
+
+import unittest        
 if __name__ == "__main__":
     # this should not be changed no matter what kind of postprocess is!
+    unittest.main()
     run()

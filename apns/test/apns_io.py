@@ -80,7 +80,11 @@ def update_cache(search_result, cache_dir: str = "./apns_cache"):
     with open(fcache, "w") as f:
         json.dump(structures, f, indent=4)
 
-def search(formula: list|str, n_structures: list|int, api_key: str, cache_dir: str = "./apns_cache", database: str = "materials_project"):
+def search(formula: list|str, 
+           n_structures: list|int, 
+           api_key: str, 
+           cache_dir: str = "./apns_cache", 
+           database: str = "materials_project"):
     """# Search
     First look up the local cache to check if there are already enough number of structures of 
     the formula in query, if so, give the first `n_structures`, otherwise will deposite

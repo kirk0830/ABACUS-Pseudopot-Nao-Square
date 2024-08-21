@@ -223,7 +223,7 @@ symmetry             0"""
         Si = AtomSpecies(symbol="Si", mass=28.0855, pp="Si.pz-vbc.UPF")
         O = AtomSpecies(symbol="O", mass=15.9994, pp="O.pbe-rrkjus.UPF")
         result = write_abacus_stru([Si, O], cell)
-        ref = """ATOM_SPECIES
+        ref = """ATOMIC_SPECIES
 Si1  28.0855  Si.pz-vbc.UPF
 O1   15.9994  O.pbe-rrkjus.UPF
 
@@ -235,23 +235,23 @@ LATTICE_VECTORS
 5.0000000000         8.6602540378         0.0000000000        
 5.0000000000         2.8867513459         8.1649658093        
 
-ATOM_POSITIONS
+ATOMIC_POSITIONS
 Direct
 Si1
-1
 0.00
-0.0000000000        0.0000000000        0.0000000000                         m 1 1 1 
+1
+0.0000000000        0.0000000000        0.0000000000         m 1 1 1 
 O1
-1
 0.00
-0.2500000000        0.2500000000        0.2500000000                         m 1 1 1"""
+1
+0.2500000000        0.2500000000        0.2500000000         m 1 1 1"""
         self.assertTrue(ref in result)
 
         # test with nao
         Si = AtomSpecies(symbol="Si", mass=28.0855, pp="Si.pz-vbc.UPF", nao="Si_gga_6au_100Ry_2s2p1d.orb")
         O = AtomSpecies(symbol="O", mass=15.9994, pp="O.pbe-rrkjus.UPF", nao="O_gga_6au_100Ry_2s2p1d.orb")
         result = write_abacus_stru([Si, O], cell)
-        ref = """ATOM_SPECIES
+        ref = """ATOMIC_SPECIES
 Si1  28.0855  Si.pz-vbc.UPF
 O1   15.9994  O.pbe-rrkjus.UPF
 
@@ -267,16 +267,16 @@ LATTICE_VECTORS
 5.0000000000         8.6602540378         0.0000000000        
 5.0000000000         2.8867513459         8.1649658093        
 
-ATOM_POSITIONS
+ATOMIC_POSITIONS
 Direct
 Si1
-1
 0.00
-0.0000000000        0.0000000000        0.0000000000                         m 1 1 1 
+1
+0.0000000000        0.0000000000        0.0000000000         m 1 1 1 
 O1
-1
 0.00
-0.2500000000        0.2500000000        0.2500000000                         m 1 1 1"""
+1
+0.2500000000        0.2500000000        0.2500000000         m 1 1 1"""
         self.assertTrue(ref in result)
         # isolated case, molecule
         cell = Cell(a=20, b=20, c=20, alpha=90, beta=90, gamma=90, 
@@ -285,7 +285,7 @@ O1
                     magmoms=[0.0, 0.0], mobs=[[1, 1, 1], [1, 1, 1]], periodic=False)
         H = AtomSpecies(symbol="H", mass=1.0079, pp="H.pz-vbc.UPF")
         result = write_abacus_stru([H], cell)
-        ref = """ATOM_SPECIES
+        ref = """ATOMIC_SPECIES
 H    1.0079   H.pz-vbc.UPF
 
 LATTICE_CONSTANT
@@ -296,18 +296,18 @@ LATTICE_VECTORS
 0.0000000000         20.0000000000        0.0000000000        
 0.0000000000         0.0000000000         20.0000000000       
 
-ATOM_POSITIONS
+ATOMIC_POSITIONS
 Cartesian
 H
-2
 0.00
-0.0000000000        0.0000000000        0.0000000000                         m 1 1 1 
-0.0000000000        0.0000000000        1.0000000000                         m 1 1 1"""
+2
+0.0000000000        0.0000000000        0.0000000000         m 1 1 1 
+0.0000000000        0.0000000000        1.0000000000         m 1 1 1"""
         self.assertTrue(ref in result)
         # test with nao
         H = AtomSpecies(symbol="H", mass=1.0079, pp="H.pz-vbc.UPF", nao="H_gga_6au_100Ry_2s2p1d.orb")
         result = write_abacus_stru([H], cell)
-        ref = """ATOM_SPECIES
+        ref = """ATOMIC_SPECIES
 H    1.0079   H.pz-vbc.UPF
 
 NUMERICAL_ORBITAL
@@ -321,52 +321,71 @@ LATTICE_VECTORS
 0.0000000000         20.0000000000        0.0000000000        
 0.0000000000         0.0000000000         20.0000000000       
 
-ATOM_POSITIONS
+ATOMIC_POSITIONS
 Cartesian
 H
-2
 0.00
-0.0000000000        0.0000000000        0.0000000000                         m 1 1 1 
-0.0000000000        0.0000000000        1.0000000000                         m 1 1 1"""
+2
+0.0000000000        0.0000000000        0.0000000000         m 1 1 1 
+0.0000000000        0.0000000000        1.0000000000         m 1 1 1"""
         self.assertTrue(ref in result)
 
+    def test_write_abacus_kpt(self):
+        cell = Cell(a=10, b=10, c=10, alpha=60, beta=60, gamma=60, 
+                    coords=[[0.0, 0.0, 0.0], [0.25, 0.25, 0.25]],
+                    kinds=["Si", "O"], labels=["Si1", "O1"], labels_kinds_map=[0, 1],
+                    magmoms=[0.0, 0.0], mobs=[[1, 1, 1], [1, 1, 1]], periodic=True, mpmesh_nks=[4, 4, 4])
+        result = write_abacus_kpt(cell)
+        ref = """K_POINTS
+0
+Gamma
+4 4 4 0 0 0"""
+        self.assertEqual(result, ref)
+
+    def test_write_qespresso_in(self):
+        cell = Cell(a=10, b=10, c=10, alpha=60, beta=60, gamma=60, 
+                    coords=[[0.0, 0.0, 0.0], [0.25, 0.25, 0.25]],
+                    kinds=["Si", "O"], labels=["Si1", "O1"], labels_kinds_map=[0, 1],
+                    magmoms=[0.0, 0.0], mobs=[[1, 1, 1], [1, 1, 1]], periodic=True)
+        result = write_qespresso_in({
+            "control": {"calculation": "scf", "verbosity": "low"},
+            "system": {"ibrav": 0, "ecutwfc": 60},
+            "electrons": {"conv_thr": 1.0E-6},
+            "ions": {"ion_dynamics": "none"},
+            "cell": {"cell_dynamics": "none"}
+        }, [AtomSpecies(symbol="Si", mass=28.0855, pp="Si.pz-vbc.UPF"), 
+            AtomSpecies(symbol="O", mass=15.9994, pp="O.pbe-rrkjus.UPF")], cell)
+        ref = """&CONTROL
+calculation          scf
+verbosity            low
+/
+&SYSTEM
+ibrav                0
+ecutwfc              60
+nat                  2
+ntyp                 2
+/
+&ELECTRONS
+conv_thr             1.0E-6
+/
+&IONS
+ion_dynamics         none
+/
+&CELL
+/
+CELL_PARAMETERS (angstrom)
+10.0000000000        0.0000000000         0.0000000000
+5.0000000000         8.6602540378         0.0000000000
+5.0000000000         2.8867513459         8.1649658093
+ATOMIC_SPECIES
+Si  28.0855  Si.pz-vbc.UPF
+O   15.9994  O.pbe-rrkjus.UPF
+ATOMIC_POSITIONS (crystal)
+Si1 0.0000000000        0.0000000000        0.0000000000
+O1  0.2500000000        0.2500000000        0.2500000000
+K_POINTS (automatic)
+4 4 4 0 0 0"""
+        self.assertEqual(result, ref)
+
 if __name__ == "__main__":
-    unittest.main(exit=False)
-    inp = {
-        "global": {
-            "mode": "test",
-            "pseudo_dir": "./download/pseudopotentials",
-            "orbital_dir": "./download/numerical_orbitals",
-            "cache_dir": "./apns_cache",
-            "out_dir": "./apns_out"
-        },
-        "credentials": {
-            "materials_project": {"api_key": ""}
-        },
-        "abacus": [
-            {
-                "ecutwfc": 30,
-                "calculation": "cell-relax",
-                "nspin": 2
-            }
-        ],
-        "atomsets": [
-            {
-                "Ba": [["sg15", "1.0"], None],
-                "O": [["GBRV"], None],
-                "Ti": [["rrkjus"], None],
-                "H": [["PD", "04"], None],
-                "Fe": [["sg15", "1.0"], None],
-                "Mn": [["sg15", "1.0"], None],
-                "Y": [["sg15", "1.0"], None],
-            }
-        ],
-        "strusets": [
-            {
-                "calculator": "abacus",
-                "calcset": 0, "atomset": 0,
-                "desc": [["search", "Y2O3", [0.94, 0.96, 0.98, 1.00, 1.02, 1.04, 1.06], [0.05]]]
-            }
-        ]
-    }
-    main(inp)
+    unittest.main(exit=True)
