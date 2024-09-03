@@ -20,7 +20,7 @@ def collect(folder: str):
             atom_species, cellgen = read_apnsjob_desc(os.path.join(root, "description.json"))
             system = os.path.basename(cellgen["config"])
             pps = [a["pp"] for a in atom_species]
-            ppids = [convert_fpp_to_ppid(pp) for pp in pps]
+            ppids = [": ".join(convert_fpp_to_ppid(pp)) for pp in pps]
             s = "\n".join(ppids)
             print(f"""In folder {root}
 Structure tested: {system}

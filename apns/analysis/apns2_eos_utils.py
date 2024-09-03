@@ -1,8 +1,9 @@
 ACWF_DATAPATH = "/root/documents/acwf-verification-scripts-main/acwf_paper_plots/code-data/"
-ACWF_REFJSON = "results-unaries-verification-PBE-v1-AE-average.json"
+ACWF_UNARIES_AEREF = "results-unaries-verification-PBE-v1-AE-average.json"
+ACWF_OXIDE_AEREF = "results-oxides-verification-PBE-v1-AE-average.json"
 
 def read_acwf_refdata(token: str, 
-                      refdata_path: str = ACWF_DATAPATH + ACWF_REFJSON,
+                      refdata_path: str = ACWF_DATAPATH + ACWF_UNARIES_AEREF,
                       domain: str = "BM_fit_data"):
     """Read data from ACWF reference json file
     see Github repo:
@@ -24,7 +25,7 @@ def read_acwf_refdata(token: str,
     return data[domain].get(token, None)
 
 def cal_delta_wrtacwf(token: str, bmfit: dict, vmin: float, vmax: float,
-                      refdata_path: str = ACWF_DATAPATH + ACWF_REFJSON) -> float:
+                      refdata_path: str = ACWF_DATAPATH + ACWF_UNARIES_AEREF) -> float:
     """Search the best fit data from ACWF reference json file,
     because the structural data provided by Materials Project
     does not explicitly include the conventional name of crystal
@@ -62,6 +63,15 @@ def fit_birch_murnaghan(volumes, energies, as_dict=False):
     """
     import scipy.optimize as opt
     try:
+        if volumes is None or energies is None:
+            print("Warning: the volumes or energies is None, return None")
+            return None
+        if len(volumes) != len(energies):
+            print("ERROR: the number of volumes and energies are not consistent, return None")
+            return None
+        if len(volumes) < 4:
+            print("Warning: the number of pairs (vol, ener) is fewer than the number of variables to fit (4), return None")
+            return None
         popt, _ = opt.curve_fit(birch_murnaghan, volumes, energies, p0=(energies[0], 1, 1, volumes[0]))
     except RuntimeError:
         data = "\n".join([f"{volumes[i]:.4f} {energies[i]:.4f}" for i in range(len(volumes))])
@@ -96,6 +106,8 @@ def delta_value(bm_fit1: dict,
     """
     from scipy.integrate import simpson
     import numpy as np
+    if bm_fit1 is None or bm_fit2 is None:
+        return None
     v1, v2 = bm_fit1["min_volume"], bm_fit2["min_volume"]
     e1, e2 = bm_fit1["E0"], bm_fit2["E0"]
     b1, b2 = bm_fit1["bulk_modulus_ev_ang3"], bm_fit2["bulk_modulus_ev_ang3"]
@@ -106,7 +118,7 @@ def delta_value(bm_fit1: dict,
     delta_e_2 = simpson((e1 - e2)**2, x=v)/(vmax - vmin)
     return np.sqrt(delta_e_2)/natom
 
-class EOSSingleCase:
+class EquationOfStateSingleTestCase:
     """Definition: A single case in Equation-Of-States (EOS) test is:
     1. one system
     2. many volumes
@@ -117,8 +129,10 @@ class EOSSingleCase:
     energies: list
     natom: int
     pps: list
+    orbs: list
+    acwf: str
 
-    def __init__(self, system: str, pps: list, cases: list):
+    def __init__(self, system: str, cases: list, pps: list, orbs: list = None):
         """init from a nested dict, data can be get like:
         ```python
         scratch = [{"volume": 10, "energy": -1.0, "natom": 1},
@@ -126,11 +140,12 @@ class EOSSingleCase:
                    {"volume": 30, "energy": -3.0, "natom": 1}]
         ```"""
         self.system = system
-        self.pps = pps
         self.volumes = [float(c["volume"]) for c in cases]
         self.natom = cases[0]["natom"]
         assert all([c["natom"] == self.natom for c in cases]), "The number of atoms should be consistent for all volume tests"
         self.energies = [c["energy"] for c in cases]
+        self.pps = pps
+        self.orbs = orbs
     
     def sort(self):
         """sort the data according to volume"""
@@ -146,13 +161,20 @@ class EOSSingleCase:
     def pp(self, as_list: bool = False):
         """return the pseudopotential string"""
         from apns.analysis.apns2_utils import convert_fpp_to_ppid
-        return self.pps if as_list else "|".join([convert_fpp_to_ppid(pp) for pp in self.pps])
+        return self.pps if as_list else "|".join([": ".join(convert_fpp_to_ppid(pp)) for pp in self.pps])
     
+    def orb(self, as_list: bool = False):
+        """return the orbital string"""
+        from apns.analysis.apns2_utils import convert_forb_to_orbid
+        if self.orbs is None:
+            return
+        return self.orbs if as_list else "|".join([convert_forb_to_orbid(orb) for orb in self.orbs])
+
     def tokenize(system: str):
         """conver the system to token used by ACWF"""
         import re
         u_in = r"([A-Z][a-z]*)_(sc|fcc|bcc|diamond)" # unaries
-        o_in = r"([A-Z][a-z]*O)_(x\dy\d)" # oxides
+        o_in = r"([A-Z][a-z]*O)_(x\d?y\d?)" # oxides
         if re.match(u_in, system):
             # expected format: unaries = r"([A-Z][a-z]*)(-X/)([SC|FCC|BCC|Diamond])"
             elem, phase = re.match(u_in, system).groups()
@@ -160,17 +182,17 @@ class EOSSingleCase:
         if re.match(o_in, system):
             # expected format: oxides = r"([A-Z][a-z]*)/(X\dO\d)"
             elem, phase = re.match(o_in, system).groups()
-            return f"{elem}/X{phase}"
+            return f"{elem[:-1]}-{phase.upper().replace('Y', 'O')}"
         print(f"""Warning: the system \"{system}\" is not recognized by the tokenize function, maybe not standard EOS test?
 Directly return None""")
         return None
         
-    def __call__(self):
+    def __call__(self, acwf):
         self.sort()
         bmfit = self.calc_eos(as_dict=True)
-        token = self.tokenize(self.system)
-        delta = cal_delta_wrtacwf(token, bmfit, min(self.volumes), max(self.volumes))
-        return self.pp(), bmfit, delta
+        token = EquationOfStateSingleTestCase.tokenize(self.system)
+        delta = cal_delta_wrtacwf(token, bmfit, min(self.volumes), max(self.volumes), acwf)
+        return self.pp(), self.orb(), bmfit, delta
         # legend, line, scalarized data
 
 def plot(testresult: dict, ncols: int = 3, **kwargs):
@@ -272,7 +294,7 @@ def plot(testresult: dict, ncols: int = 3, **kwargs):
                 # shift the energy to 0
                 fit_interp = birch_murnaghan(vs_interp, bm_fit["E0"], bm_fit["bulk_modulus_ev_ang3"], bm_fit["bulk_deriv"], bm_fit["min_volume"])
                 fit_interp = fit_interp - min(fit_interp)
-                pspotid = convert_fpp_to_ppid(fpp)
+                _, pspotid = convert_fpp_to_ppid(fpp)
                 # plot
                 ax.plot(vs_interp/natoms, ref_interp, "-", label="AE (averaged over Wien2K and FLEUR)", color=colors[0])
                 ax.plot(vs/natoms, eks, "o", label=f"DFT: {pspotid}", markersize=markersize, markeredgecolor=colors[1], markerfacecolor="none",

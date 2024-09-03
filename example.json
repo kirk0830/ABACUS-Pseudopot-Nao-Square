@@ -4,7 +4,7 @@
         "pseudo_dir": "/root/abacus-develop/pseudopotentials",
         "orbital_dir": "/root/abacus-develop/numerical_orbitals",
         "cache_dir": "./apns_cache",
-        "out_dir": "./output"
+        "out_dir": "/root/documents/simulation/abacus/normconserving-elem300Ry-xyeos"
     },
     "credentials": {
         "materials_project": {
@@ -19,14 +19,14 @@
     },
     "abacus": [
         {
-            "ecutwfc": 100,
-            "calculation": "scf",
-            "basis_type": "lcao",
+            "ecutwfc": "auto",
+            "calculation": "relax",
+            "basis_type": "pw",
             "cal_force": 1,
             "cal_stress": 1,
-            "nspin": 2,
+            "nspin": 1,
             "symmetry": 1,
-            "nelec_delta": [0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0]
+            "ks_solver": "dav"
         },
         {
             "ecutwfc": [20, 30, 40, 50, 60, 70, 80, 90, 100, 150, 200],
@@ -37,12 +37,14 @@
             "ks_solver": "cg"
         },
         {
-            "ecutwfc|ecutrho": [[20, 160], [30, 240], [40, 320], [50, 400], [60, 480], [70, 560], [80, 640], [90, 720], [100, 800], [150, 1200], [200, 1600]],
+            "ecutwfc|ecutrho": [[20, 320], [30, 480], [40, 640], [50, 800], [60, 960], [70, 1120], [80, 1280], [90, 1440], [100, 1600], [150, 2400], [200, 3200]],
             "calculation": "scf",
+            "nspin": 2,
             "cal_force": 1,
             "cal_stress": 1,
+            "symmetry": 1,
             "basis_type": "pw",
-            "ks_solver": "cg"
+            "ks_solver": "dav"
         },
         {
             "ecutwfc": [30, 40, 50],
@@ -80,14 +82,17 @@
     ],
     "atomsets": [
         {
-            "Li": [["sg15", "1.0", "sr"], null],
-            "Cl": [["sg15", "1.0", "sr"], null],
-            "Dy": [["PD04", "nlcc"], null],
-            "Er": [["PD04", "nlcc"], null],
-            "Ho": [["PD04", "nlcc"], null],
-            "Lu": [["PD04", "nlcc"], null],
-            "Tm": [["PD04", "nlcc"], null],
-            "Yb": [["PD04", "nlcc"], null]
+            "Co": [["NC", "pslibrary"], null],
+            "Ag": [["NC"], null],
+            "Cd": [["NC"], null],
+            "In": [["NC"], null],
+            "Nb": [["NC"], null],
+            "Pd": [["NC"], null],
+            "Rh": [["NC"], null],
+            "Mn": [["NC", "PD04", "high"], null],
+            "Fe": [["NC", "PD04", "high"], null],
+            "Cr": [["NC"], null],
+            "O": [["sg15", "1.0", "sr"], null]
         },
         {
             "Ti": [["US"], null],
@@ -95,17 +100,25 @@
             "Sr": [["US"], null]
         },
         {
-            "__element__": ["Ti", "Cu"],
-            "__tags__": [["sg15", "1.0", "sr"], ["pytorch.SWAT"]]
+            "__element__": ["Cs", "Ba", "La", "Hf", "Ta", "W", "Re", "Os", "Ir", "Pt", "Au", "Hg", "Tl", "Pb", "Bi"],
+            "__tags__": [["US"], null]
         }
     ],
     "strusets": [
         {
             "calculator": "abacus", "calcset": 0,
-            "atomset": 2,
+            "atomset": 0,
             "database": "materials_project",
-            "desc": [["search", "Ti", [1.0], [0.1]],
-                     ["search", "Cu", [1.0], [0.1]]]
+            "desc": [["from_scratch", "CoO_xy", [0.94, 0.96, 0.98, 1.00, 1.02, 1.04, 1.06], [0.08]],
+                     ["from_scratch", "AgO_xy", [0.94, 0.96, 0.98, 1.00, 1.02, 1.04, 1.06], [0.08]],
+                     ["from_scratch", "CdO_xy", [0.94, 0.96, 0.98, 1.00, 1.02, 1.04, 1.06], [0.08]],
+                     ["from_scratch", "InO_xy", [0.94, 0.96, 0.98, 1.00, 1.02, 1.04, 1.06], [0.08]],
+                     ["from_scratch", "NbO_xy", [0.94, 0.96, 0.98, 1.00, 1.02, 1.04, 1.06], [0.08]],
+                     ["from_scratch", "PdO_xy", [0.94, 0.96, 0.98, 1.00, 1.02, 1.04, 1.06], [0.08]],
+                     ["from_scratch", "RhO_xy", [0.94, 0.96, 0.98, 1.00, 1.02, 1.04, 1.06], [0.08]],
+                     ["from_scratch", "MnO_xy", [0.94, 0.96, 0.98, 1.00, 1.02, 1.04, 1.06], [0.08]],
+                     ["from_scratch", "FeO_xy", [0.94, 0.96, 0.98, 1.00, 1.02, 1.04, 1.06], [0.08]],
+                     ["from_scratch", "CrO_xy", [0.94, 0.96, 0.98, 1.00, 1.02, 1.04, 1.06], [0.08]]]
         }
     ]
 }

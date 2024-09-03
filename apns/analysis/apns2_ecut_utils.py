@@ -90,7 +90,7 @@ class EcutSingleCase:
     def pp(self, as_list: bool = False):
         """return the pseudopotential string"""
         from apns.analysis.apns2_utils import convert_fpp_to_ppid
-        return self.pps if as_list else "|".join([convert_fpp_to_ppid(pp) for pp in self.pps])
+        return self.pps if as_list else "|".join([": ".join(convert_fpp_to_ppid(pp)) for pp in self.pps])
     
     def zval(self, as_list: bool = False):
         """return the valence of atoms"""

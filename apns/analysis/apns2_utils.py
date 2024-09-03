@@ -27,52 +27,128 @@ def handle_hgh(fpp: str):
     import re
     import os
     family, version = "Hartwigsen-Goedecker-Hutter", ""
-    appendix = re.match(r"([A-Z][a-z]?\.pbe\-)(.*)(hgh\.UPF)", os.path.basename(fpp)).group(2)
+    m = re.match(r"([A-Z][a-z]?\.pbe\-)(.*)(hgh\.UPF)", os.path.basename(fpp))
+    elem = m.group(1).replace(".pbe-", "")
+    appendix = m.group(2)
     appendix = "" if appendix is None else appendix
-    return family, version, appendix
+    return elem, family, version, appendix
 
 def handle_pd04(fpp: str):
     import re
     import os
     family, version = "PD04", ""
-    appendix = re.match(r"([A-Z][a-z]?)([\d\+\-\_\w]*)(\.PD04\.PBE\.UPF)", os.path.basename(fpp)).group(2)
+    m = re.match(r"([A-Z][a-z]?)([\d\+\-\_\w]*)(\.PD04\.PBE\.UPF)", os.path.basename(fpp))
+    elem = m.group(1)
+    appendix = m.group(2)
     if appendix is None or len(appendix) == 0:
         appendix = ""
     elif appendix[0] in ["+", "-"]:
         appendix = appendix[1:]
-    return family, version, appendix
+    return elem, family, version, appendix
 
 def handle_gbrv(fpp: str):
-    family, version, appendix = "GBRV", "1.5", ""
-    return family, version, appendix
+    """convert the file name to element, family, version, appendix.
+    Change log:
+    In the previous version of this function, the version of pseudopotential is hard-coded to be 1.5.
+    However, 1.5 is the publication version rather than version of every single pseudopotential file.
+    In change at 27th Aug 2024, this has been changed to extract the version from the file name.
+    Correspondingly the ultrasoft tests are changed accordingly, here is the script to change all contents
+    of data file:
+    ```python
+    import re
+    import os
+    import json
+    import shutil
+    path = "/root/abacus-develop/apns_toupdate"
+    files = [f for f in os.listdir(path) if os.path.isfile(os.path.join(path, f))\
+            and os.path.basename(f).startswith("ultrasoft-")\
+                and os.path.basename(f).endswith(".json")]
+
+    pppath = "/root/abacus-develop/pseudopotentials/GBRV_pbe_UPF_v1.5"
+    pps = [f for f in os.listdir(pppath) if os.path.isfile(os.path.join(pppath, f))]
+
+    # a dict mapping element to pseudopotential file
+    gbrvpat = r"([a-z]+)(_pbe)((_[\w\d]+)?_v[\d\.]+)(\.uspp\.F\.UPF)"
+    gbrv = {}
+    for pp in pps:
+        m = re.match(gbrvpat, pp)
+        if m:
+            elem = m.group(1).capitalize()
+            version = m.group(3).replace("_v", "")
+            version = "1.0" if version == "1" else version
+            gbrv[elem] = f"GBRV v{version}"
+
+    for file in files:
+        print(f"Processing {file}!")
+        # first save a copy
+        shutil.copyfile(os.path.join(path, file), os.path.join(path, f"{file}.bak"))
+        with open(os.path.join(path, file), "r") as f:
+            data = json.load(f)
+        for system in data: # data is a list
+            name = system["name"]
+            elem = name.split()[0].split("-")[0]
+            assert re.match(r"[A-Z][a-z]?", elem)
+            if "eos" in file: # eos and ecutwfc convergence test has different structure
+                for i, test in enumerate(system["data"]): # loop over pseudopotentials, "data" is a list
+                    if test["pp"].startswith("GBRV"):
+                        assert elem in gbrv
+                        correct = gbrv[elem] # correct with this
+                        test["pp"] = correct
+            elif "ecutwfc" in file:
+                if system["pp"].startswith("GBRV"):
+                    assert elem in gbrv
+                    correct = gbrv[elem]
+                    system["pp"] = correct
+                    
+        with open(os.path.join(path, file), "w") as f:
+            json.dump(data, f, indent=4)
+    ```
+    """
+    import re, os
+    m = re.match(r"([a-z]+)(_pbe)((_[\w\d]+)?_v[\d\.]+)(\.uspp\.F\.UPF)", os.path.basename(fpp))
+    elem = m.group(1).capitalize()
+    version = m.group(3).replace("_v", "")
+    version = "1.0" if version == "1" else version
+    family, appendix = "GBRV", ""
+    return elem, family, version, appendix
 
 def handle_pd03(fpp: str):
+    import re
+    import os
+    m = re.match(r"([A-Z][a-z]?)(\.PD03\.PBE\.UPF)", os.path.basename(fpp))
+    elem = m.group(1)
     family, version, appendix = "PD03", "", ""
-    return family, version, appendix
+    return elem, family, version, appendix
 
 def handle_sg15(fpp: str):
     import re
     import os
     family = "SG15"
-    match_ = re.match(r"([A-Z][a-z]?(_ONCV_PBE)(_)?(FR)?(\-)(\d\.\d)(\.upf))", os.path.basename(fpp))
-    version = match_.group(6)
-    appendix = "fr" if match_.group(4) is not None else "sr"
-    return family, version, appendix
+    m = re.match(r"([A-Z][a-z]?(_ONCV_PBE)(_)?(FR)?(\-)(\d\.\d)(\.upf))", os.path.basename(fpp))
+    elem = m.group(1).split("_")[0].lower().capitalize()
+    version = m.group(6)
+    appendix = "fr" if m.group(4) is not None else "sr"
+    return elem, family, version, appendix
 
 def handle_psl(fpp: str):
     import re
     import os
     family = "PSlibrary"
-    match_ = re.match(r"([A-Z][a-z]?)(\.)(rel-)?(pbe|pz)(-\w+)?(-)(rrkjus|kjpaw|nc)(_psl\.)?([\.\d]+)?(\.UPF)", os.path.basename(fpp))
-    version = "0.3.1" if match_.group(9) is None else match_.group(9)
+    m = re.match(r"([A-Z][a-z]?)(\.)(rel-)?(pbe|pz)(-\w+)?(-)(rrkjus|kjpaw|nc)(_psl\.)?([\.\d]+)?(\.UPF)", os.path.basename(fpp))
+    elem = m.group(1).lower().capitalize()
+    version = "0.3.1" if m.group(9) is None else m.group(9)
     apps = []
-    if match_.group(7): apps.append(match_.group(7).upper())
-    if match_.group(3): apps.append("fr")
-    if match_.group(5): apps.append(match_.group(5)[1:])
+    if m.group(7): apps.append(m.group(7).upper())
+    if m.group(3): apps.append("fr")
+    if m.group(5): apps.append(m.group(5)[1:])
     appendix = ", ".join(apps)
-    return family, version, appendix
+    return elem, family, version, appendix
 
 def handle_pseudo_dojo(fpp: str):
+    import os
+    import re
+    m = re.match(r"([A-Z][a-z]?)(.*upf)", os.path.basename(fpp))
+    elem = m.group(1)
     if "nc-sr-05_pbe_standard_upf" in fpp:
         family, version, appendix = "PseudoDojo", "0.5", "sr"
     elif "nc-fr-04_pbe_standard" in fpp:
@@ -87,19 +163,20 @@ def handle_pseudo_dojo(fpp: str):
     else:
         raise ValueError(f"Unrecognized pseudopotential file: {fpp}")
     
-    return family, version, appendix
+    return elem, family, version, appendix
 
 def handle_gth(fpp: str):
     import os
     family, version = "Goedecker-Teter-Hutter", ""
-    appendix = os.path.basename(fpp).split("_")[-1].split(".")[0]
-    return family, version, appendix
+    elem, _, _, appendix = os.path.basename(fpp).split("_")
+    appendix = appendix.split(".")[0]
+    return elem, family, version, appendix
 
 def handle_20240723(fpp: str):
     import os
     family, version = "HighPressure", "20240723"
     appendix = "rcut="+os.path.basename(fpp).split("-")[1]
-    return family, version, appendix
+    return "H", family, version, appendix
 
 def convert_fpp_to_ppid(fpp: str):
     """Convert pseudopotential file name to pseudopotential identifier, the one
@@ -124,10 +201,10 @@ def convert_fpp_to_ppid(fpp: str):
     print(f"Converting {fpp}")
     for key in func_map:
         if key in fpp:
-            family, version, appendix = func_map[key](fpp)
-            return f"{family} v{version} ({appendix})".replace("v ", "").replace("()", "")
+            elem, family, version, appendix = func_map[key](fpp)
+            return elem, f"{family} v{version} ({appendix})".replace("v ", "").replace("()", "")
     print(f"Unrecognized pseudopotential file: {fpp}")
-    return fpp
+    return "unknown", fpp
 
 def convert_forb_to_orbid(forb: str):
     import os, re

@@ -245,7 +245,7 @@ def plot(testresult: dict, ncols: int = 3, **kwargs):
                 # shift the energy to 0
                 fit_interp = birch_murnaghan(vs_interp, bm_fit["E0"], bm_fit["bulk_modulus_ev_ang3"], bm_fit["bulk_deriv"], bm_fit["min_volume"])
                 fit_interp = fit_interp - min(fit_interp)
-                pspotid = convert_fpp_to_ppid(pnid)
+                _, pspotid = convert_fpp_to_ppid(pnid)
                 # plot
                 ax.plot(vs_interp/natoms, ref_interp, "-", label="AE (averaged over Wien2K and FLEUR)", color=colors[0])
                 ax.plot(vs/natoms, eks, "o", label=f"DFT: {pspotid}", markersize=markersize, markeredgecolor=colors[1], markerfacecolor="none",

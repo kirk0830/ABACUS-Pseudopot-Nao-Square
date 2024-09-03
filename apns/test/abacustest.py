@@ -24,7 +24,7 @@ ABACUS_IMAGE = "registry.dp.tech/dptech/abacus:3.7.3" # this is for submit large
 QE_IMAGE = "registry.dp.tech/dptech/prod-471/abacus-vasp-qe:20230116"
 VASP_IMAGE = "registry.dp.tech/dptech/prod-471/abacus-vasp-qe:20230116"
 PYTHON_IMAGE = "python:3.8"
-ABACUS_COMMAND = "OMP_NUM_THREADS=1 mpirun -n 16 abacus | tee out.log"
+ABACUS_COMMAND = "ulimit -c 0; OMP_NUM_THREADS=1 mpirun -n 16 abacus | tee out.log" # update to avoid core dump
 
 import os
 import json
@@ -38,7 +38,8 @@ def abacus_command(run_abacus: str = "abacus",
                    stdout: str = "out.log", 
                    omp_num_threads: int = 1,
                    mpi_np: int = 16) -> str:
-    return f"OMP_NUM_THREADS={omp_num_threads} mpirun -n {mpi_np} {run_abacus} | tee {stdout}"
+    # update to avoid massive core dump
+    return f"ulimit -c 0; OMP_NUM_THREADS={omp_num_threads} mpirun -n {mpi_np} {run_abacus} | tee {stdout}"
 
 def manual_submit(username, password, project_id, ncores, memory, folders):
     import time
@@ -259,6 +260,8 @@ def write_abacustest_param(jobgroup_name: str, bohrium_login: dict, save_dir: st
         "post_dft": setup_dft(**postdft)
     }
     result = {k: v for k, v in result.items() if len(v) > 0}
+    result.update({"compress": True}) # add compress: True to compress job files, may accelerate the upload process...
+
     if export:
         with open("param.json", "w") as f:
             json.dump(result, f, indent=4)
@@ -508,12 +511,7 @@ class TestABACUSTest(unittest.TestCase):
 
 if __name__ == "__main__":
     #unittest.main(exit=False)
-    #reuse_eos_pw_vs_lcao("./output")
     import os, time
-    #src = "/root/documents/simulation/orbgen/apns-orbgen-project/ecoh_test/lcao-v2.1/"
-    #jobgroup = "long-sp_ecohtest_lcao-v2.1"
-    #fgroup = os.path.join(src, jobgroup)
-    #os.chdir(fgroup)
-    os.chdir("/root/documents/simulation/abacus/ultrasoft-20240816")
+    os.chdir("/root/documents/simulation/abacus/normconserving-lanthactin-x2y5eos")
     folders = os.listdir()
     manual_submit("_", "_", "28682", 32, 64, folders)
