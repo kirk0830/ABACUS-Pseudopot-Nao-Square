@@ -28,7 +28,7 @@ def collect(folder: str):
                 desc = json.load(f)
             ecutwfc = desc["DFTParamSet"]["system"]["ecutwfc"]
             pps = [a["pp"] for a in atom_species]
-            ppids = [convert_fpp_to_ppid(pp) for pp in pps]
+            ppids = [": ".join(convert_fpp_to_ppid(pp)) for pp in pps]
             zvals = [z_valence(os.path.join(root, pp)) for pp in pps]
             s = "\n".join(ppids)
             print(f"""In folder {root}

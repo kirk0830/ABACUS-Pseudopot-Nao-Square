@@ -25,7 +25,7 @@ def collect(folder: str):
                 abacus_input = read_abacus_out.read_keyvals_frominput(os.path.join(parent, "INPUT"))
                 ecutwfc = abacus_input["ecutwfc"]
                 pps = [a["pp"] for a in atom_species]
-                ppids = [convert_fpp_to_ppid(pp) for pp in pps]
+                ppids = [": ".join(convert_fpp_to_ppid(pp)) for pp in pps]
                 zvals = [float(ppparse.z_valence(os.path.join(parent, pp))) for pp in pps]
                 s = "\n".join(ppids)
                 print(f"""In folder {parent}
@@ -74,7 +74,7 @@ if __name__ == "__main__":
     import json, os
     from apns.analysis.apns2_utils import stru_rev_map
     sysrevmap_ = stru_rev_map("./apns_cache/structures.json", True)
-    jobpath = "/root/documents/simulation/abacus/ultrasoft-20240815/13128652"
+    jobpath = "/root/documents/simulation/abacus/ultrasoft-test-4th-period"
     collected = collect(jobpath)
     system_and_stpcs = build_sptc_from_nested(collected)
     result = []

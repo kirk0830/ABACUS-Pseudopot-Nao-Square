@@ -969,19 +969,21 @@ ACWF_REFVOLUME = """
 def lookup_acwf_db(bravis: str):
     """bravis will be something like Si_bcc, SiO_X2O3 or something"""
     import re
-    assert re.match(r"^([A-Z][a-z]?)_(sc|bcc|fcc|diamond)$", bravis) \
-           or re.match(r"^([A-Z][a-z]?[A-Z][a-z]?)_(xy2|xy3|x2y|x2y3|x2y5)$", bravis), \
-           f"bravis required does not match any ACWF token: {bravis}"
+    up = r"^([A-Z][a-z]?)_(sc|bcc|fcc|diamond)$"
+    op = r"^([A-Z][a-z]?)([A-Z][a-z]?)_(xy|xy2|xy3|x2y|x2y3|x2y5)$"
+    um, om = re.match(up, bravis), re.match(op, bravis)
+    assert um or om, f"bravis required does not match any ACWF token: {bravis}"
 
-    parts = bravis.split("_")
-    oxide = not (parts[1] in ["sc", "bcc", "fcc", "diamond"])
-
-    if oxide: phase = parts[1].upper().replace("Y", "O")
-    else: phase = parts[1].upper() if parts[1].lower() != "diamond" else "Diamond"
-
-    assert phase != "", f"phase not recognized: {parts[1]}"
-    # for uneries, token is not the same as phase, while oxides are
-    token = f"{parts[0].lower().capitalize()}-X/{phase}" if not oxide else phase
+    token = "invalid"
+    if um:
+        phase = um.group(2)
+        phase = phase.upper() if phase.lower() != "diamond" else "Diamond"
+        token = um.group(1).lower().capitalize() + "-X/" + phase
+    else:
+        elem = om.group(1).lower().capitalize()
+        assert om.group(2).upper() == "O", f"ACWF only has oxides data available, while request is: {bravis}"
+        phase = om.group(3).lower().replace("y", "O").upper()
+        token = elem + "-" + phase
 
     for line in ACWF_REFVOLUME.split("\n"):
         if token in line: return float(line.split()[1])
@@ -1000,13 +1002,14 @@ def lookup_bravis_lattice(bravis: str, celldm: float):
     Once new support on bravis lattice is added, the function should be updated"""
     import re
     assert re.match(r"^([A-Z][a-z]?)_(sc|bcc|fcc|diamond)$", bravis)\
-        or re.match(r"^([A-Z][a-z]?[A-Z][a-z]?)_(xy2|xy3|x2y|x2y3|x2y5)$", bravis)\
+        or re.match(r"^([A-Z][a-z]?[A-Z][a-z]?)_(xy|xy2|xy3|x2y|x2y3|x2y5)$", bravis)\
             , f"bravis required does not match any ACWF token: {bravis}"
     kinds, phase = bravis.split("_")
     kinds = [kinds] if phase in ["sc", "bcc", "fcc", "diamond"] else list(re.match(r"([A-Z][a-z]?)([A-Z][a-z]?)", kinds).groups())
     phase = phase.lower()
     call_map = {"sc": bravis_sc, "bcc": bravis_bcc, "fcc": bravis_fcc, "diamond": bravis_diamond,
-                "xy2": bravis_x2y, "xy3": bravis_x2y, "x2y": bravis_x2y, "x2y3": bravis_x2y, "x2y5": bravis_x2y}
+                "xy": bravis_xy, "xy2": bravis_xy2, "xy3": bravis_xy3, 
+                "x2y": bravis_x2y, "x2y3": bravis_x2y3, "x2y5": bravis_x2y5}
     return call_map[phase](kinds, celldm)
 
 def vol_to_abc_angles(volume: float, angles: list):

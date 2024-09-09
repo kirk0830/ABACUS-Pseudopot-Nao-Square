@@ -125,7 +125,7 @@ def print_postdft(result: dict):
     for system, data in result.items():
         print(f"System {system}")
         for i, ppcase in enumerate(data["ppcases"]):
-            ppcase = [convert_fpp_to_ppid(pp) for pp in ppcase]
+            ppcase = [": ".join(convert_fpp_to_ppid(pp)) for pp in ppcase]
             ppcase = ", ".join(ppcase)
             print(f"  Pseudopotential case {ppcase}")
             for j, orbs in enumerate(data["pptests"][i]["orbcases"]):
