@@ -138,7 +138,29 @@ class CellGenerator:
     pertmags = None
 
     def __init__(self, config: str, pertmags: list, pertkind: str = "scale-abc", **kwargs) -> None:
-        """create one cell instance with the scaling factors"""
+        """create one cell instance with the scaling factors
+        
+        Parameters
+        ----------
+        config: str
+            the configuration file, can be a CIF file, a Bravis lattice, or a molecule
+        pertmags: list
+            perturbation magnitudes, can be a list of floats
+        pertkind: str
+            the kind of perturbation, can be shear, twist, or scale. For molecule, do not use it
+        kspacing: float
+            the Monkhorst-Pack mesh spacing, only useful for Bravis lattice and CIF file
+        magmoms: list
+            magnetic moments for each atom, only useful for Bravis lattice and CIF file
+        
+        Raises
+        ------
+        AssertionError
+            if the config is not a valid Bravis lattice, molecule or CIF file
+            if the pertkind is not shear, twist, or scale
+            if the pertmags is not a list of floats
+            if the scales is not a list of floats
+        """
         import re
         import os
 
@@ -149,6 +171,7 @@ class CellGenerator:
         assert identifier != "illegal", f'config should be a valid Bravis lattice, molecule or CIF file: {config}'
         self.identifier = identifier
         self.config = config
+        assert re.match(r"^(shear|twist|scale)(-[abc]+)?$", pertkind), f'pertkind should be shear, twist or scale: {pertkind}'
         self.pertkind = pertkind
         self.pertmags = pertmags
 
@@ -175,6 +198,21 @@ Magnetic moments: {self.magmoms}
             yield self.build(s, k, self.pertkind)
 
     def build(self, scale: float, kspacing: float, pertkind: str) -> dict:
+        """called by __call__ to build the Cell instance
+        
+        Parameters
+        ----------
+        scale: float
+            the scaling factor
+        kspacing: float
+            the Monkhorst-Pack mesh spacing
+        pertkind: str
+            the kind of perturbation
+        
+        Returns
+        -------
+        Cell
+            the generated Cell instance"""
         build_func = CellGenerator.build_from_cif if self.identifier == "cif" \
             else CellGenerator.build_bravis
         build_func = CellGenerator.build_molecule if self.identifier == "molecule" else build_func
@@ -673,7 +711,7 @@ loop_
             self.assertEqual(cell.labels, ["Ba", "Ba"])
             self.assertEqual(cell.kinds, ["Ba"])
             self.assertEqual(cell.labels_kinds_map, [0, 0])
-            self.assertEqual(cell.coords, [[0, 0, 0], [1.0, 0, 0]])
+            self.assertEqual(cell.coords, [[10.0, 10.0, 10.0], [11.0, 10.0, 10.0]])
             times += 1
         self.assertEqual(times, 1)
 
@@ -689,7 +727,7 @@ loop_
             self.assertEqual(cell.labels, ["Ba", "Ba"])
             self.assertEqual(cell.kinds, ["Ba"])
             self.assertEqual(cell.labels_kinds_map, [0, 0])
-            self.assertEqual(cell.coords, [[0, 0, 0], [cg.pertmags[times], 0, 0]])
+            self.assertEqual(cell.coords, [[10, 10, 10], [cg.pertmags[times]+10, 10, 10]])
             times += 1
         self.assertEqual(times, 5)
 
