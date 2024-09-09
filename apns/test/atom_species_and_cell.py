@@ -125,8 +125,6 @@ class AtomSpecies:
                 "index": self.index, "rcovalent": self.rcovalent, "mass": self.mass,
                 "magmom": self.magmom, "pp": self.pp, "ecutwfc": self.ecutwfc, "nao": self.nao}
 
-
-
 class CellGenerator:
 
     # basic
@@ -136,10 +134,33 @@ class CellGenerator:
     # "points" information
     magmoms = None
     # generator specific
-    scales = None
+    pertkind = None
+    pertmags = None
 
-    def __init__(self, config: str, scales: list, **kwargs) -> None:
-        """create one cell instance with the scaling factors"""
+    def __init__(self, config: str, pertmags: list, pertkind: str = "scale-abc", **kwargs) -> None:
+        """create one cell instance with the scaling factors
+        
+        Parameters
+        ----------
+        config: str
+            the configuration file, can be a CIF file, a Bravis lattice, or a molecule
+        pertmags: list
+            perturbation magnitudes, can be a list of floats
+        pertkind: str
+            the kind of perturbation, can be shear, twist, or scale. For molecule, do not use it
+        kspacing: float
+            the Monkhorst-Pack mesh spacing, only useful for Bravis lattice and CIF file
+        magmoms: list
+            magnetic moments for each atom, only useful for Bravis lattice and CIF file
+        
+        Raises
+        ------
+        AssertionError
+            if the config is not a valid Bravis lattice, molecule or CIF file
+            if the pertkind is not shear, twist, or scale
+            if the pertmags is not a list of floats
+            if the scales is not a list of floats
+        """
         import re
         import os
 
@@ -150,10 +171,12 @@ class CellGenerator:
         assert identifier != "illegal", f'config should be a valid Bravis lattice, molecule or CIF file: {config}'
         self.identifier = identifier
         self.config = config
-        self.scales = scales
+        assert re.match(r"^(shear|twist|scale)(-[abc]+)?$", pertkind), f'pertkind should be shear, twist or scale: {pertkind}'
+        self.pertkind = pertkind
+        self.pertmags = pertmags
 
-        assert isinstance(scales, list), f'scales should be a list of floats: {scales}'
-        assert all([isinstance(scale, float) for scale in scales]), f'scales should be a list of floats: {scales}'
+        assert isinstance(pertmags, list), f'scales should be a list of floats: {pertmags}'
+        assert all([isinstance(scale, float) for scale in pertmags]), f'scales should be a list of floats: {pertmags}'
 
         self.kspacing = kwargs.get('kspacing', [-1.0])
         assert isinstance(self.kspacing, list) and all([isinstance(ks, float) for ks in self.kspacing])
@@ -163,7 +186,7 @@ class CellGenerator:
         print(f"""CellGenerator setup
 Identifier (type of structure): {self.identifier}
 Config (structure configuration): {self.config}
-Scales: {self.scales}
+Scales: {self.pertmags}
 K-spacing: {" ".join(map(str, self.kspacing))} in Bohr-1
 Magnetic moments: {self.magmoms}
 """)
@@ -171,14 +194,31 @@ Magnetic moments: {self.magmoms}
     def __call__(self):
         """iteratively create Cell instances"""
         import itertools as it
-        for s, k in it.product(*[self.scales, self.kspacing]):
-            yield self.build(s, k)
+        for s, k in it.product(*[self.pertmags, self.kspacing]):
+            yield self.build(s, k, self.pertkind)
 
-    def build(self, scale: float, kspacing: float) -> dict:
+    def build(self, scale: float, kspacing: float, pertkind: str) -> dict:
+        """called by __call__ to build the Cell instance
+        
+        Parameters
+        ----------
+        scale: float
+            the scaling factor
+        kspacing: float
+            the Monkhorst-Pack mesh spacing
+        pertkind: str
+            the kind of perturbation
+        
+        Returns
+        -------
+        Cell
+            the generated Cell instance"""
         build_func = CellGenerator.build_from_cif if self.identifier == "cif" \
             else CellGenerator.build_bravis
         build_func = CellGenerator.build_molecule if self.identifier == "molecule" else build_func
-        param = build_func(self.config, scale, kspacing)
+        unpertmag = scale if self.identifier == "molecule" else 1.0
+        # for cif and bravis, can perform more kinds of perturbation, we will do it in the following
+        param = build_func(self.config, unpertmag, kspacing)
         param["coords"] = param["coords"].tolist()
         if self.magmoms is not None:
             param["labels"] = CellGenerator.divide_subset(param["coords"], param["kinds"], self.magmoms, param["labels_kinds_map"])
@@ -189,7 +229,10 @@ Magnetic moments: {self.magmoms}
         param["mobs"] = [[1, 1, 1]] * len(param["coords"])
         param["vels"] = [[0, 0, 0]] * len(param["coords"])
 
-        return Cell(**param)
+        proto = Cell(**param)
+        if self.identifier == "molecule":
+            return proto
+        return CellTransformer._kernel(pertkind, proto, scale)
 
     def build_from_cif(fname: str, scale: float, kspacing: float = -1.0):
         """read structure file from external, and construct the structure.
@@ -225,7 +268,7 @@ Magnetic moments: {self.magmoms}
         vol = lookup_acwf_db(bravis)
         alpha, beta, gamma = lookup_bravis_angles(bravis)
         celldm = vol_to_abc_angles(vol, [alpha, beta, gamma])
-        abc_angles, labels, kinds, labels_kinds_map, coords = lookup_bravis_lattice(bravis, celldm*scale)
+        abc_angles, labels, kinds, labels_kinds_map, coords = lookup_bravis_lattice(bravis, celldm*scale**(1/3))
         a, b, c, alpha, beta, gamma = abc_angles
         magmoms = [0] * len(coords)
 
@@ -245,7 +288,8 @@ Magnetic moments: {self.magmoms}
     def build_molecule(molecule: int, bond_length: float, kspacing: float = -1.0):
         from apns.test.bravis_and_molecule import lookup_molecule
         print(f"kspacing: {kspacing} (bohr-1) setting is discarded due to isolated system generation.")
-        abc_angles, labels, kinds, labels_kinds_map, coords = lookup_molecule(molecule, bond_length)
+        abc_angles, labels, kinds, labels_kinds_map, coords = lookup_molecule(
+            molecule, bond_length, celldm = 20.0, center = True)
         a, b, c, alpha, beta, gamma = abc_angles
         magmoms = [0] * len(coords)
         sym_ks, possible_kpath = None, None
@@ -363,6 +407,105 @@ labels: {self.labels}, \nkinds: {self.kinds}, \nlabels_kinds_map: {self.labels_k
                 "coords": self.coords, "vels": self.vels, "magmoms": self.magmoms, "mobs": self.mobs,
                 "labels": self.labels, "kinds": self.kinds, "labels_kinds_map": self.labels_kinds_map, "periodic": self.periodic}
 
+class CellTransformer:
+    """transform the Cell object with certain kind of perturbation.
+    This collection of methods is especially useful in orbital generation
+    tasks, while less useful in the general simulation tasks like 
+    pseudopotential tests."""
+    def _kernel(transform: str, cell: Cell, magnitude: float):
+        call_map = {'shear': CellTransformer._shear, 
+                    'twist': CellTransformer._twist, 
+                    'scale': CellTransformer._scale}
+        frags = transform.split('-')
+        assert len(frags) == 2 or len(frags) == 1, \
+            f'Invalid transform specified for CellTransformer: {transform}'
+        transform = frags[0]
+        axis = 'a' if len(frags) == 1 else frags[1]
+        assert transform in call_map, f'transform should be one of shear, twist, scale: {transform}'
+        print(f"CellTransformer setup\n\
+Transformation: {transform}\n\
+Magnitude: {magnitude}\n\
+Axis: {axis}\n")
+        return call_map[transform](cell, magnitude, axis)
+
+    def _shear(cell: Cell, shear: float, axis: str = 'a'):
+        """perform shear transformation keeping one axis fixed. Implemented from
+        https://en.wikipedia.org/wiki/Shear_mapping
+
+        Parameters
+        ----------
+        cell: Cell
+            the cell object to be transformed
+        shear: float
+            the shear magnitude
+        axis: str
+            the axis that is fixed during the shear transformation
+        
+        Returns
+        -------
+        Cell
+            the transformed cell object
+        """
+        import numpy as np
+        assert axis in ['a', 'b', 'c'], f'axis should be one of a, b, c: {axis}'
+        idx = ['a', 'b', 'c'].index(axis)
+        shear_mat = np.eye(3)
+        shear_mat[(idx+1)%3, (idx+2)%3] = shear
+        cell.coords = np.dot(cell.coords, shear_mat)
+        return cell
+    
+    def _twist(cell: Cell, twist: float, axis: str = 'a'):
+        """perform twist on cell along one axis. From the bottom to the middle of the cell,
+        the atomic layers are rotated in two dimension with a certain degree from 0 to deg
+        """
+        import numpy as np
+        assert axis in ['a', 'b', 'c'], f'axis should be one of a, b, c: {axis}'
+        idx = ['a', 'b', 'c'].index(axis)
+        # because the json cannot store numpy array, we need to convert it to list. But here
+        # we need to convert it back to numpy array because the numpy array is more convenient
+        # for matrix operation
+        cell.coords = np.array(cell.coords)
+        z = np.unique(cell.coords[:, idx]) # "z" does not mean narrowlly the z-axis, but for
+                                           # easy understanding
+        iatms = [np.where(cell.coords[:, idx] == i) for i in z]
+        degs = np.linspace(0, twist, len(z)//2).tolist() + np.linspace(twist, 0, len(z)//2).tolist()
+        for deg, idx_z in zip(degs, iatms):
+            rot_mat = np.eye(3)
+            rot_mat[(idx+1)%3, (idx+1)%3] = np.cos(np.deg2rad(deg))
+            rot_mat[(idx+1)%3, (idx+2)%3] = -np.sin(np.deg2rad(deg))
+            rot_mat[(idx+2)%3, (idx+1)%3] = np.sin(np.deg2rad(deg))
+            rot_mat[(idx+2)%3, (idx+2)%3] = np.cos(np.deg2rad(deg))
+            for iat in idx_z[0]:
+                cell.coords[iat] = rot_mat @ cell.coords[iat]
+        # convert back to list
+        cell.coords = cell.coords.tolist()
+        return cell
+
+    def _scale(cell: Cell, scale: float, axis: str = 'a'):
+        """perform scale transformation keeping one axis fixed"""
+        assert axis in ['a', 'b', 'c', 'ab', 'bc', 'ac', 'abc'], \
+        f'axis should be one of a, b, c, ab, bc, ac, abc: {axis}'
+        if axis == 'a':
+            cell.a *= scale
+        elif axis == 'b':
+            cell.b *= scale
+        elif axis == 'c':
+            cell.c *= scale
+        elif axis == 'ab':
+            cell.a *= scale**(1/2)
+            cell.b *= scale**(1/2)
+        elif axis == 'bc':
+            cell.b *= scale**(1/2)
+            cell.c *= scale**(1/2)
+        elif axis == 'ac':
+            cell.a *= scale**(1/2)
+            cell.c *= scale**(1/2)
+        elif axis == 'abc':
+            cell.a *= scale**(1/3)
+            cell.b *= scale**(1/3)
+            cell.c *= scale**(1/3)
+        return cell
+
 import unittest
 class TestAtomSpeciesGenerator(unittest.TestCase):
 
@@ -430,7 +573,7 @@ class TestCellGeneartor(unittest.TestCase):
         cg = CellGenerator('Si_dimer', [1.0])
         self.assertEqual(cg.identifier, 'molecule')
         self.assertEqual(cg.config, 'Si_dimer')
-        self.assertEqual(cg.scales, [1.0])
+        self.assertEqual(cg.pertmags, [1.0])
 
     def test_kspacing(self):
         result = CellGenerator.kmeshgen(4.22798145, 4.22798145, 4.22798145, 60, 60, 60, 0.03*1.889725989)
@@ -489,9 +632,9 @@ loop_
         cg = CellGenerator(fcif, [1.0, 1.02, 1.04, 1.06, 1.08])
         times = 0
         for cell in cg():
-            self.assertAlmostEqual(cell.a, 4.84451701 * cg.scales[times]**(1/3), delta=1e-6)
-            self.assertAlmostEqual(cell.b, 4.84451701 * cg.scales[times]**(1/3), delta=1e-6)
-            self.assertAlmostEqual(cell.c, 4.84451701 * cg.scales[times]**(1/3), delta=1e-6)
+            self.assertAlmostEqual(cell.a, 4.84451701 * cg.pertmags[times]**(1/3), delta=1e-6)
+            self.assertAlmostEqual(cell.b, 4.84451701 * cg.pertmags[times]**(1/3), delta=1e-6)
+            self.assertAlmostEqual(cell.c, 4.84451701 * cg.pertmags[times]**(1/3), delta=1e-6)
             self.assertAlmostEqual(cell.alpha, 60.0, delta=1e-6)
             self.assertAlmostEqual(cell.beta, 60.0, delta=1e-6)
             self.assertAlmostEqual(cell.gamma, 60.0, delta=1e-6)
@@ -542,9 +685,9 @@ loop_
         cg = CellGenerator('Si_sc', [1.0, 1.02, 1.04, 1.06, 1.08])
         times = 0
         for cell in cg():
-            self.assertEqual(cell.a, 2.5318206866989112 * cg.scales[times])
-            self.assertEqual(cell.b, 2.5318206866989112 * cg.scales[times])
-            self.assertEqual(cell.c, 2.5318206866989112 * cg.scales[times])
+            self.assertEqual(cell.a, 2.5318206866989112 * cg.pertmags[times]**(1/3))
+            self.assertEqual(cell.b, 2.5318206866989112 * cg.pertmags[times]**(1/3))
+            self.assertEqual(cell.c, 2.5318206866989112 * cg.pertmags[times]**(1/3))
             self.assertEqual(cell.alpha, 90.0)
             self.assertEqual(cell.beta, 90.0)
             self.assertEqual(cell.gamma, 90.0)
@@ -568,7 +711,7 @@ loop_
             self.assertEqual(cell.labels, ["Ba", "Ba"])
             self.assertEqual(cell.kinds, ["Ba"])
             self.assertEqual(cell.labels_kinds_map, [0, 0])
-            self.assertEqual(cell.coords, [[0, 0, 0], [1.0, 0, 0]])
+            self.assertEqual(cell.coords, [[10.0, 10.0, 10.0], [11.0, 10.0, 10.0]])
             times += 1
         self.assertEqual(times, 1)
 
@@ -584,9 +727,152 @@ loop_
             self.assertEqual(cell.labels, ["Ba", "Ba"])
             self.assertEqual(cell.kinds, ["Ba"])
             self.assertEqual(cell.labels_kinds_map, [0, 0])
-            self.assertEqual(cell.coords, [[0, 0, 0], [cg.scales[times], 0, 0]])
+            self.assertEqual(cell.coords, [[10, 10, 10], [cg.pertmags[times]+10, 10, 10]])
             times += 1
         self.assertEqual(times, 5)
+
+    def test_transform_cif(self):
+        import uuid, os
+        import numpy as np
+        origin = """data_image0
+_chemical_formula_structural       Pd40
+_chemical_formula_sum              "Pd40"
+_cell_length_a       5
+_cell_length_b       5
+_cell_length_c       50
+_cell_angle_alpha    90
+_cell_angle_beta     90
+_cell_angle_gamma    90
+
+_space_group_name_H-M_alt    "P 1"
+_space_group_IT_number       1
+
+loop_
+  _space_group_symop_operation_xyz
+  'x, y, z'
+
+loop_
+  _atom_site_type_symbol
+  _atom_site_label
+  _atom_site_symmetry_multiplicity
+  _atom_site_fract_x
+  _atom_site_fract_y
+  _atom_site_fract_z
+  _atom_site_occupancy
+  Pd  Pd1       1.0  0.00000  0.00000  0.00000  1.0000
+  Pd  Pd2       1.0  0.50000  0.00000  0.00000  1.0000
+  Pd  Pd3       1.0  0.00000  0.50000  0.00000  1.0000
+  Pd  Pd4       1.0  0.50000  0.50000  0.00000  1.0000
+  Pd  Pd5       1.0  0.00000  0.00000  0.10000  1.0000
+  Pd  Pd6       1.0  0.50000  0.00000  0.10000  1.0000
+  Pd  Pd7       1.0  0.00000  0.50000  0.10000  1.0000
+  Pd  Pd8       1.0  0.50000  0.50000  0.10000  1.0000
+  Pd  Pd9       1.0  0.00000  0.00000  0.20000  1.0000
+  Pd  Pd10      1.0  0.50000  0.00000  0.20000  1.0000
+  Pd  Pd11      1.0  0.00000  0.50000  0.20000  1.0000
+  Pd  Pd12      1.0  0.50000  0.50000  0.20000  1.0000
+  Pd  Pd13      1.0  0.00000  0.00000  0.30000  1.0000
+  Pd  Pd14      1.0  0.50000  0.00000  0.30000  1.0000
+  Pd  Pd15      1.0  0.00000  0.50000  0.30000  1.0000
+  Pd  Pd16      1.0  0.50000  0.50000  0.30000  1.0000
+  Pd  Pd17      1.0  0.00000  0.00000  0.40000  1.0000
+  Pd  Pd18      1.0  0.50000  0.00000  0.40000  1.0000
+  Pd  Pd19      1.0  0.00000  0.50000  0.40000  1.0000
+  Pd  Pd20      1.0  0.50000  0.50000  0.40000  1.0000
+  Pd  Pd21      1.0  0.00000  0.00000  0.50000  1.0000
+  Pd  Pd22      1.0  0.50000  0.00000  0.50000  1.0000
+  Pd  Pd23      1.0  0.00000  0.50000  0.50000  1.0000
+  Pd  Pd24      1.0  0.50000  0.50000  0.50000  1.0000
+  Pd  Pd25      1.0  0.00000  0.00000  0.60000  1.0000
+  Pd  Pd26      1.0  0.50000  0.00000  0.60000  1.0000
+  Pd  Pd27      1.0  0.00000  0.50000  0.60000  1.0000
+  Pd  Pd28      1.0  0.50000  0.50000  0.60000  1.0000
+  Pd  Pd29      1.0  0.00000  0.00000  0.70000  1.0000
+  Pd  Pd30      1.0  0.50000  0.00000  0.70000  1.0000
+  Pd  Pd31      1.0  0.00000  0.50000  0.70000  1.0000
+  Pd  Pd32      1.0  0.50000  0.50000  0.70000  1.0000
+  Pd  Pd33      1.0  0.00000  0.00000  0.80000  1.0000
+  Pd  Pd34      1.0  0.50000  0.00000  0.80000  1.0000
+  Pd  Pd35      1.0  0.00000  0.50000  0.80000  1.0000
+  Pd  Pd36      1.0  0.50000  0.50000  0.80000  1.0000
+  Pd  Pd37      1.0  0.00000  0.00000  0.90000  1.0000
+  Pd  Pd38      1.0  0.50000  0.00000  0.90000  1.0000
+  Pd  Pd39      1.0  0.00000  0.50000  0.90000  1.0000
+  Pd  Pd40      1.0  0.50000  0.50000  0.90000  1.0000
+"""
+        fcif = uuid.uuid4().hex + '.cif'
+        with open(fcif, "w") as f:
+            f.write(origin)
+
+        # twist
+        cg = CellGenerator(fcif, [45.0], pertkind='twist-c')
+        spiral = [
+            [0.00000,  0.00000,  0.00000],
+            [0.50000,  0.00000,  0.00000],
+            [0.00000,  0.50000,  0.00000],
+            [0.50000,  0.50000,  0.00000],
+            [0.00000,  0.00000,  0.10000],
+            [0.49039,  0.09755,  0.10000],
+            [0.90245,  0.49039,  0.10000],
+            [0.39285,  0.58794,  0.10000],
+            [0.00000,  0.00000,  0.20000],
+            [0.46194,  0.19134,  0.20000],
+            [0.80866,  0.46194,  0.20000],
+            [0.27060,  0.65328,  0.20000],
+            [0.00000,  0.00000,  0.30000],
+            [0.41573,  0.27779,  0.30000],
+            [0.72221,  0.41573,  0.30000],
+            [0.13795,  0.69352,  0.30000],
+            [0.00000,  0.00000,  0.40000],
+            [0.35355,  0.35355,  0.40000],
+            [0.64645,  0.35355,  0.40000],
+            [0.00000,  0.70711,  0.40000],
+            [0.00000,  0.00000,  0.50000],
+            [0.35355,  0.35355,  0.50000],
+            [0.64645,  0.35355,  0.50000],
+            [0.00000,  0.70711,  0.50000],
+            [0.00000,  0.00000,  0.60000],
+            [0.41573,  0.27779,  0.60000],
+            [0.72221,  0.41573,  0.60000],
+            [0.13795,  0.69352,  0.60000],
+            [0.00000,  0.00000,  0.70000],
+            [0.46194,  0.19134,  0.70000],
+            [0.80866,  0.46194,  0.70000],
+            [0.27060,  0.65328,  0.70000],
+            [0.00000,  0.00000,  0.80000],
+            [0.49039,  0.09755,  0.80000],
+            [0.90245,  0.49039,  0.80000],
+            [0.39285,  0.58794,  0.80000],
+            [0.00000,  0.00000,  0.90000],
+            [0.50000,  0.00000,  0.90000],
+            [0.00000,  0.50000,  0.90000],
+            [0.50000,  0.50000,  0.90000]
+        ]
+        # the above is the reference value, now we compare between
+        # the reference and the transformed one
+        times = 0
+        for cell in cg():
+            for i, j in zip(cell.coords, spiral):
+                for k, l in zip(i, j):
+                    self.assertAlmostEqual(k%1, l%1, delta=1e-5)
+            times += 1
+
+        self.assertEqual(times, 1)
+
+        # shear
+        cg = CellGenerator(fcif, [0.5], pertkind='shear-c')
+
+        refxy = [[0.5, 0.25], [0.5, 0.75], [0.0, 0.0], [0.0, 0.5]]
+        refxy = np.array(refxy).T.tolist()
+        times = 0
+        for cell in cg():
+            for c in cell.coords:
+                self.assertTrue(c[0]%1 in refxy[0])
+                self.assertTrue(c[1]%1 in refxy[1])
+            times += 1
+        os.remove(fcif)
+
+        # scale is too simple to test
 
 if __name__ == "__main__":
     unittest.main(exit=False)

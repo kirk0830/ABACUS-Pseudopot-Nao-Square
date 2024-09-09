@@ -1209,20 +1209,31 @@ def bravis_xy3(kinds: list, celldm: float):
         np.array([[0, 0, 0], 
                     [0.5, 0, 0], [0, 0.5, 0], [0, 0, 0.5]])
 
-def lookup_molecule(molecule: str, bond_length: float):
+def lookup_molecule(molecule: str, bond_length: float, **kwargs):
     """look up the molecule and build the structure
     Development:
     Once new support on molecule is added, the function should be updated to include the new molecule."""
     import re
-    assert re.match(r"^([A-Z][a-z]?)_(atom|monomer|dimer|trimer|tetramer)$", molecule), \
+    shapes = ["atom", "monomer", "dimer", "trimer", "tetramer", 
+              "square", "tetrahedron", "triangular_bipyramid", "octahedron", "cube"]
+    molepat = re.compile(rf"^([A-Z][a-z]?)_({'|'.join(shapes)})$")
+    assert re.match(molepat, molecule), \
         f"The molecule '{molecule}' does not match any predefined patterns. Please ensure it is formatted correctly."
     assert isinstance(bond_length, float), f"must specify a float number as bond length: {bond_length}"
     kind, shape = molecule.split("_")
     shape = shape.lower()
-    call_map = {"atom": molecule_atom, "monomer": molecule_monomer, "dimer": molecule_dimer, "trimer": molecule_trimer, "tetramer": molecule_tetramer}
-    return call_map[shape](kind, bond_length)
 
-def molecule_monomer(kind: str, bl: float):
+    call_map = {"atom": molecule_atom, "monomer": molecule_monomer, 
+                "dimer": molecule_dimer, "trimer": molecule_trimer, "tetramer": molecule_tetramer,
+                "square": molecule_square, "tetrahedron": molecule_tetrahedron,
+                "triangular_bipyramid": molecule_triangular_bipyramid,
+                "octahedron": molecule_octahedron, "cube": molecule_cube}
+    
+    celldm = kwargs.get("celldm", 20.0)
+    shift = [0.0]*3 if not kwargs.get("center", False) else [celldm/2]*3
+    return call_map[shape](kind, bond_length, celldm, shift)
+
+def molecule_monomer(kind: str, bl: float, celldm: float = 20.0, shift: list = [0.0, 0.0, 0.0]):
     """build monomer with bond length `bl`
     
     Args:
@@ -1236,13 +1247,13 @@ def molecule_monomer(kind: str, bl: float):
     """
     import numpy as np
     print(f"bond length is discarded for monomer: {bl}")
-    return [20, 20, 20, 90, 90, 90], [kind], [kind], \
-        [0], np.array([[0, 0, 0]])
+    return [celldm, celldm, celldm, 90, 90, 90], [kind], [kind], \
+        [0], np.array([[0, 0, 0]]) + np.array(shift)
 
-def molecule_atom(kind: str, bl: float):
-    return molecule_monomer(kind, bl)
+def molecule_atom(kind: str, bl: float, celldm: float = 20.0, shift: list = [0.0, 0.0, 0.0]):
+    return molecule_monomer(kind, bl, celldm, shift)
 
-def molecule_dimer(kind: str, bl: float):
+def molecule_dimer(kind: str, bl: float, celldm: float = 20.0, shift: list = [0.0, 0.0, 0.0]):
     """build dimer with bond length `bl`
     
     Args:
@@ -1255,10 +1266,10 @@ def molecule_dimer(kind: str, bl: float):
         coords (np.ndarray): coordinates of atoms
     """
     import numpy as np
-    return [20, 20, 20, 90, 90, 90], [kind, kind], [kind], \
-        [0, 0], np.array([[0, 0, 0], [bl, 0, 0]])
+    return [celldm, celldm, celldm, 90, 90, 90], [kind, kind], [kind], \
+        [0, 0], np.array([[0, 0, 0], [bl, 0, 0]]) + np.array(shift)
 
-def molecule_trimer(kind: str, bl: float):
+def molecule_trimer(kind: str, bl: float, celldm: float = 20.0, shift: list = [0.0, 0.0, 0.0]):
     """build triangle with bond length `bl`
     
     Args:
@@ -1271,10 +1282,10 @@ def molecule_trimer(kind: str, bl: float):
         coords (np.ndarray): coordinates of atoms
     """
     import numpy as np
-    return [20, 20, 20, 90, 90, 90], [kind, kind, kind], [kind], \
-        [0, 0, 0], np.array([[0, 0, 0], [bl, 0, 0], [bl/2, bl/2*3**0.5, 0]])
+    return [celldm, celldm, celldm, 90, 90, 90], [kind, kind, kind], [kind], \
+        [0, 0, 0], np.array([[0, 0, 0], [bl, 0, 0], [bl/2, bl/2*3**0.5, 0]]) + np.array(shift)
 
-def molecule_tetramer(kind: str, bl: float):
+def molecule_tetramer(kind: str, bl: float, celldm: float = 20.0, shift: list = [0.0, 0.0, 0.0]):
     """build tetrahedron with bond length `bl`
     
     Args:
@@ -1287,20 +1298,108 @@ def molecule_tetramer(kind: str, bl: float):
         coords (np.ndarray): coordinates of atoms
     """
     import numpy as np
-    return [20, 20, 20, 90, 90, 90], [kind, kind, kind, kind], [kind], \
-        [0, 0, 0, 0], np.array([[0, 0, 0], [bl, 0, 0], [bl/2, bl/2*3**0.5, 0], [bl/2, bl/2*3**0.5/3, bl/2*3**0.5]])
+    return [celldm, celldm, celldm, 90, 90, 90], [kind, kind, kind, kind], [kind], \
+        [0, 0, 0, 0], np.array([[0, 0, 0], [bl, 0, 0], 
+            [bl/2, bl/2*3**0.5, 0], [bl/2, bl/2*3**0.5/3, bl/2*3**0.5]]) + np.array(shift)
+
+def molecule_tetrahedron(kind: str, bl: float, celldm: float = 20.0, shift: list = [0.0, 0.0, 0.0]):
+    """some alias for molecule_tetramer"""
+    return molecule_tetramer(kind, bl, celldm, shift)
+
+def molecule_square(kind: str, bl: float, celldm: float = 20.0, shift: list = [0.0, 0.0, 0.0]):
+    """build square with bond length `bl`
+    
+    Args:
+        bl (float): bond length in Angstrom
+    Returns:
+        lat (list): lattice parameters, including a, b, c and alpha, beta, gamma
+        labels (list): atom labels, each atom has one
+        kinds (list): kinds that present cell has
+        labels_kinds_map (list): mapping the index of coords to kinds, size = n_atoms
+        coords (np.ndarray): coordinates of atoms
+    """
+    import numpy as np
+    return [celldm, celldm, celldm, 90, 90, 90], [kind, kind, kind, kind], [kind], \
+        [0, 0, 0, 0], np.array([[0, 0, 0], [bl, 0, 0], [bl, bl, 0], [0, bl, 0]]) + np.array(shift)
+
+def molecule_triangular_bipyramid(kind: str, bl: float, celldm: float = 20.0, shift: list = [0.0, 0.0, 0.0]):
+    """build triangular bipyramid with bond length `bl`
+    
+    Args:
+        bl (float): bond length in Angstrom
+    Returns:
+        lat (list): lattice parameters, including a, b, c and alpha, beta, gamma
+        labels (list): atom labels, each atom has one
+        kinds (list): kinds that present cell has
+        labels_kinds_map (list): mapping the index of coords to kinds, size = n_atoms
+        coords (np.ndarray): coordinates of atoms
+    """
+    import numpy as np
+    return [celldm, celldm, celldm, 90, 90, 90], [kind, kind, kind, kind, kind], [kind], \
+        [0, 0, 0, 0, 0], np.array(
+        [[bl/3**0.5, 0, 0], 
+         [-bl/2/3**0.5, bl/2, 0], 
+         [-bl/2/3**0.5, -bl/2, 0], 
+         [0, 0, bl*(2/3)**0.5], 
+         [0, 0, -bl*(2/3)**0.5]]) + np.array(shift)
+
+def molecule_octahedron(kind: str, bl: float, celldm: float = 20.0, shift: list = [0.0, 0.0, 0.0]):
+    """build octahedron with bond length `bl`
+    
+    Args:
+        bl (float): bond length in Angstrom
+    Returns:
+        lat (list): lattice parameters, including a, b, c and alpha, beta, gamma
+        labels (list): atom labels, each atom has one
+        kinds (list): kinds that present cell has
+        labels_kinds_map (list): mapping the index of coords to kinds, size = n_atoms
+        coords (np.ndarray): coordinates of atoms
+    """
+    import numpy as np
+    return [celldm, celldm, celldm, 90, 90, 90], [kind]*6, [kind], \
+        [0]*6, np.array(
+        [[bl/2, bl/2, 0.0],
+         [-bl/2, bl/2, 0.0],
+         [-bl/2, -bl/2, 0.0],
+         [bl/2, -bl/2, 0.0],
+         [0.0, 0.0, bl/2**0.5],
+         [0.0, 0.0, -bl/2**0.5]]) + np.array(shift)
+
+def molecule_cube(kind: str, bl: float, celldm: float = 20.0, shift: list = [0.0, 0.0, 0.0]):
+    """build cube with bond length `bl`
+    
+    Args:
+        bl (float): bond length in Angstrom
+    Returns:
+        lat (list): lattice parameters, including a, b, c and alpha, beta, gamma
+        labels (list): atom labels, each atom has one
+        kinds (list): kinds that present cell has
+        labels_kinds_map (list): mapping the index of coords to kinds, size = n_atoms
+        coords (np.ndarray): coordinates of atoms
+    """
+    import numpy as np
+    return [celldm, celldm, celldm, 90, 90, 90], [kind]*8, [kind], \
+        [0]*8, np.array(
+        [[bl/2, bl/2, bl/2],
+         [-bl/2, bl/2, bl/2],
+         [-bl/2, -bl/2, bl/2],
+         [bl/2, -bl/2, bl/2],
+         [bl/2, bl/2, -bl/2],
+         [-bl/2, bl/2, -bl/2],
+         [-bl/2, -bl/2, -bl/2],
+         [bl/2, -bl/2, -bl/2]]) + np.array(shift)
 
 import unittest
 class TestMolecule(unittest.TestCase):
     def test_lookup_molecule(self):
-        result = lookup_molecule("Si_dimer", 1.0)
+        result = lookup_molecule("Si_dimer", 1.0, center=False)
         self.assertEqual(result[0], [20, 20, 20, 90, 90, 90])
         self.assertEqual(result[1], ['Si']*2)
         self.assertEqual(result[2], ['Si'])
         self.assertEqual(result[3], [0]*2)
         self.assertEqual(result[4].tolist(), [[0, 0, 0], [1, 0, 0]])
 
-        result = lookup_molecule("O_trimer", 1.0)
+        result = lookup_molecule("O_trimer", 1.0, center=False)
         self.assertEqual(result[0], [20, 20, 20, 90, 90, 90])
         self.assertEqual(result[1], ['O']*3)
         self.assertEqual(result[2], ['O'])
