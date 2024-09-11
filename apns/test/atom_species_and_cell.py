@@ -1,9 +1,50 @@
 class AtomSpeciesGeneartor:
+    """An AtomSpeciesGenerator is for generating AtomSpecies instances based on the combination of
+    pseudopotentials and their corresponding numerical atomic orbitals (if any, for LCAO calculation)
+    . There is also a interface to ABACUS-ORBGEN package to generate the jY basis (truncated 
+    spherical Bessel function multiplied by spherical harmonics) for the LCAO calculation. The full
+    implementation will be in ABACUS-ORBGEN."""
     symbol = None
     pseudo_dir, orbital_dir = None, None
     pptags, naotags = None, None
     ecut_db = None
-    def __init__(self, symbol: str, pseudo_dir: str, pptags: list, orbital_dir: str = None, naotags: list = None, **kwargs) -> None:
+    def __init__(self, 
+                 symbol: str, 
+                 pseudo_dir: str, 
+                 pptags: list, 
+                 orbital_dir: str = None, 
+                 naotags: list = None, 
+                 **kwargs) -> None:
+        """create one AtomSpeciesGenerator instance
+        
+        Parameters
+        ----------
+        symbol: str
+            the symbol of the atom species
+        pseudo_dir: str
+            the path to the pseudopotential directory where the pseudopotentials are stored.
+            For pseudopotential file management, the database.json file should present. For
+            more information about the database.json file, please see example provided in
+            the folder `/download/pseudopotentials/`
+        pptags: list
+            the tags for searching the pseudopotential file. Use tags to define/search all
+            available pseudopotential for present element, this is supported by a well-indexed
+            pseudopotential system.
+        orbital_dir: str
+            the path to the numerical atomic orbital directory where the numerical atomic orbitals
+            are stored. Orbitals are managed in the same way as pseudopotentials.
+        naotags: list
+            similar to pptags
+
+        Raises
+        ------
+        AssertionError
+            if the symbol is not a string
+            if the pseudo_dir is not a string
+            if the pptags is not a list
+            if the orbital_dir is not a string or None
+            if the naotags is not a list or None  
+        """
         assert isinstance(symbol, str), f'symbol should be a string: {symbol}'
         self.symbol = symbol
         assert isinstance(pseudo_dir, str), f'pseudo_dir should be a string: {pseudo_dir}'
@@ -126,7 +167,12 @@ class AtomSpecies:
                 "magmom": self.magmom, "pp": self.pp, "ecutwfc": self.ecutwfc, "nao": self.nao}
 
 class CellGenerator:
-
+    """Python-Generator enpowered generator for generating Cell instances based on the
+    simple imported proto (Bravis lattice, molecule, or CIF file), and several perturbation
+    covering both the isolated/molecule and solid/periodic systems. It provides the flexibility
+    to handling structure and poses to be a good abstraction. With it, developer can pay less
+    attention to the details of the structure and focus other parts such as AtomSpecies,
+    DFTParamSet, and so on."""
     # basic
     identifier, config = None, None
     # reciprocal space lattice information
@@ -413,6 +459,23 @@ class CellTransformer:
     tasks, while less useful in the general simulation tasks like 
     pseudopotential tests."""
     def _kernel(transform: str, cell: Cell, magnitude: float):
+        """kernel function to call the specific transformation function
+        
+        Parameters
+        ----------
+        transform: str
+            the kind of transformation, can be shear, twist, or scale with
+            optional axis specification, like 'shear-a', 'twist-b', 'scale-ab',
+            'scale-abc', etc.
+        cell: Cell
+            the cell object to be transformed
+        magnitude: float
+            the magnitude of the transformation
+        
+        Returns
+        -------
+        Cell
+            the transformed cell object"""
         call_map = {'shear': CellTransformer._shear, 
                     'twist': CellTransformer._twist, 
                     'scale': CellTransformer._scale}
@@ -456,7 +519,23 @@ Axis: {axis}\n")
     
     def _twist(cell: Cell, twist: float, axis: str = 'a'):
         """perform twist on cell along one axis. From the bottom to the middle of the cell,
-        the atomic layers are rotated in two dimension with a certain degree from 0 to deg
+        the atomic layers are rotated in two dimension with a certain degree from 0 to deg.
+        With this function, it is easy to generate the twisted bilayer graphene, or spirial
+        structure. See unittest for details.
+
+        Parameters
+        ----------
+        cell: Cell
+            the cell object to be transformed
+        twist: float
+            the twist magnitude
+        axis: str
+            the axis that is fixed during the twist transformation
+        
+        Returns
+        -------
+        Cell
+            the transformed cell object
         """
         import numpy as np
         assert axis in ['a', 'b', 'c'], f'axis should be one of a, b, c: {axis}'
@@ -482,7 +561,25 @@ Axis: {axis}\n")
         return cell
 
     def _scale(cell: Cell, scale: float, axis: str = 'a'):
-        """perform scale transformation keeping one axis fixed"""
+        """perform scale transformation keeping one axis fixed.
+        
+        Parameters
+        ----------
+        cell: Cell
+            the cell object to be transformed
+        scale: float
+            the scale magnitude
+        axis: str
+            the axis that is perform the scale transformation on. It can be a, b, c, ab, bc, ac, abc
+            . For example if it is 'a', and the scale is given a value larger than 1, the cell will
+            be stretched along the a axis. If 'ab', the cell will be stretched along the a and b axis
+            with the same scale factor. If 'abc", it is the commonly seen volume scaling.
+        
+        Returns
+        -------
+        Cell
+            the transformed cell object
+        """
         assert axis in ['a', 'b', 'c', 'ab', 'bc', 'ac', 'abc'], \
         f'axis should be one of a, b, c, ab, bc, ac, abc: {axis}'
         if axis == 'a':
