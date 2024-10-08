@@ -475,7 +475,8 @@ class CellTransformer:
         Returns
         -------
         Cell
-            the transformed cell object"""
+            the transformed cell object
+        """
         call_map = {'shear': CellTransformer._shear, 
                     'twist': CellTransformer._twist, 
                     'scale': CellTransformer._scale}

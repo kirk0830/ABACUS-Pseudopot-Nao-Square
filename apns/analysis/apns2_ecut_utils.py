@@ -119,9 +119,11 @@ def plot_log(conv_result: dict):
 
     # merge again that indexed like [system][pps]
     merged = {}
-    for key, val in conv_result.items():
-        system, pps = key.split(": ")
-        merged.setdefault(system, {})[pps] = val
+    
+    for result in conv_result:
+        system = result["name"]
+        pps = result["pp"]
+        merged.setdefault(system, {})[pps] = result
     figures = {s: f"{s}_logplog.svg" for s in merged.keys()}
     for s, r in merged.items(): # s stands for system and r stands for result
         # result would be dict indexed by different pps
@@ -136,7 +138,7 @@ def plot_log(conv_result: dict):
                          "ysymbols": ["$|\Delta E_{KS}|$", "$|\Delta P|$", "$|\eta_{all, 00}|$"],
                          "suptitle": s, 
                          "supcomment": "NOTE: Absence of data points result from SCF convergence failure or walltime limit.",
-                         "labels": pps, "fontsize": 19}
+                         "labels": pps, "fontsize": 22.5}
         fig, ax = outdated.discrete_logplots(xs, ys, **logplot_style)
         plt.savefig(figures[s])
         plt.close()
