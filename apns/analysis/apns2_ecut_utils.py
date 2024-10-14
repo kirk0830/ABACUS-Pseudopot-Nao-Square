@@ -114,7 +114,7 @@ def update_ecutwfc(pp: str, ecutwfc: float, cache_dir: str = "./apns_cache/ecutw
 
 def plot_log(conv_result: dict):
     import matplotlib.pyplot as plt
-    import apns.analysis.apns1_ecut_abacus as outdated
+    import apns.analysis.apns1_ecut_abacus as apns1plot
     plt.rcParams["font.family"] = "Arial"
 
     # merge again that indexed like [system][pps]
@@ -139,7 +139,7 @@ def plot_log(conv_result: dict):
                          "suptitle": s, 
                          "supcomment": "NOTE: Absence of data points result from SCF convergence failure or walltime limit.",
                          "labels": pps, "fontsize": 22.5}
-        fig, ax = outdated.discrete_logplots(xs, ys, **logplot_style)
+        fig, ax = apns1plot.discrete_logplots(xs, ys, **logplot_style)
         plt.savefig(figures[s])
         plt.close()
 
@@ -147,15 +147,18 @@ def plot_log(conv_result: dict):
 
 def plot_stack(conv_result: dict):
     import matplotlib.pyplot as plt
-    import apns.analysis.apns1_ecut_abacus as outdated
+    import apns.analysis.apns1_ecut_abacus as apns1plot
     plt.rcParams["font.family"] = "Arial"
 
     # merge again that indexed like [system][pps]
     merged = {}
-    for key, val in conv_result.items():
-        system, pps = key.split(": ")
-        merged.setdefault(system, {})[pps] = val
+
+    for result in conv_result:
+        system = result["name"]
+        pps = result["pp"]
+        merged.setdefault(system, {})[pps] = result
     figures = {s: f"{s}.svg" for s in merged.keys()}
+    figure_style = {"figsize": (20, 10)}
     for s, r in merged.items(): # s stands for system and r stands for result
         pps = list(r.keys())
         xs = [[r[pp]["ecutwfc"]]*3 for pp in pps]
@@ -176,7 +179,8 @@ Absence of data points result from SCF convergence failure or walltime limit.",
         shift_style = {"shifts": [5, 500, 10], "ld": "pseudopotential",
                        "ysymbols": ["$\Delta E_{KS}$", "$\Delta P$", "$\eta_{all, 00}$"],
                       }
-        fig, ax = outdated.shift_lineplots(xs=xs, ys=ys, **shift_style, **lineplot_style)
+        fig, ax = apns1plot.shift_lineplots(xs=xs, ys=ys, **shift_style, **lineplot_style, **figure_style)
+        plt.tight_layout()
         plt.savefig(figures[s])
         plt.close()
 

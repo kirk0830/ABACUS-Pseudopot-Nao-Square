@@ -74,22 +74,38 @@ if __name__ == "__main__":
     import json, os
     from apns.analysis.apns2_utils import stru_rev_map
     sysrevmap_ = stru_rev_map("./apns_cache/structures.json", True)
+    database = "normconserving-all-ecutwfctest"
     jobpath = "/root/documents/simulation/abacus/ultrasoft-test-4th-period"
-    collected = collect(jobpath)
-    system_and_stpcs = build_sptc_from_nested(collected)
-    result = []
-    for s, stpcs in system_and_stpcs.items():
-        for stpc in stpcs:
-            pp, data = stpc()
-            temp = {"name": sysrevmap_[s], "fcif": s, "pp": pp}
-            temp.update(data)
-            result.append(temp)
-            ecut_conv = stpc.ecuts[stpc.iconv]
-            pp = stpc.pp(as_list=True)
-            assert len(pp) == 1, "The pseudopotential should be unique for each test case"
-            update_ecutwfc(pp[0], ecut_conv)
 
-    with open(os.path.basename(jobpath)+".json", "w") as f:
-        json.dump(result, f)
-    #flogs = plot_log(result)
-    #fstacks = plot_stack(result)
+    ###########################
+    # update ecutwfc database #
+    ###########################
+
+    # collected = collect(jobpath)
+    # system_and_stpcs = build_sptc_from_nested(collected)
+    # result = []
+    # for s, stpcs in system_and_stpcs.items():
+    #     for stpc in stpcs:
+    #         pp, data = stpc()
+    #         temp = {"name": sysrevmap_[s], "fcif": s, "pp": pp}
+    #         temp.update(data)
+    #         result.append(temp)
+    #         ecut_conv = stpc.ecuts[stpc.iconv]
+    #         pp = stpc.pp(as_list=True)
+    #         assert len(pp) == 1, "The pseudopotential should be unique for each test case"
+    #         update_ecutwfc(pp[0], ecut_conv)
+
+    # with open(os.path.basename(jobpath)+".json", "w") as f:
+    #     json.dump(result, f)
+
+    fdb = os.path.join("/root/abacus-develop/apns_toupdate", database + ".json")
+    with open(fdb, "r") as f:
+        result = json.load(f)
+
+    ############################
+    # plot ecutwfc convergence #
+    ############################
+    result = [r for r in result if r["name"] == "Si" and not r["pp"].endswith("(fr)")]
+    result = sorted(result, key=lambda x: x["pp"])[:8]
+    # flogs = plot_log(result)
+    fstacks = plot_stack(result)
