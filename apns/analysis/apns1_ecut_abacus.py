@@ -616,8 +616,13 @@ def shift_lineplots(xs: list, ys: list, **kwargs):
     assert ysymbols is not None and len(ysymbols) == nprptys
     
     fontsize = kwargs.get("fontsize", 12)
+    # do not need assert, because matplotlib may throw if value is illegal
+    
+    figsize = kwargs.get("figsize", (20, 10))
+    # do not need assert, because matplotlib may throw if value is illegal
+
     # create figure and axes
-    fig, ax = plt.subplots(1, 1, figsize=(20, 10))
+    fig, ax = plt.subplots(1, 1, figsize=figsize)
     twinxs = [[None for _ in range(nprptys)] for _ in range(npspots)]
     # record xticks, the basic one is [20, 30, 40, 50, 60, 70, 80, 90, 100, 150, 200]
     # but if the maximum ecutwfc is larger than 200, then add it to the list
