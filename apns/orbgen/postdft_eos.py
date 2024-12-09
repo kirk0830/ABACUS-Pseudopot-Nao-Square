@@ -159,15 +159,15 @@ def barplot_postdft(key: str, val: dict):
     fig, axs = plt.subplots(len(val["ppcases"]), 2, figsize=(20, 10*len(val["ppcases"])), squeeze=False)
     # suptitle as the key
     fig.suptitle(key, fontsize=20)
-    for i, ppcase in enumerate(val["ppcases"]):
+    for i, ppcase in enumerate(val["ppcases"]): # for each pseudopotential case
         # build up title
         ppcase = [": ".join(convert_fpp_to_ppid(pp)) for pp in ppcase]
         ppcase = " + ".join(ppcase)
 
         # extract data, for checking if there is None in orbtests
-        delta = [d["delta"] for d in val["pptests"]["orbtests"]]
-        demin = [d["demin"] for d in val["pptests"]["orbtests"]]
-        invalid = [d["delta"] is None or d["demin"] is None for d in val["pptests"]["orbtests"]]
+        delta = [d["delta"] for d in val["pptests"][i]["orbtests"]]
+        demin = [d["demin"] for d in val["pptests"][i]["orbtests"]]
+        invalid = [d["delta"] is None or d["demin"] is None for d in val["pptests"][i]["orbtests"]]
         if all(invalid):
             print(f"all invalid data for {ppcase}, skip")
             continue
@@ -178,7 +178,7 @@ def barplot_postdft(key: str, val: dict):
 
         # update orbcases label
         orbcases = [" + ".join([convert_forb_to_orbid(os.path.basename(orb)) for orb in orbs])\
-                    for j, orbs in enumerate(val["pptests"]["orbcases"]) if not invalid[j]]
+                    for j, orbs in enumerate(val["pptests"][i]["orbcases"]) if not invalid[j]]
         x = range(len(orbcases))
         # the orbcase will be in the format like "Xau, YRy (Z)", first sort by X and then by Z,
         # also sort the delta and demin correspondingly
@@ -236,16 +236,20 @@ if __name__ == "__main__":
     #     json.dump(out, f)
     # flcao = "/root/documents/simulation/orbgen/apns-orbgen-project/eos_test/lcao-v2.1"
     # out = collect(flcao, "scf")
-    # with open("lcao-v2.1.json", "w") as f:
+
+    # from apns.analysis.apns2_eos_abacus import collect
+    # flcao = "/root/documents/simulation/orbgen/ZSM5-TPA/test/"
+    # out = collect(flcao, "scf")
+    # with open("lcao-v3.0-20241028.json", "w") as f:
     #     json.dump(out, f)
     # exit()
 
     # Post processng
-    pw = load("/root/documents/simulation/orbgen/apns-orbgen-project/eos_test/out/pw.json")
-    lcao = load("/root/documents/simulation/orbgen/apns-orbgen-project/eos_test/out/lcao-v2.1.json")
+    pw = load("/root/abacus-develop/apns-orbgen-project/eos_test/out/pw.json")
+    lcao = load("lcao-v3.0-20241028.json")
     out = cal_wrt_pw(pw, lcao)
-    # for key, val in out.items():
-    #     barplot_postdft(key, val)
+    for title, data in out.items():
+        barplot_postdft(title, data)
     print_postdft(out)
-    with open("SIABv2.1-EOS-CompletenessError.json", "w") as f:
+    with open("SIABv3.0-EOS-CompletenessError.json", "w") as f:
         json.dump(out, f)

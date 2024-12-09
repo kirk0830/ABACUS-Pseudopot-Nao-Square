@@ -1,4 +1,9 @@
 """this file is for greping and rendering svg plots of ecutwfc convergence test for new version of APNS"""
+import unittest
+from apns.analysis.apns2_ecut_utils import \
+    update_ecutwfc, build_sptc_from_nested, plot_log, plot_stack
+import json, os
+from apns.analysis.apns2_utils import stru_rev_map
 
 def collect(folder: str):
     print("* * * Collect ABACUS result * * *".center(100))
@@ -68,44 +73,40 @@ def repair_apnsjob(folder: str):
                 f = os.path.basename(os.path.dirname(os.path.dirname(root)))
                 shutil.copy2(os.path.join(f"../Yb_ecutwfc_test/{f}/description.json"), os.path.join(parent, "description.json"))
 
-if __name__ == "__main__":
-    from apns.analysis.apns2_ecut_utils import \
-        update_ecutwfc, build_sptc_from_nested, plot_log, plot_stack
-    import json, os
-    from apns.analysis.apns2_utils import stru_rev_map
+class TestAPNS2EcutABACUS(unittest.TestCase):
+
     sysrevmap_ = stru_rev_map("./apns_cache/structures.json", True)
-    database = "normconserving-all-ecutwfctest"
-    jobpath = "/root/documents/simulation/abacus/ultrasoft-test-4th-period"
+    database = "goedecker_psp"
+    jobpath = "/root/documents/simulation/abacus/goedecker-ecutconv-3rdperiod-bcc"
 
-    ###########################
-    # update ecutwfc database #
-    ###########################
+    @unittest.skip('we do not read')
+    def test_read(self):
+        collected = collect(self.jobpath)
+        system_and_stpcs = build_sptc_from_nested(collected)
+        result = []
+        for s, stpcs in system_and_stpcs.items():
+            for stpc in stpcs:
+                pp, data = stpc()
+                temp = {"name": self.sysrevmap_.get(s), "fcif": s, "pp": pp}
+                temp['name'] = temp['fcif'] if temp['name'] is None else temp['name'] # use fcif if name is None
+                temp.update(data)
+                result.append(temp)
+                ecut_conv = stpc.ecuts[stpc.iconv]
+                pp = stpc.pp(as_list=True)
+                assert len(pp) == 1, "The pseudopotential should be unique for each test case"
+                # update_ecutwfc(pp[0], ecut_conv)
 
-    # collected = collect(jobpath)
-    # system_and_stpcs = build_sptc_from_nested(collected)
-    # result = []
-    # for s, stpcs in system_and_stpcs.items():
-    #     for stpc in stpcs:
-    #         pp, data = stpc()
-    #         temp = {"name": sysrevmap_[s], "fcif": s, "pp": pp}
-    #         temp.update(data)
-    #         result.append(temp)
-    #         ecut_conv = stpc.ecuts[stpc.iconv]
-    #         pp = stpc.pp(as_list=True)
-    #         assert len(pp) == 1, "The pseudopotential should be unique for each test case"
-    #         update_ecutwfc(pp[0], ecut_conv)
+        with open(os.path.basename(self.jobpath)+".json", "w") as f:
+            json.dump(result, f, indent=4)
 
-    # with open(os.path.basename(jobpath)+".json", "w") as f:
-    #     json.dump(result, f)
+    # @unittest.skip('we do not plot')
+    def test_plot(self):
+        with open('goedecker-ecutconv-3rdperiod-bcc.json') as f:
+            result = json.load(f)
 
-    fdb = os.path.join("/root/abacus-develop/apns_toupdate", database + ".json")
-    with open(fdb, "r") as f:
-        result = json.load(f)
+        # result = sorted(result, key=lambda x: x["pp"])[:8]
+        flogs = plot_log(result, 'png')
+        fstacks = plot_stack(result, 'png')
 
-    ############################
-    # plot ecutwfc convergence #
-    ############################
-    result = [r for r in result if r["name"] == "Si" and not r["pp"].endswith("(fr)")]
-    result = sorted(result, key=lambda x: x["pp"])[:8]
-    # flogs = plot_log(result)
-    fstacks = plot_stack(result)
+if __name__ == "__main__":
+    unittest.main()

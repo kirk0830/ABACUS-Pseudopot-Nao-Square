@@ -65,7 +65,8 @@ class EcutSingleCase:
     def sort(self):
         """sort the data according to ecutwfc"""
         import numpy as np
-        idx = np.argsort(self.ecuts)
+        # sort and remove duplicates
+        idx = np.unique(self.ecuts, return_index=True)[1]
         self.ecuts = np.array(self.ecuts)[idx].tolist()
         self.energies = np.array(self.energies)[idx].tolist()
         self.pressures = np.array(self.pressures)[idx].tolist()
@@ -112,11 +113,13 @@ def update_ecutwfc(pp: str, ecutwfc: float, cache_dir: str = "./apns_cache/ecutw
     with open(cache_dir, "w") as f:
         json.dump(cache, f)
 
-def plot_log(conv_result: dict):
+def plot_log(conv_result: dict, figfmt = 'svg'):
     import matplotlib.pyplot as plt
     import apns.analysis.apns1_ecut_abacus as apns1plot
     plt.rcParams["font.family"] = "Arial"
 
+    if figfmt not in ['svg', 'pdf', 'png']:
+        raise ValueError("figfmt should be one of 'svg', 'pdf', 'png'")
     # merge again that indexed like [system][pps]
     merged = {}
     
@@ -124,7 +127,7 @@ def plot_log(conv_result: dict):
         system = result["name"]
         pps = result["pp"]
         merged.setdefault(system, {})[pps] = result
-    figures = {s: f"{s}_logplog.svg" for s in merged.keys()}
+    figures = {s: f"{s}-logscale.{figfmt}" for s in merged.keys()}
     for s, r in merged.items(): # s stands for system and r stands for result
         # result would be dict indexed by different pps
         pps = list(r.keys())
@@ -145,11 +148,14 @@ def plot_log(conv_result: dict):
 
     return figures
 
-def plot_stack(conv_result: dict):
+def plot_stack(conv_result: dict, figfmt = 'svg'):
     import matplotlib.pyplot as plt
     import apns.analysis.apns1_ecut_abacus as apns1plot
     plt.rcParams["font.family"] = "Arial"
 
+    if figfmt not in ['svg', 'pdf', 'png']:
+        raise ValueError("figfmt should be one of 'svg', 'pdf', 'png'")
+    
     # merge again that indexed like [system][pps]
     merged = {}
 
@@ -157,7 +163,7 @@ def plot_stack(conv_result: dict):
         system = result["name"]
         pps = result["pp"]
         merged.setdefault(system, {})[pps] = result
-    figures = {s: f"{s}.svg" for s in merged.keys()}
+    figures = {s: f"{s}.{figfmt}" for s in merged.keys()}
     figure_style = {"figsize": (20, 10)}
     for s, r in merged.items(): # s stands for system and r stands for result
         pps = list(r.keys())

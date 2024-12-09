@@ -331,11 +331,12 @@ Magnetic moments: {self.magmoms}
                 coords, magmoms, sym_ks, possible_kpath, mpmesh_nks, True]
         return dict(zip(keys, vals))
 
-    def build_molecule(molecule: int, bond_length: float, kspacing: float = -1.0):
+    def build_molecule(molecule: int, bond_length: float, kspacing: float = -1.0, celldm = 40.0):
         from apns.test.bravis_and_molecule import lookup_molecule
         print(f"kspacing: {kspacing} (bohr-1) setting is discarded due to isolated system generation.")
         abc_angles, labels, kinds, labels_kinds_map, coords = lookup_molecule(
-            molecule, bond_length, celldm = 20.0, center = True)
+            molecule, bond_length, 
+            celldm = celldm, center = True)
         a, b, c, alpha, beta, gamma = abc_angles
         magmoms = [0] * len(coords)
         sym_ks, possible_kpath = None, None
