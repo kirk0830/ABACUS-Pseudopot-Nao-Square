@@ -185,7 +185,7 @@ def prepare(inp: dict):
         search_result[db] = search(formula, n_structures, api_key, cache_dir, db)
     # remove all desc starting with "search" by overwrite
     for struset in inp["strusets"]:
-        struset["desc"] = [{k: v for k, v in dict(zip(["config", "scales", "kspacing", "magmoms"], desc[1:])).items() if v is not None}\
+        struset["desc"] = [{k: v for k, v in dict(zip(["config", "pertmags", "kspacing", "magmoms"], desc[1:])).items() if v is not None}\
              for desc in struset["desc"] if desc[0] != "search"]
     # append the search result to the input dict
     for k, v in traits.items(): # (database, formula) -> [(istruset, scaling, kspacing), ...] mapping
@@ -193,7 +193,7 @@ def prepare(inp: dict):
         result = search_result[db][formula] # [(fname, magmom), ...]
         for i, scales, kspacing in v:
             inp["strusets"][i]["desc"].extend(\
-                [dict(zip(["config", "scales", "kspacing", "magmoms"], [r[0], scales, kspacing, r[1]])) for r in result])
+                [dict(zip(["config", "pertmags", "kspacing", "magmoms"], [r[0], scales, kspacing, r[1]])) for r in result])
     return inp
 
 import unittest

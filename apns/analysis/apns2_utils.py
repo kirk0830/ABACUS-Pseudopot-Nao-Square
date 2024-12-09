@@ -167,8 +167,11 @@ def handle_pseudo_dojo(fpp: str):
 
 def handle_gth(fpp: str):
     import os
+    import re
     family, version = "Goedecker-Teter-Hutter", ""
-    elem, _, _, appendix = os.path.basename(fpp).split("_")
+    words = os.path.basename(fpp).split("_")
+    appendix = re.split(r'UPF|upf', "_".join(words[1:]))[0]
+    elem = words[0].replace('PROJECT-', '') # the ATOM code of CP2K will have this prefix
     appendix = appendix.split(".")[0]
     return elem, family, version, appendix
 
@@ -196,14 +199,17 @@ def convert_fpp_to_ppid(fpp: str):
         "pseudos_ac_she": handle_pseudo_dojo,
         "gth": handle_gth,
         "psl": handle_psl,
-        "high_pressure_oncv_upf": handle_20240723
+        "high_pressure_oncv_upf": handle_20240723,
+        "HGH_NLCC": handle_gth
     }
+    if not isinstance(fpp, str):
+        raise ValueError(f"fpp should be a string: {fpp}")
     print(f"Converting {fpp}")
     for key in func_map:
         if key in fpp:
             elem, family, version, appendix = func_map[key](fpp)
             return elem, f"{family} v{version} ({appendix})".replace("v ", "").replace("()", "")
-    print(f"Unrecognized pseudopotential file: {fpp}")
+    RuntimeWarning(f"Unrecognized pseudopotential file: {fpp}")
     return "unknown", fpp
 
 def convert_forb_to_orbid(forb: str):

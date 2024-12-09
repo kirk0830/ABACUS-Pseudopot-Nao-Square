@@ -59,8 +59,11 @@ Number of structure descriptors: {len(struset["desc"])}
                 for atom_species in it.product(*[asgen() for asgen in asgens_subset]):
                     standard_fname_with_contents = export(paramset, atom_species, cell, fmt=software)
                     cache = dict(zip(["AtomSpecies", "Cell", "DFTParamSet", "CellGenerator"], \
-                    [[as_.as_dict() for as_ in atom_species], cell.as_dict(), paramset, 
-                     dict(zip(["identifier", "config"], [cellgen.identifier, cellgen.config]))]))
+                                    [[as_.as_dict() for as_ in atom_species], 
+                                     cell.as_dict(), 
+                                     paramset, 
+                                     dict(zip(["identifier", "config"], 
+                                              [cellgen.identifier, cellgen.config]))]))
                     folders.append(write_and_move(standard_fname_with_contents, cache, out_dir))
     print("* * * All structures generated * * *".center(100, " "))
     return folders
@@ -145,7 +148,7 @@ def write_abacus(paramset: dict, atomset: list, cell: Cell):
     if ecutwfc_set is None or ecutwfc_set == "auto":
         candidates = [as_.ecutwfc for as_ in atomset if as_.ecutwfc is not None]
         ecutwfc = 100 if len(candidates) == 0 else max(candidates)
-        print(f"AUTOSET: ecutwfc is autoset to {ecutwfc} Ry")
+        # print(f"AUTOSET: ecutwfc is autoset to {ecutwfc} Ry")
         paramset["ecutwfc"] = ecutwfc
     if isinstance(ecutrho_set, (int, float)) and ecutrho_set < 0: # negative value indicates the dual
         ecutrho = ecutwfc * abs(ecutrho_set)

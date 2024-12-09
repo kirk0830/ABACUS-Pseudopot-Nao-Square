@@ -116,21 +116,13 @@ Numerical atomic orbitals are used:\n{orbstr}
             data = {"energy": eks, "volume": vol, "natom": natom} # no matter PW or LCAO calculation, the data of interest are the same
 
             # there will always be pseudopotential, therefore add it to the dict, if needed
-            if system not in result:
-                result[system] = {"ppcases": [], "pptests": []} # this is the default structure of "system level"
-            ip = -1 if result[system]["ppcases"].count(pps) == 0 else result[system]["ppcases"].index(pps)
-            result[system]["ppcases"].append(pps) if ip == -1 else None
-            result[system]["pptests"].append([]) if ip == -1 else None
-            # if it is PW calculation, append the data directly
-            if orbstr == "none":
-                result[system]["pptests"][ip].append(data)
-                continue
-            # if it is LCAO calculation, append the data to the correct position
-            io = -1 if result[system]["pptests"][ip].count(orbs) == 0 else result[system]["pptests"][ip].index(orbs)
-            result[system]["pptests"][ip].append({"orbcases": [], "orbtests": []}) if io == -1 else None
-            result[system]["pptests"][ip]["orbcases"].append(orbs) if io == -1 else None
-            result[system]["pptests"][ip]["orbtests"].append([]) if io == -1 else None
-            result[system]["pptests"][ip]["orbtests"][io].append(data)
+            result.setdefault(system, {"ppcases": [], "pptests": []})
+            pp_orb = [pps, orbs]
+            if pp_orb not in result[system]["ppcases"]:
+                result[system]["ppcases"].append(pp_orb)
+                result[system]["pptests"].append([])
+            icase = result[system]["ppcases"].index(pp_orb)
+            result[system]["pptests"][icase].append(data)
     return result
 
 def fit(raw: dict):
@@ -158,7 +150,7 @@ def fit(raw: dict):
 
         # then do the fit Birch-Murnaghan EOS for each case, it should be noted that the raw
         # data may either be PW or LCAO, so the structure of the data is somewhat complex...
-        for ppcase, pptest in zip(data["ppcases"], data["pptests"]):
+        for case, test in zip(data["ppcases"], data["pptests"]):
             # while it is safe that the "ppcase" will not have different structure...
             # but the "pptest" may have different structure, so we need to check it first (everytime)
             # but it is also possible that there is a mixture of PW and LCAO calculation, in this case
@@ -167,11 +159,11 @@ def fit(raw: dict):
 
             # we first try to collect all {"energy", "volume", "natom"} data, it is a single case of
             # PW calculation, then the rest is LCAO calculation, we will handle with them later.
-            pw = [a for a in pptest if set(a.keys()) == {"energy", "volume", "natom"}] # collect pw cases
+            pw = [a for a in test if set(a.keys()) == {"energy", "volume", "natom"}] # collect pw cases
             if len(pw) > 0:
                 # means there are no data with keys {"energy", "volume", "natom"}, so it is purely the
                 # LCAO calculation, we will handle with them later
-                pwcase = EquationOfStateSingleTestCase(name, pw, ppcase)
+                pwcase = EquationOfStateSingleTestCase(name, pw, case[0])
                 pp, orb, bmfit, delta = pwcase(acwf)
                 assert orb is None, "The data is not PW calculation!"
                 if bmfit is not None:
@@ -180,11 +172,11 @@ def fit(raw: dict):
                     temp["data"][-1].update(bmfit)
                 else:
                     print(f"Error in {name} with {pp}, no Birch-Murnaghan fit!")
-            lcao = [a for a in pptest if set(a.keys()) == {"orbcases", "orbtests"}]
+            lcao = [a for a in test if set(a.keys()) == {"orbcases", "orbtests"}]
             if len(lcao) > 0:
                 for l in lcao:
                     for orbcase, orbtest in zip(l["orbcases"], l["orbtests"]):
-                        lcaocase = EquationOfStateSingleTestCase(name, orbtest, ppcase, orbcase)
+                        lcaocase = EquationOfStateSingleTestCase(name, orbtest, case[0], case[1])
                         pp, orb, bmfit, delta = lcaocase(acwf)
                         if bmfit is not None:
                             temp["data"].append({"pp": pp, "orb": orb, "delta": delta, 
@@ -209,4 +201,4 @@ def main(source: str):
     return feos
 
 if __name__ == "__main__":
-    feos = main("/root/documents/simulation/abacus/normconserving-lanthactin-xy2eos")
+    feos = main("/root/documents/simulation/abacus/normconserving-lanthactin-x2y5eos")

@@ -31,17 +31,16 @@ def cal_delta_wrtacwf(token: str, bmfit: dict, vmin: float, vmax: float,
     does not explicitly include the conventional name of crystal
     phase like BCC, FCC, Diamond, ..."""
     import json
-    print(f"""Calculate delta value wrt. ACWF all-electron calculation results.
-query token: {token}, 
-vmin: {vmin}, 
-vmax: {vmax}
-""")
+
     with open(refdata_path, "r") as f:
         data = json.load(f)["BM_fit_data"].get(token, None)
     if data is None:
         print(f"Warning: the token {token} is not found in the reference data.")
         return None
     else:
+        vref = data['min_volume']
+        vmin = vmin if vmin is not None else vref * 0.94
+        vmax = vmax if vmax is not None else vref * 1.06
         return delta_value(bm_fit1=bmfit, bm_fit2=data, vmin=vmin, vmax=vmax)
 
 def birch_murnaghan(v, e0, b0, b0p, v0):
@@ -191,7 +190,7 @@ Directly return None""")
         self.sort()
         bmfit = self.calc_eos(as_dict=True)
         token = EquationOfStateSingleTestCase.tokenize(self.system)
-        delta = cal_delta_wrtacwf(token, bmfit, min(self.volumes), max(self.volumes), acwf)
+        delta = cal_delta_wrtacwf(token, bmfit, None, None, acwf)
         return self.pp(), self.orb(), bmfit, delta
         # legend, line, scalarized data
 
