@@ -326,7 +326,7 @@ def _abacustest_submit_kernel_impl(abacustest_param: dict) -> str:
     folder = abacustest_param.get('save_path', 'result')
     flog = fparam.rsplit('.', 1)[0] + '.log'
     os.system(f'nohup abacustest submit -p {fparam} > {flog}&')
-    print(f'Job submitted, log file is {flog}, results will be downloaded into {folder}')
+    print(f'Job submitted, log file is {flog}, results will be downloaded into the specified folder')
     return folder
 
 def abacus(usr, 
