@@ -2,7 +2,7 @@ def run(finp: str):
     import json
     import os
     import apns.test.citation as amc
-    from apns.test.abacustest import auto_api
+    from apns.abacustest.legacy import auto_api
 
     if not os.path.exists(finp):
         raise FileNotFoundError(f"Input file not found: {finp}")
