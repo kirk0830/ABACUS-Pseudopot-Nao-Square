@@ -50,7 +50,8 @@ def manual_submit(usr,
                   mem, 
                   jobs,
                   nmpi=None,
-                  nomp=1):
+                  nomp=1,
+                  **kwargs):
     '''
     Manually submit jobs to Bohrium platform
 
@@ -82,7 +83,7 @@ def manual_submit(usr,
     
     run_dft = [{'ifrun': True, 'job_folders': jobs, 
                 'command': abacus_command(**options),
-                'ncores': ncores, 'memory': mem}]
+                'ncores': ncores, 'memory': mem, 'supplier': kwargs.get('supplier', 'ali')}]
     
     jobgroup = f'apns_{time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime())}'
     param = write_abacustest_param(jobgroup_name=jobgroup, 
@@ -248,7 +249,7 @@ def setup_dft(**kwargs):
     machine = bohrium_machine(kwargs.get('ncores', 16), 
                               kwargs.get('memory', 32), 
                               'cpu', 
-                              'ali') if 'ncores' in kwargs.keys() or 'memory' in kwargs.keys() else None
+                              kwargs.get('supplier', 'ali')) if 'ncores' in kwargs.keys() or 'memory' in kwargs.keys() else None
     # rundft specific
     group_size = kwargs.get('njobs_node', 1) # rundft specific
 
@@ -546,7 +547,11 @@ class TestABACUSTest(unittest.TestCase):
 
 if __name__ == '__main__':
     #unittest.main(exit=False)
-    import os, time
-    os.chdir('/root/documents/simulation/abacus/EkinConvTest-JYlmax2-Fe')
-    folders = [f for f in os.listdir() if not os.path.isfile(f)]
-    manual_submit('_', '_', '28682', 32, 256, folders)
+
+    os.chdir('/the/root/in/which/each/folder/contains/abacus/input')
+    manual_submit(usr='_', 
+                  pwd='_', 
+                  projid='28682', 
+                  ncores=32, 
+                  mem=256, 
+                  jobs=[f for f in os.listdir() if not os.path.isfile(f)])
