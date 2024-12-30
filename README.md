@@ -237,11 +237,22 @@ prepare a JSON file like the following (but please do not include any comments i
             "calculator": "abacus", "calcset": 0,
             "atomset": 0,
             "database": "materials_project",
-            "desc": [["search", "Co3O4", [1.00], [0.08]]]
+            "desc": [["file", "/mnt/e/Downloads/Co3O4.cif", [1.00], [0.08]]]
         }
     ```
 
-    APNS will try to connect with the Materials Project online database, search for the *most stable* structure of Co3O4, then perform calculation with `calculator` `abacus`, the first set of DFT parameters defined in `abacus` section, the first set of atomic species defined in `atomsets` section. the third element (the list) is the characteristic length of the structure, for Co3O4 case it is the scaling factor of the crystal volume. The fourth element is the `kspacing` (see ABACUS online manual for explanation: [kspacing](https://abacus.deepmodeling.com/en/latest/advanced/input_files/input-main.html#kspacing), here APNS only supports one number, instead of three numbers for each reciprocal axis).
+    APNS backend workflow will parse the cif file specified (here the file path is `/mnt/e/Downloads/Co3O4.cif`), prepare input files for `calculator` `abacus`, with the first set of DFT parameters defined in `abacus` section, the first set of atomic species defined in `atomsets` section. the third element (the list) is the characteristic length of the structure, for Co3O4 case it is the scaling factor of the crystal volume. The fourth element is the `kspacing` (see ABACUS online manual for explanation: [kspacing](https://abacus.deepmodeling.com/en/latest/advanced/input_files/input-main.html#kspacing), here APNS only supports one number, instead of three numbers for each reciprocal axis).
+
+    Once in the `credential` section the Materials Project API key is given, APNS can try to connect with the Materials Project online database, search for the *most stable* structure of Co3O4:
+
+    ```json
+        {
+            "calculator": "abacus", "calcset": 0,
+            "atomset": 0,
+            "database": "materials_project",
+            "desc": [["search", "Co3O4", [1.00], [0.08]]]
+        }
+    ```
 
     APNS also supports building some ideal structures, e.g. for the face-centered cubic Aluminum:
 
