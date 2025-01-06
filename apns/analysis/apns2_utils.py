@@ -26,7 +26,7 @@ source: {cellgen["config"]}
 def handle_hgh(fpp: str):
     import re
     import os
-    family, version = "Hartwigsen-Goedecker-Hutter", ""
+    family, version = "Hartwigsen-Goedecker-Hutter", None
     m = re.match(r"([A-Z][a-z]?\.pbe\-)(.*)(hgh\.UPF)", os.path.basename(fpp))
     elem = m.group(1).replace(".pbe-", "")
     appendix = m.group(2)
@@ -36,7 +36,7 @@ def handle_hgh(fpp: str):
 def handle_pd04(fpp: str):
     import re
     import os
-    family, version = "PD04", ""
+    family, version = "PD04", None
     m = re.match(r"([A-Z][a-z]?)([\d\+\-\_\w]*)(\.PD04\.PBE\.UPF)", os.path.basename(fpp))
     elem = m.group(1)
     appendix = m.group(2)
@@ -109,7 +109,7 @@ def handle_gbrv(fpp: str):
     elem = m.group(1).capitalize()
     version = m.group(3).replace("_v", "")
     version = "1.0" if version == "1" else version
-    family, appendix = "GBRV", ""
+    family, appendix = "GBRV", None
     return elem, family, version, appendix
 
 def handle_pd03(fpp: str):
@@ -117,7 +117,7 @@ def handle_pd03(fpp: str):
     import os
     m = re.match(r"([A-Z][a-z]?)(\.PD03\.PBE\.UPF)", os.path.basename(fpp))
     elem = m.group(1)
-    family, version, appendix = "PD03", "", ""
+    family, version, appendix = "PD03", None, None
     return elem, family, version, appendix
 
 def handle_sg15(fpp: str):
@@ -168,7 +168,7 @@ def handle_pseudo_dojo(fpp: str):
 def handle_gth(fpp: str):
     import os
     import re
-    family, version = "Goedecker-Teter-Hutter", ""
+    family, version = "Goedecker-Teter-Hutter", None
     words = os.path.basename(fpp).split("_")
     appendix = re.split(r'UPF|upf', "_".join(words[1:]))[0]
     elem = words[0].replace('PROJECT-', '') # the ATOM code of CP2K will have this prefix
@@ -180,6 +180,12 @@ def handle_20240723(fpp: str):
     family, version = "HighPressure", "20240723"
     appendix = "rcut="+os.path.basename(fpp).split("-")[1]
     return "H", family, version, appendix
+
+def handle_rappe(fpp):
+    import os
+    family, version, appendix = "Rappe", None, None
+    elem = os.path.basename(fpp).split(".")[0].lower().capitalize()
+    return elem, family, version, appendix
 
 def convert_fpp_to_ppid(fpp: str):
     """Convert pseudopotential file name to pseudopotential identifier, the one
@@ -200,15 +206,26 @@ def convert_fpp_to_ppid(fpp: str):
         "gth": handle_gth,
         "psl": handle_psl,
         "high_pressure_oncv_upf": handle_20240723,
-        "HGH_NLCC": handle_gth
+        "HGH_NLCC": handle_gth,
+        "Rappe": handle_rappe
     }
+    def psp_name(family, version, appendix):
+        out = ''
+        if family is not None:
+            out += f"{family}"
+        if version is not None:
+            out += f" v{version}"
+        if appendix is not None and len(appendix) > 0:
+            out += f" ({appendix})"
+        return out.replace("v ", "").replace("()", "")
+    
     if not isinstance(fpp, str):
         raise ValueError(f"fpp should be a string: {fpp}")
     print(f"Converting {fpp}")
     for key in func_map:
         if key in fpp:
             elem, family, version, appendix = func_map[key](fpp)
-            return elem, f"{family} v{version} ({appendix})".replace("v ", "").replace("()", "")
+            return elem, psp_name(family, version, appendix)
     RuntimeWarning(f"Unrecognized pseudopotential file: {fpp}")
     return "unknown", fpp
 
@@ -485,6 +502,12 @@ class APNS2UtilsTest(unittest.TestCase):
         self.assertEqual(version, "1.0.0")
         self.assertEqual(appendix, "RRKJUS, fr, spfn")
 
+    def test_handle_rappe(self):
+        fpp = "W.Rappe.PBE.UPF"
+        family, version, appendix = handle_rappe(fpp)
+        self.assertEqual(family, "Rappe")
+        self.assertEqual(version, None)
+        self.assertEqual(appendix, None)
 
 if __name__ == "__main__":
     unittest.main()

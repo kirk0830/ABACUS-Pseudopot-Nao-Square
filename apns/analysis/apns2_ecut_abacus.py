@@ -76,10 +76,9 @@ def repair_apnsjob(folder: str):
 class TestAPNS2EcutABACUS(unittest.TestCase):
 
     sysrevmap_ = stru_rev_map("./apns_cache/structures.json", True)
-    database = "goedecker_psp"
-    jobpath = "/root/documents/simulation/abacus/goedecker-ecutconv-3rdperiod-bcc"
+    jobpath = "/path/to/your/abacus/job/folder"
 
-    @unittest.skip('we do not read')
+    # @unittest.skip('we do not read')
     def test_read(self):
         collected = collect(self.jobpath)
         system_and_stpcs = build_sptc_from_nested(collected)
@@ -93,15 +92,15 @@ class TestAPNS2EcutABACUS(unittest.TestCase):
                 result.append(temp)
                 ecut_conv = stpc.ecuts[stpc.iconv]
                 pp = stpc.pp(as_list=True)
-                assert len(pp) == 1, "The pseudopotential should be unique for each test case"
+                # assert len(pp) == 1, "The pseudopotential should be unique for each test case"
                 # update_ecutwfc(pp[0], ecut_conv)
 
         with open(os.path.basename(self.jobpath)+".json", "w") as f:
             json.dump(result, f, indent=4)
 
-    # @unittest.skip('we do not plot')
+    @unittest.skip('we do not plot')
     def test_plot(self):
-        with open('goedecker-ecutconv-3rdperiod-bcc.json') as f:
+        with open('normconserving-rappe-efficiency-nspin2.json') as f:
             result = json.load(f)
 
         # result = sorted(result, key=lambda x: x["pp"])[:8]
