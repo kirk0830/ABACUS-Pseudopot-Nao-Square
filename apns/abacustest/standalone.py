@@ -540,10 +540,10 @@ if __name__ == '__main__':
     '''
     unittest.main(exit=False)
 
-    jobdir, imag, cmd = init(default_f=f'/path/to/folder',
+    jobdir, imag, cmd = init(default_f='/path/to/folder',
                              default_img='registry.dp.tech/dptech/abacus:3.8.4', # 3.8.3 is the version that FFT is fixed
                              default_cmd='ulimit -c 0; ' 
-                                        + f'OMP_NUM_THREADS=1 mpirun -n 16 abacus | tee out.log')
+                                        + 'OMP_NUM_THREADS=1 mpirun -n 16 abacus | tee out.log')
 
     # now this script can run not only abacus, so the entry here becomes much more
     # general than ever before
