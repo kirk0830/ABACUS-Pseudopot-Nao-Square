@@ -464,17 +464,36 @@ ABACUS_KEYS = {'suffix', 'latname', 'stru_file', 'kpoint_file', 'pseudo_dir',
                'sc_thr', 'nsc', 'nsc_min', 'sc_scf_nmin', 'alpha_trial', 'sccut', 
                'sc_file', 'qo_switch', 'qo_basis', 'qo_thr'}
 
-def init():
+def init(default_f = None, 
+         default_img = None, 
+         default_cmd = None):
     '''
     read the input from command line
+    
+    Parameters
+    ----------
+    default_f : str
+        default folder containing input files, if specified, the value will be used
+        when the user does not specify the folder
+    default_img : str
+        default Bohrium image, if specified, the value will be used when the user
+        does not specify the image
+    default_cmd : str
+        default command to run the job, if specified, the value will be used when
+        the user does not specify the command
+    
+    Returns
+    -------
+    str, str, str
+        folder, image, command
     '''
     parser = argparse.ArgumentParser(description='Submit jobs to Bohrium platform')
-    parser.add_argument('--folder', '-f', default=None, help='Folder containing input files')
-    parser.add_argument('--image', '-i', default=None, help='Image to run the job')
-    parser.add_argument('--command', '-c', default=None, help='Command to run the job')
+    parser.add_argument('--folder', '-f', default=default_f, help='Folder containing input files')
+    parser.add_argument('--image', '-i', default=default_img, help='Image to run the job')
+    parser.add_argument('--command', '-c', default=default_cmd, help='Command to run the job')
     
     args = parser.parse_args()
-    image = IMAGES[args.image] if args.image is not None else None
+    image = IMAGES[args.image] if not args.image.startswith('registry.dp.tech/dptech') else args.image
 
     return args.folder, image, args.command
 
@@ -521,29 +540,16 @@ if __name__ == '__main__':
     '''
     unittest.main(exit=False)
 
-    elem = 'Se'
-    item = 'JYLmaxRcutJointConv' # JYEkinConv or JYLmaxRcutJointConv
-
-    folder_specified_here = f'{item}Test-{elem}'
-
-    image_specified_here = 'registry.dp.tech/dptech/abacus:3.8.4' # 3.8.3 is the version that FFT is fixed
-
-    command_specified_here  = 'ulimit -c 0; '
-    command_specified_here += f'python3 {item}TestDriver.py -i driver.json | tee out.log'
-
-    jobdir, imag, cmd = init()
-
-    jobdir = folder_specified_here if jobdir is None else jobdir
-    imag = image_specified_here if imag is None else imag
-    cmd = command_specified_here if cmd is None else cmd
+    jobdir, imag, cmd = init(default_f='/path/to/folder',
+                             default_img='registry.dp.tech/dptech/abacus:3.8.4', # 3.8.3 is the version that FFT is fixed
+                             default_cmd='ulimit -c 0; ' 
+                                        + 'OMP_NUM_THREADS=1 mpirun -n 16 abacus | tee out.log')
 
     # now this script can run not only abacus, so the entry here becomes much more
     # general than ever before
 
-    _ = general(imag, cmd, {'ncores': 32, 'memory': 128}, 
+    _ = general(imag, cmd, {'ncores': 32, 'memory': 64}, 
                 None, 
                 None, 
                 28682, 
                 jobdir) # the root folder of jobs
-    
-

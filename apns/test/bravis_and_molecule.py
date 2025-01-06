@@ -1039,8 +1039,11 @@ def bravis_sc(kinds: list, celldm: float):
     """
     assert len(kinds) == 1
     import numpy as np
-    return [celldm, celldm, celldm, 90, 90, 90], kinds, kinds, \
-        [0], np.array([[0, 0, 0]])
+    return [celldm, celldm, celldm, 90, 90, 90], \
+           kinds, \
+           kinds, \
+           [0], \
+           np.array([[0, 0, 0]])
 
 def bravis_bcc(kinds: list, celldm: float):
     """build body centered cubic with characteristic length `celldm`
@@ -1056,8 +1059,11 @@ def bravis_bcc(kinds: list, celldm: float):
     """
     assert len(kinds) == 1
     import numpy as np
-    return [celldm, celldm, celldm, 109.4712206, 109.4712206, 109.4712206], kinds, kinds, \
-        [0], np.array([[0, 0, 0]])
+    return [celldm, celldm, celldm, 109.4712206, 109.4712206, 109.4712206], \
+           kinds, \
+           kinds, \
+           [0], \
+           np.array([[0, 0, 0]])
 
 def bravis_fcc(kinds: list, celldm: float):
     """build face centered cubic with characteristic length `celldm`
@@ -1073,8 +1079,11 @@ def bravis_fcc(kinds: list, celldm: float):
     """
     assert len(kinds) == 1
     import numpy as np
-    return [celldm, celldm, celldm, 60.0, 60.0, 60.0], kinds, kinds, \
-        [0], np.array([[0, 0, 0]])
+    return [celldm, celldm, celldm, 60.0, 60.0, 60.0], \
+           kinds, \
+           kinds, \
+           [0], \
+           np.array([[0, 0, 0]])
 
 def bravis_diamond(kinds: list, celldm: float):
     """build diamond with characteristic length `celldm`
@@ -1090,8 +1099,12 @@ def bravis_diamond(kinds: list, celldm: float):
     """
     assert len(kinds) == 1
     import numpy as np
-    return [celldm, celldm, celldm, 60.0, 60.0, 60.0], kinds * 2, kinds, \
-        [0, 0], np.array([[0, 0, 0], [0.25, 0.25, 0.25]])
+    return [celldm, celldm, celldm, 60.0, 60.0, 60.0], \
+           kinds * 2, \
+           kinds, \
+           [0, 0], \
+           np.array([[0.00000, 0.00000, 0.00000], 
+                     [0.25000, 0.25000, 0.25000]])
 
 def bravis_x2y(kinds: list, celldm: float):
     """build X2Y structure with characteristic length `celldm`
@@ -1107,9 +1120,13 @@ def bravis_x2y(kinds: list, celldm: float):
     """
     assert len(kinds) == 2
     import numpy as np
-    return [celldm, celldm, celldm, 60, 60, 60], [kinds[0]]*2 + [kinds[1]], kinds, \
-        [0]*2 + [1]*1, \
-        np.array([[0.75, 0.75, 0.75], [0.25, 0.25, 0.25], [0, 0, 0]])
+    return [celldm, celldm, celldm, 60, 60, 60], \
+           [kinds[0]]*2 + [kinds[1]], \
+           kinds, \
+           [0]*2 + [1]*1, \
+           np.array([[0.25000, 0.25000, 0.25000],
+                     [0.75000, 0.75000, 0.75000],
+                     [0.00000, 0.00000, 0.00000]])
 
 def bravis_x2y3(kinds: list, celldm: float):
     """build X2Y3 structure with characteristic length `celldm`
@@ -1125,12 +1142,20 @@ def bravis_x2y3(kinds: list, celldm: float):
     """
     assert len(kinds) == 2
     import numpy as np
-    return [celldm, celldm, celldm, 90, 90, 90], [kinds[0]]*4 + [kinds[1]]*6, kinds, \
-        [0]*4 + [1]*6, \
-        np.array([[0.25, 0.25, 0.25], [0.75, 0.75, 0.25], [0.75, 0.25, 0.75], 
-                    [0.25, 0.75, 0.75], 
-                    [0.5, 0, 0], [0, 0.5, 0], [0, 0, 0.5], [0.5, 0.5, 0], 
-                    [0.5, 0, 0.5], [0, 0.5, 0.5]])
+    return [celldm, celldm, celldm, 90, 90, 90], \
+           [kinds[0]]*4 + [kinds[1]]*6, \
+           kinds, \
+           [0]*4 + [1]*6, \
+           np.array([[0.25000, 0.25000, 0.25000],
+                     [0.75000, 0.75000, 0.25000],
+                     [0.75000, 0.25000, 0.75000],
+                     [0.25000, 0.75000, 0.75000],
+                     [0.50000, 0.00000, 0.00000],
+                     [0.00000, 0.50000, 0.00000],
+                     [0.00000, 0.00000, 0.50000],
+                     [0.50000, 0.50000, 0.00000],
+                     [0.50000, 0.00000, 0.50000],
+                     [0.00000, 0.50000, 0.50000]])
 
 def bravis_x2y5(kinds: list, celldm: float):
     """build X2Y5 structure with characteristic length `celldm`
@@ -1146,14 +1171,24 @@ def bravis_x2y5(kinds: list, celldm: float):
     """
     assert len(kinds) == 2
     import numpy as np
-    return [celldm, celldm, celldm, 90, 90, 90], [kinds[0]]*4 + [kinds[1]]*10, kinds, \
-        [0]*4 + [1]*10, \
-        np.array([[0.75, 0.75, 0.75], [0.25, 0.25, 0.75], [0.25, 0.75, 0.25],
-                    [0.75, 0.25, 0.25],
-                    [0.25, 0.75, 0.75], [0.75, 0.25, 0.75], [0.75, 0.75, 0.25],
-                    [0.25, 0.25, 0.25], [0.5, 0.5, 0], [0.5, 0, 0.5],
-                    [0, 0.5, 0.5], [0.5, 0, 0], [0, 0.5, 0],
-                    [0, 0, 0.5]])
+    return [celldm, celldm, celldm, 90, 90, 90], \
+           [kinds[0]]*4 + [kinds[1]]*10, \
+           kinds, \
+           [0]*4 + [1]*10, \
+           np.array([[0.00000, 0.00000, 0.00000],
+                     [0.50000, 0.50000, 0.00000],
+                     [0.50000, 0.00000, 0.50000],
+                     [0.00000, 0.50000, 0.50000],
+                     [0.50000, 0.00000, 0.00000],
+                     [0.00000, 0.50000, 0.00000],
+                     [0.00000, 0.00000, 0.50000],
+                     [0.50000, 0.50000, 0.50000],
+                     [0.75000, 0.75000, 0.25000],
+                     [0.75000, 0.25000, 0.75000],
+                     [0.25000, 0.75000, 0.75000],
+                     [0.75000, 0.25000, 0.25000],
+                     [0.25000, 0.75000, 0.25000],
+                     [0.25000, 0.25000, 0.75000]])
 
 def bravis_xy(kinds: list, celldm: float):
     """build XO structure with characteristic length `celldm`
@@ -1169,9 +1204,12 @@ def bravis_xy(kinds: list, celldm: float):
     """
     assert len(kinds) == 2
     import numpy as np
-    return [celldm, celldm, celldm, 60, 60, 60], kinds, kinds, \
-        [0]*1 + [1]*1, \
-        np.array([[0, 0, 0], [0.5, 0.5, 0.5]])
+    return [celldm, celldm, celldm, 60, 60, 60], \
+           kinds, \
+           kinds, \
+           [0]*1 + [1]*1, \
+           np.array([[0.00000, 0.00000, 0.00000],
+                     [0.50000, 0.50000, 0.50000]])
 
 def bravis_xy2(kinds: list, celldm: float):
     """build XO2 structure with characteristic length `celldm`
@@ -1187,9 +1225,13 @@ def bravis_xy2(kinds: list, celldm: float):
     """
     assert len(kinds) == 2
     import numpy as np
-    return [celldm, celldm, celldm, 60, 60, 60], [kinds[0]]*1 + [kinds[1]]*2, kinds, \
-        [0]*1 + [1]*2, \
-        np.array([[0, 0, 0], [0.75, 0.75, 0.75], [0.25, 0.25, 0.25]])
+    return [celldm, celldm, celldm, 60, 60, 60], \
+           [kinds[0]]*1 + [kinds[1]]*2, \
+           kinds, \
+           [0]*1 + [1]*2, \
+           np.array([[0.00000, 0.00000, 0.00000],
+                     [0.25000, 0.25000, 0.25000],
+                     [0.75000, 0.75000, 0.75000]])
 
 def bravis_xy3(kinds: list, celldm: float):
     """build XO3 structure with characteristic length `celldm`
@@ -1204,10 +1246,14 @@ def bravis_xy3(kinds: list, celldm: float):
         coords (np.ndarray): coordinates of atoms
     """
     import numpy as np
-    return [celldm, celldm, celldm, 60, 60, 60], [kinds[0]]*1 + [kinds[1]]*3, kinds, \
-        [0]*1 + [1]*3, \
-        np.array([[0, 0, 0], 
-                    [0.5, 0, 0], [0, 0.5, 0], [0, 0, 0.5]])
+    return [celldm, celldm, celldm, 90, 90, 90], \
+           [kinds[0]]*1 + [kinds[1]]*3, \
+           kinds, \
+           [0]*1 + [1]*3, \
+           np.array([[0.00000, 0.00000, 0.00000],
+                     [0.50000, 0.00000, 0.00000],
+                     [0.00000, 0.50000, 0.00000],
+                     [0.00000, 0.00000, 0.50000]])
 
 def lookup_molecule(molecule: str, bond_length: float, **kwargs):
     """look up the molecule and build the structure

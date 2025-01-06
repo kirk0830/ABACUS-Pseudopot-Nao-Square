@@ -26,7 +26,8 @@
             "cal_stress": 1,
             "nspin": 1,
             "symmetry": 1,
-            "ks_solver": "dav"
+            "ks_solver": "dav",
+            "out_chg": -1
         },
         {
             "ecutwfc": [20, 30, 40, 50, 60, 70, 80, 90, 100, 150, 200],
@@ -34,7 +35,8 @@
             "cal_force": 1,
             "cal_stress": 1,
             "basis_type": "pw",
-            "ks_solver": "cg"
+            "ks_solver": "cg",
+            "out_chg": -1
         },
         {
             "ecutwfc|ecutrho": [[20, 320], [30, 480], [40, 640], [50, 800], [60, 960], [70, 1120], [80, 1280], [90, 1440], [100, 1600], [150, 2400], [200, 3200]],
@@ -44,12 +46,14 @@
             "cal_stress": 1,
             "symmetry": 1,
             "basis_type": "pw",
-            "ks_solver": "dav"
+            "ks_solver": "dav",
+            "out_chg": -1
         },
         {
             "ecutwfc": [30, 40, 50],
             "ecutrho": [300, 400, 500],
-            "calculation": "scf"
+            "calculation": "scf",
+            "out_chg": -1
         }
     ],
     "qespresso": [

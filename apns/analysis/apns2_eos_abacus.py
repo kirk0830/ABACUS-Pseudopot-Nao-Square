@@ -201,4 +201,4 @@ def main(source: str):
     return feos
 
 if __name__ == "__main__":
-    feos = main("/root/documents/simulation/abacus/normconserving-lanthactin-x2y5eos")
+    feos = main("/path/to/your/abacus/job/folder")
