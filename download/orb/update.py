@@ -102,7 +102,7 @@ def _impl(fn_psp_db, fn_orb_db, fn_rules, orbital_dir):
     logging.info(f'Rules loaded from {fn_rules}.')
 
     # load the pseudopotential database
-    search_psp = TagSearcher(fn_psp_db) # read database by opening with TagSearcher
+    psplib = TagSearcher(fn_psp_db) # read database by opening with TagSearcher
     logging.info(f'Pseudopotential database loaded from {fn_psp_db} to APNS-TagSearcher.')
 
     for root, _, files in os.walk(orbital_dir):
@@ -132,7 +132,7 @@ def _impl(fn_psp_db, fn_orb_db, fn_rules, orbital_dir):
                         temp = add.copy()
                     else: # instead, assume the `add` is a list of two lists of tags, the first is the corresponding psp
                         pspt, orbt = add
-                        fupf = search_psp(False, False, elem, *pspt)
+                        fupf = psplib.search(False, False, elem, *pspt)
                         if len(fupf) != 1:
                             errmsg = f'Each orbital file should correspond to ONLY ONE pseudopotential file. Found {len(fupf)} for {elem} with tags {pspt}.'
                             logging.error(errmsg)

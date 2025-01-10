@@ -78,8 +78,8 @@ Numerical atomic orbital tags: {self.naotags}
         import itertools as it
         from os.path import join as pjoin
         from apns.test.tag_search import TagSearcher
-        searcher = TagSearcher(pjoin(self.pseudo_dir, 'database.json'))
-        pps = searcher(False, False, *(list(set(self.pptags + [self.symbol]))))
+        psplib = TagSearcher(pjoin(self.pseudo_dir, 'database.json'))
+        pps = psplib.search(False, False, *(list(set(self.pptags + [self.symbol]))))
         assert len(pps) > 0, f'no pseudopotential found for {self.symbol} with tags {self.pptags}'
 
         from apns.test import database
@@ -96,8 +96,8 @@ Numerical atomic orbital tags: {self.naotags}
             if self.ecut_db is not None:
                 init_set.update({"ecutwfc": self.ecut_db.get(pp, None)})
             if self.orbital_dir is not None and self.naotags is not None:
-                searcher = TagSearcher(pjoin(self.orbital_dir, 'database.json'))
-                naos = searcher(False, False, *(list(set(self.naotags + [pp]))))
+                orblib = TagSearcher(pjoin(self.orbital_dir, 'database.json'))
+                naos = orblib.search(False, False, *(list(set(self.naotags + [pp]))))
                 for pp, nao in it.product(pps, naos):
                     init_set.update({"nao": nao})
                     yield AtomSpecies(**init_set)
