@@ -95,7 +95,8 @@ class TestAPNS2EcutABACUS(unittest.TestCase):
                 
                 # NOTE: for some hard-to-converge cases, other auxillary elements may be
                 #       added to the pseudopotential list. In this case, the number of 
-                #       psp is no longer 1. For this case, comment the following line.
+                #       psp is no longer 1. For this case, comment out the following
+                #       assertion
                 assert len(pp) == 1, "The pseudopotential should be unique for each test case"
 
                 # update the local database if needed.
