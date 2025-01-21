@@ -540,7 +540,7 @@ if __name__ == '__main__':
     '''
     unittest.main(exit=False)
 
-    jobdir, imag, cmd = init(default_f=f'/path/to/folder',
+    jobdir, imag, cmd = init(default_f='/path/to/folder',
                              default_img='registry.dp.tech/dptech/abacus:3.8.4', # 3.8.3 is the version that FFT is fixed
                              default_cmd=' '.join(['ulimit -c 0;',                          # to avoid the core dump
                                                    'OMP_NUM_THREADS=1 mpirun -n 16 abacus', # the command to run the job
