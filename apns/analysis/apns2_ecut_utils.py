@@ -1,3 +1,19 @@
+'''this is a collection of utility functions for ecutwfc convergence test
+'''
+# built-in modules
+import json
+import os
+
+# third-party modules
+import numpy as np
+import matplotlib.pyplot as plt
+
+# local modules
+from apns.analysis.apns1_ecut_abacus import discrete_logplots, shift_lineplots
+from apns.analysis.postprocess.conv.kernel import default_calculator
+from apns.analysis.postprocess.conv.ecutwfc_istate import calculator
+from apns.analysis.apns2_utils import convert_fpp_to_ppid
+
 def build_sptc_from_nested(cases: dict):
     """build instances of EcutSingleCase from a nested dict. Example input:
     ```python
@@ -64,7 +80,6 @@ class EcutSingleCase:
 
     def sort(self):
         """sort the data according to ecutwfc"""
-        import numpy as np
         # sort and remove duplicates
         idx = np.unique(self.ecuts, return_index=True)[1]
         self.ecuts = np.array(self.ecuts)[idx].tolist()
@@ -74,23 +89,23 @@ class EcutSingleCase:
 
     def calc_conv(self, ethr: float = 1e-3, pthr: float = 0.1, bsthr: float = 1e-2):
         """calculate the converged ecutwfc, return the index of the converged ecutwfc"""
-        from apns.analysis.postprocess.conv.kernel import default_calculator
-        from apns.analysis.postprocess.conv.ecutwfc_istate import calculator
+
         energies = [e/self.natom for e in self.energies]
         de = default_calculator(energies, energies[-1])
         dp = default_calculator(self.pressures, self.pressures[-1])
         dbs = calculator(self.istates, self.istates[-1])
         
-        iconv_e = [i for i, e in enumerate(de) if abs(e) <= ethr][0]
-        iconv_p = [i for i, p in enumerate(dp) if abs(p) <= pthr][0]
-        iconv_bs = [i for i, bs in enumerate(dbs) if abs(bs) <= bsthr][0]
-        iconv = max(iconv_e, iconv_p, iconv_bs)
+        iconv = len(self.ecuts) - 1
+        for i, (e, p, bs) in enumerate(zip(de, dp, dbs)):
+            if e <= ethr and p <= pthr and bs <= bsthr:
+                iconv = i
+                break
         self.iconv = iconv
         return {"de": de, "dp": dp, "dbs": dbs, "iconv": iconv, "ecutwfc": self.ecuts, "zvals": self.zvals}
     
     def pp(self, as_list: bool = False):
         """return the pseudopotential string"""
-        from apns.analysis.apns2_utils import convert_fpp_to_ppid
+        
         return self.pps if as_list else "|".join([": ".join(convert_fpp_to_ppid(pp)) for pp in self.pps])
     
     def zval(self, as_list: bool = False):
@@ -102,8 +117,7 @@ class EcutSingleCase:
         return self.pp(), self.calc_conv()
 
 def update_ecutwfc(pp: str, ecutwfc: float, cache_dir: str = "./apns_cache/ecutwfc.json"):
-    import json
-    import os
+
     if os.path.exists(cache_dir):
         with open(cache_dir, "r") as f:
             cache = json.load(f)
@@ -114,8 +128,7 @@ def update_ecutwfc(pp: str, ecutwfc: float, cache_dir: str = "./apns_cache/ecutw
         json.dump(cache, f)
 
 def plot_log(conv_result: dict, figfmt = 'svg'):
-    import matplotlib.pyplot as plt
-    import apns.analysis.apns1_ecut_abacus as apns1plot
+
     plt.rcParams["font.family"] = "Arial"
 
     if figfmt not in ['svg', 'pdf', 'png']:
@@ -142,15 +155,14 @@ def plot_log(conv_result: dict, figfmt = 'svg'):
                          "suptitle": s, 
                          "supcomment": "NOTE: Absence of data points result from SCF convergence failure or walltime limit.",
                          "labels": pps, "fontsize": 22.5}
-        fig, ax = apns1plot.discrete_logplots(xs, ys, **logplot_style)
+        fig, ax = discrete_logplots(xs, ys, **logplot_style)
         plt.savefig(figures[s])
         plt.close()
 
     return figures
 
 def plot_stack(conv_result: dict, figfmt = 'svg'):
-    import matplotlib.pyplot as plt
-    import apns.analysis.apns1_ecut_abacus as apns1plot
+
     plt.rcParams["font.family"] = "Arial"
 
     if figfmt not in ['svg', 'pdf', 'png']:
@@ -185,7 +197,7 @@ Absence of data points result from SCF convergence failure or walltime limit.",
         shift_style = {"shifts": [5, 500, 10], "ld": "pseudopotential",
                        "ysymbols": ["$\Delta E_{KS}$", "$\Delta P$", "$\eta_{all, 00}$"],
                       }
-        fig, ax = apns1plot.shift_lineplots(xs=xs, ys=ys, **shift_style, **lineplot_style, **figure_style)
+        fig, ax = shift_lineplots(xs=xs, ys=ys, **shift_style, **lineplot_style, **figure_style)
         plt.tight_layout()
         plt.savefig(figures[s])
         plt.close()
