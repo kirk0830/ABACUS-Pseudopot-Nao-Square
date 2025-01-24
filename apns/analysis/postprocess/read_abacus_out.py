@@ -340,16 +340,22 @@ def read_etraj_fromlog(flog, unit = "eV", term = "EKS"):
     fermi = ["Fermi", "fermi", "FERMI", "efermi", "EFERMI", "ef"]
     kohnsham = ["KohnSham", "kohnsham", "KOHN", "kohn", "KOHNSHAM", 
                 "ekohnsham", "EKOHN", "EKOHNSHAM", "eks", "EKS", "e", "E", "energy"]
+    final_etot = ["etot", "ETOT", "Etot", "Total", "total", "TOTAL"]
+    
+    i = -1
     if term in harris:
         header = "E_Harris"
     elif term in fermi:
         header = "E_Fermi"
     elif term in kohnsham:
         header = "E_KohnSham"
+    elif term in final_etot:
+        header = "final etot"
+        i = -2
     else:
         raise ValueError("Unknown energy term")
     with open(flog, "r") as f:
-        eners = [float(line.split()[-1]) for line in f.readlines() if line.strip().startswith(header)]
+        eners = [float(line.split()[i]) for line in f.readlines() if line.strip().startswith(header)]
     eners = [unit_conversion(ener, "eV", unit) for ener in eners]
     return np.array(eners, dtype=np.float64)
 

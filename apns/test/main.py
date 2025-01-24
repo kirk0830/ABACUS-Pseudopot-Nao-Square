@@ -1,8 +1,19 @@
+# built-in modules
+import json
+import os
+import itertools as it
+import uuid
+import unittest
+
+# local modules
+import apns.test.citation as amc
+import apns.test.apns_io as apns_io
+import apns.test.dft_param_set as dftparam
+import apns.test.atom_species_and_cell as struparam
+from apns.abacustest.legacy import auto_api
+from apns.test.atom_species_and_cell import AtomSpeciesGeneartor, AtomSpecies, CellGenerator, Cell
+
 def run(finp: str):
-    import json
-    import os
-    import apns.test.citation as amc
-    from apns.abacustest.legacy import auto_api
 
     if not os.path.exists(finp):
         raise FileNotFoundError(f"Input file not found: {finp}")
@@ -19,15 +30,14 @@ def run(finp: str):
 
 def main(inp: dict):
     # then collect structures, update the descriptor in inp
-    import apns.test.apns_io as apns_io
     inp = apns_io.prepare(inp)
     print("* * * Preparation done * * *".center(100, " "))
     # then loop over struset
-    import apns.test.dft_param_set as dftparam
-    import apns.test.atom_species_and_cell as struparam
-    import itertools as it
-    import os
+
     out_dir = inp["global"].get("out_dir", ".")
+    fecut = inp["global"].get("autoset_ecutwfc_from", 
+                              os.path.join(inp["global"].get("cache_dir", "."), 
+                                           "ecutwfc.json"))
     folders = []
     for iset, struset in enumerate(inp["strusets"]):
         software = struset.get("calculator", "abacus")
@@ -49,7 +59,7 @@ Number of structure descriptors: {len(struset["desc"])}
         # connect the asgens with converged ecutwfc (if possible), to support the arg `ecutwfc = "auto"`
         if software == "abacus":
             for asgen in asgens: 
-                asgen.connect_ecut_db(os.path.join(inp["global"].get("cache_dir", "."), "ecutwfc.json"))
+                asgen.connect_ecut_db(fecut)
         # the cell
         for desc in struset["desc"]:
             # first extract the atomspecies that really needed
@@ -69,11 +79,9 @@ Number of structure descriptors: {len(struset["desc"])}
     return folders
 
 def write_and_move(standard_fname_with_contents: dict, cache: dict, out_dir: str):
-    from os import makedirs
-    from os.path import basename
-    import uuid
+
     folder = f"{out_dir}/{str(uuid.uuid4())}"
-    makedirs(folder, exist_ok=True)
+    os.makedirs(folder, exist_ok=True)
     for fname, content in standard_fname_with_contents.items():
         with open(f"{folder}/{fname}", 'w') as f:
             f.write(content)
@@ -84,12 +92,11 @@ def write_and_move(standard_fname_with_contents: dict, cache: dict, out_dir: str
     import shutil
     for as_ in cache["AtomSpecies"]:
         if as_["pp"] is not None:
-            shutil.copy(f"{as_['pp']}", f"{folder}/{basename(as_['pp'])}")
+            shutil.copy(f"{as_['pp']}", f"{folder}/{os.path.basename(as_['pp'])}")
         if as_["nao"] is not None:
-            shutil.copy(f"{as_['nao']}", f"{folder}/{basename(as_['nao'])}")
+            shutil.copy(f"{as_['nao']}", f"{folder}/{os.path.basename(as_['nao'])}")
     return folder
 
-from apns.test.atom_species_and_cell import AtomSpeciesGeneartor, AtomSpecies, Cell
 def bind_atom_species_with_cell(atom_species_generators: list[AtomSpeciesGeneartor], cell: Cell):
     assert all([isinstance(asgen, AtomSpeciesGeneartor) for asgen in atom_species_generators])
     those_wanted = [asgen for asgen in atom_species_generators if asgen.symbol in cell.kinds]
@@ -108,8 +115,7 @@ def write_qespresso(paramset: dict, atomset: list, cell: Cell):
     return {"pwscf.in": write_qespresso_in(paramset, atomset, cell)}
 
 def write_qespresso_in(paramset: dict, atomset: list, cell: Cell):
-    from apns.test.atom_species_and_cell import CellGenerator
-    import os
+
     sections = ["control", "system", "electrons", "ions", "cell"] # seems must be in this order
     nat = len(cell.labels)
     ntyp = len(set(cell.labels))
@@ -164,22 +170,22 @@ def write_abacus_input(paramset: dict):
     return result
 
 def write_abacus_stru(atomset: list[AtomSpecies], cell: Cell):
-    from os.path import basename
+
     result = "ATOMIC_SPECIES\n"
     # need a map from cell.labels to index of AtomSpecies in atomset list!
     temp_ = [a.symbol for a in atomset]
     uniquelabels_atomspecies_map = [temp_.index(cell.kinds[cell.labels_kinds_map[cell.labels.index(ulbl)]]) for ulbl in dict.fromkeys(cell.labels)]
     result += "\n".join([f"{label:<4s} \
-{atomset[uniquelabels_atomspecies_map[il]].mass:<8.4f} {basename(atomset[uniquelabels_atomspecies_map[il]].pp)}" \
+{atomset[uniquelabels_atomspecies_map[il]].mass:<8.4f} {os.path.basename(atomset[uniquelabels_atomspecies_map[il]].pp)}" \
             for il, label in enumerate(dict.fromkeys(cell.labels))])
     
     if not all([as_.nao is None for as_ in atomset]):
         result += "\n\nNUMERICAL_ORBITAL\n"
-        result += "\n".join([f"{basename(atomset[uniquelabels_atomspecies_map[il]].nao)}" for il in range(len(set(cell.labels)))])
+        result += "\n".join([f"{os.path.basename(atomset[uniquelabels_atomspecies_map[il]].nao)}" for il in range(len(set(cell.labels)))])
 
     result += f"\n\nLATTICE_CONSTANT\n{cell.lat0:<20.10f}\n"
     result += "\nLATTICE_VECTORS\n"
-    from apns.test.atom_species_and_cell import CellGenerator
+
     latvec = CellGenerator.abc_angles_to_vec([cell.a, cell.b, cell.c, cell.alpha, cell.beta, cell.gamma], True)
     result += "\n".join([f"{latvec[i][0]:<20.10f} {latvec[i][1]:<20.10f} {latvec[i][2]:<20.10f}" for i in range(3)])
     
@@ -200,7 +206,6 @@ def write_abacus_kpt(cell: Cell):
 {cell.mpmesh_nks[0]} {cell.mpmesh_nks[1]} {cell.mpmesh_nks[2]} 0 0 0"
     return result
 
-import unittest
 class TestExportFunctions(unittest.TestCase):
 
     def test_write_abacus_input(self):
