@@ -18,7 +18,7 @@ def search_istate(search_domain: str):
                 istates.append(istate)
     return path, istates
 
-def calculator(istate, istate_ref):
+def cal_band_diff(istate, istate_ref):
     """istate specific calculator, to pass as argument to amack.calculate
     return one scalar value.
     
@@ -81,7 +81,7 @@ def calculator(istate, istate_ref):
 def run(search_domain: str, thr: float = 1e-2):
     first, second = amack.search(search_domain=search_domain,
                                  searcher=search_istate,
-                                 scalarizer=calculator)
+                                 scalarizer=cal_band_diff)
     conv = amack.calculate(first, second, thr=thr)
     return conv, second
 
@@ -106,7 +106,7 @@ class TestEcutwfcIstate(unittest.TestCase):
         ]]
         istate_1 = np.array(istate_1)
         istate_2 = np.array(istate_2)
-        val = calculator(istate_1, istate_2)
+        val = cal_band_diff(istate_1, istate_2)
         self.assertAlmostEqual(val, 0.0)
         # not identical istate
         istate_2 = [[
@@ -117,7 +117,7 @@ class TestEcutwfcIstate(unittest.TestCase):
                  [2, 0.3, 1.0]]  # ik = 1
           ]]
         istate_2 = np.array(istate_2)
-        val = calculator(istate_1, istate_2)
+        val = cal_band_diff(istate_1, istate_2)
         self.assertGreater(val, 0.0)
 
         # nspin = 2
@@ -151,7 +151,7 @@ class TestEcutwfcIstate(unittest.TestCase):
         ]]
         istate_1 = np.array(istate_1)
         istate_2 = np.array(istate_2)
-        val = calculator(istate_1, istate_2)
+        val = cal_band_diff(istate_1, istate_2)
         self.assertAlmostEqual(val, 0.0)
         # not identical istate
         istate_2 = [[
@@ -169,7 +169,7 @@ class TestEcutwfcIstate(unittest.TestCase):
                  [2, 0.7, 1.0]]  # ik = 1
           ]]
         istate_2 = np.array(istate_2)
-        val = calculator(istate_1, istate_2)
+        val = cal_band_diff(istate_1, istate_2)
         self.assertGreater(val, 0.0)
 
 if __name__ == "__main__":

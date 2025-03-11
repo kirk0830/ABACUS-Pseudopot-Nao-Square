@@ -8,8 +8,8 @@ title: Ag
 <h2>Test information</h2>
 <ul><li>element: Ag</li>
 <li>pseudopotential type: Ag</li>
-<li>DFT XC (exchange-correlation) functional: PBE</li>
-<li>software: ABACUS (version: latest commit)</li></ul><h2>Test results</h2>
+<li>DFT XC (exchange-correlation) functional: Perdew-Burke-Ernzerhof (PBE)</li>
+<li>software: registry.dp.tech/dptech/dp/native/prod-385/abacus-stable:0225</li></ul><h2>Test results</h2>
 <table>
 <tr><td>
 <table class="banner-frame">
@@ -18,8 +18,8 @@ title: Ag
     </tr>
     <tr>
         <td class="banner-body">
-<p align="center"><img src="Ag.svg" class="plain-figure"></p>
-<p align="center"><img src="Ag_logplot.svg" class="plain-figure"></p>
+<p align="center"><img src="../2025-03-11/Ag (mp-8566.cif).svg" class="plain-figure"></p>
+<p align="center"><img src="../2025-03-11/Ag (mp-8566.cif)-logscale.svg" class="plain-figure"></p>
         </td>
     </tr>
 </table></td></tr>

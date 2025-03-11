@@ -10,19 +10,22 @@ import matplotlib.pyplot as plt
 
 # local modules
 from apns.analysis.apns1_ecut_abacus import discrete_logplots, shift_lineplots
-from apns.analysis.postprocess.conv.kernel import default_calculator
-from apns.analysis.postprocess.conv.ecutwfc_istate import calculator
+from apns.analysis.postprocess.conv.kernel import cal_diff
+from apns.analysis.postprocess.conv.ecutwfc_istate import cal_band_diff
 from apns.analysis.apns2_utils import convert_fpp_to_ppid
 
 def build_sptc_from_nested(cases: dict):
-    """build instances of EcutSingleCase from a nested dict. Example input:
+    """build instances of KineticEnergyCutoffTestCase from a nested dict. Example input:
     ```python
     cases = {
         "mp-1234.cif": {
-            "ppcases": [["Ag.pbe-spn-rrkjus_psl.0.2.3-tot.UPF", "O.pbe-n-rrkjus_psl.0.2.3-tot.UPF"],
-                        ["Ag_ONCV_PBE-1.0_fr.upf", "O_ONCV_PBE-1.0_fr.upf"]],
+            "ppcases": [["Ag.pbe-spn-rrkjus_psl.0.2.3-tot.UPF", 
+                         "O.pbe-n-rrkjus_psl.0.2.3-tot.UPF"],
+                        ["Ag_ONCV_PBE-1.0_fr.upf", 
+                         "O_ONCV_PBE-1.0_fr.upf"]],
             "pptests": [
-                [{"ecutwfc": 30, "eks": -1.0, "pressure": 0.0, "istate": 0.0, "natom": 1, "z_valence": [11, 6]},
+                [{"ecutwfc": 30, 
+                  "eks": -1.0, "pressure": 0.0, "istate": 0.0, "natom": 1, "z_valence": [11, 6]},
                  {"ecutwfc": 40, "eks": -2.0, "pressure": 0.0, "istate": 0.0, "natom": 1, "z_valence": [11, 6]},
                  {"ecutwfc": 50, "eks": -3.0, "pressure": 0.0, "istate": 0.0, "natom": 1, "z_valence": [11, 6]}]
                 [{"ecutwfc": 40, "eks": -1.0, "pressure": 0.0, "istate": 0.0, "natom": 1, "z_valence": [11, 6]},
@@ -33,18 +36,18 @@ def build_sptc_from_nested(cases: dict):
         "mp-5678.cif": {...}
     }
     ```
-    This function will return a dict whose keys are different systems, and values are lists of EcutSingleCase instances.
+    This function will return a dict whose keys are different systems, and values are lists of KineticEnergyCutoffTestCase instances.
     Each instance represents a pseudopotential test case for a specific system."""
     result = {}
     for system, data in cases.items():
         ppcases = data["ppcases"]
         for ipt, pptests in enumerate(data["pptests"]):
             pps = ppcases[ipt]
-            sptc = EcutSingleCase(system, pps, pptests)
+            sptc = KineticEnergyCutoffTestCase(system, pps, pptests)
             result.setdefault(system, []).append(sptc)
     return result
 
-class EcutSingleCase:
+class KineticEnergyCutoffTestCase:
     """Definition: A single case in ecutwfc convergence test is:
     1. one system
     2. many ecutwfc
@@ -91,17 +94,33 @@ class EcutSingleCase:
         """calculate the converged ecutwfc, return the index of the converged ecutwfc"""
 
         energies = [e/self.natom for e in self.energies]
-        de = default_calculator(energies, energies[-1])
-        dp = default_calculator(self.pressures, self.pressures[-1])
-        dbs = calculator(self.istates, self.istates[-1])
+        de = cal_diff(energies, energies[-1])
+        dp = cal_diff(self.pressures, self.pressures[-1])
+        dbs = cal_band_diff(self.istates, self.istates[-1])
+        assert len(de) == len(dp) == len(dbs) == len(self.ecuts), \
+            "The length of the calculated differences should be the same as the number of ecutwfc tests"
         
-        iconv = len(self.ecuts) - 1
-        for i, (e, p, bs) in enumerate(zip(de, dp, dbs)):
-            if e <= ethr and p <= pthr and bs <= bsthr:
-                iconv = i
+        def is_converged(diff, thr):
+            return abs(diff) <= thr
+        
+        i = len(self.ecuts) - 1
+        while i > 0:
+            if is_converged(de[i], ethr) and \
+               is_converged(dp[i], pthr) and \
+               is_converged(dbs[i], bsthr):
+                i -= 1 # the safest search is to start from the last one
+            else:
                 break
-        self.iconv = iconv
-        return {"de": de, "dp": dp, "dbs": dbs, "iconv": iconv, "ecutwfc": self.ecuts, "zvals": self.zvals}
+        if i + 1 == len(self.ecuts):
+            print(f"WARNING: The convergence test for {self.system} with pseudopotential {self.pp()} is not converged.")
+
+        self.iconv = i + 1
+        return {"de": de, 
+                "dp": dp, 
+                "dbs": dbs, 
+                "iconv": i + 1,
+                "ecutwfc": self.ecuts, 
+                "zvals": self.zvals}
     
     def pp(self, as_list: bool = False):
         """return the pseudopotential string"""
@@ -127,12 +146,12 @@ def update_ecutwfc(pp: str, ecutwfc: float, cache_dir: str = "./apns_cache/ecutw
     with open(cache_dir, "w") as f:
         json.dump(cache, f)
 
-def plot_log(conv_result: dict, figfmt = 'svg'):
+def plot_log(conv_result: dict, fmt = 'svg'):
 
     plt.rcParams["font.family"] = "Arial"
 
-    if figfmt not in ['svg', 'pdf', 'png']:
-        raise ValueError("figfmt should be one of 'svg', 'pdf', 'png'")
+    if fmt not in ['svg', 'pdf', 'png']:
+        raise ValueError("fmt should be one of 'svg', 'pdf', 'png'")
     # merge again that indexed like [system][pps]
     merged = {}
     
@@ -140,12 +159,16 @@ def plot_log(conv_result: dict, figfmt = 'svg'):
         system = result["name"]
         pps = result["pp"]
         merged.setdefault(system, {})[pps] = result
-    figures = {s: f"{s}-logscale.{figfmt}" for s in merged.keys()}
+    
+    figures = {s: f"{s}-logscale.{fmt}" for s in merged.keys()}
     for s, r in merged.items(): # s stands for system and r stands for result
         # result would be dict indexed by different pps
         pps = list(r.keys())
-        xs = [[r[pp]["ecutwfc"] for pp in pps], [r[pp]["ecutwfc"] for pp in pps], [r[pp]["ecutwfc"] for pp in pps]]
-        ys = [[r[pp]["de"] for pp in pps], [r[pp]["dp"] for pp in pps], [r[pp]["dbs"] for pp in pps]]
+        pps.sort(key=lambda x: x.split(': ')[-1])
+        xs = [[r[pp]["ecutwfc"] for pp in pps]]*3
+        ys = [[r[pp]["de"] for pp in pps], 
+              [r[pp]["dp"] for pp in pps], 
+              [r[pp]["dbs"] for pp in pps]]
         logplot_style = {"highlight_ys": [1e-3, 0.1, 1e-2], "nrows": 1, 
                          "xtitle": "Planewave kinetic energy cutoff (ecutwfc, in Ry)", 
                          "ytitle": ["Absolute Kohn-Sham energy difference per atom (eV)", 
@@ -179,6 +202,7 @@ def plot_stack(conv_result: dict, figfmt = 'svg'):
     figure_style = {"figsize": (20, 10)}
     for s, r in merged.items(): # s stands for system and r stands for result
         pps = list(r.keys())
+        pps.sort(key=lambda x: x.split(': ')[-1])
         xs = [[r[pp]["ecutwfc"]]*3 for pp in pps]
         ys = [[r[pp]["de"], r[pp]["dp"], r[pp]["dbs"]] for pp in pps]
         lineplot_style = {"highlight_xs": [(pp, r[pp]["ecutwfc"][r[pp]["iconv"]]) for pp in pps], "ncols": 1, 

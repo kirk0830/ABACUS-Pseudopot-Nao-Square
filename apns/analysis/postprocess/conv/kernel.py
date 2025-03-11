@@ -2,7 +2,7 @@ import apns.analysis.postprocess.read_abacus_out as amarao
 import numpy as np
 import os
 
-def default_calculator(val, val_ref):
+def cal_diff(val, val_ref):
     """a default calculator, to pass as argument to amack.calculate,
     if no calculator is provided"""
     if isinstance(val, list):
@@ -92,7 +92,7 @@ def search(search_domain: str, searcher: callable, scalarizer: callable = None):
         second[i][1] = list(second[i][1])
 
     # normalize data
-    scalarizer = default_calculator if scalarizer is None else scalarizer
+    scalarizer = cal_diff if scalarizer is None else scalarizer
     for i in range(len(second)): # loop over all (s, m, p)...
         # normalize the energy to the last value
         second[i][1] = scalarizer(second[i][1], second[i][1][-1])

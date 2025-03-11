@@ -8,7 +8,7 @@ title: Mn
 <h2>Test information</h2>
 <ul><li>element: Mn</li>
 <li>pseudopotential type: Mn</li>
-<li>DFT XC (exchange-correlation) functional: PBE</li>
+<li>DFT XC (exchange-correlation) functional: Perdew-Burke-Ernzerhof (PBE)</li>
 <li>software: ABACUS (version: latest commit)</li></ul><h2>Test results</h2>
 <table>
 <tr><td>
