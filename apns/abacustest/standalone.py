@@ -1,4 +1,3 @@
-      
 '''
 an individual interface to abacus-test Python package
 '''
@@ -97,23 +96,22 @@ def _bohrium_credential(**kwargs):
     export BOHRIUM_PROJECT_ID=<bohrium-project-id>
     ```
     '''
-    # if kwargs is empty, return an empty dictionary
-    if not kwargs:
-        return {}
-    # if there are already set environment variables, return an empty dictionary
-    if {'BOHRIUM_USERNAME', 'BOHRIUM_PASSWORD', 'BOHRIUM_PROJECT_ID'}.issubset(os.environ.keys()):
-        return {} # abacustest will read from environment variables, dont worry
-    
-    print('Warning: the password is stored in plain text, please use environment variables instead!')
-    username = kwargs.get('bohrium.account', None)
-    password = kwargs.get('bohrium.password', None)
-    project_id = kwargs.get('project_id', None)
-    assert username and password and project_id, 'Please provide Bohrium username, password, and project id.'
-    return {
-        'bohrium_username': username,
-        'bohrium_password': password,
-        'bohrium_project_id': project_id
-    }
+    temp = kwargs.get('bohrium_username', None)
+    assert temp or os.environ.get('BOHRIUM_USERNAME', None), 'Please provide Bohrium username.'
+    if temp is not None:
+        print(f'overwrite envar `BOHRIUM_USERNAME` with {temp}')
+        os.environ['BOHRIUM_USERNAME'] = str(temp)
+    temp = kwargs.get('bohrium_password', None)
+    assert temp or os.environ.get('BOHRIUM_PASSWORD', None), 'Please provide Bohrium password.'
+    if temp is not None:
+        print('overwrited envar `BOHRIUM_PASSWORD`.') # for security reason, do not print the password
+        os.environ['BOHRIUM_PASSWORD'] = str(temp)
+    temp = kwargs.get('bohrium_project_id', None)
+    assert temp or os.environ.get('BOHRIUM_PROJECT_ID', None), 'Please provide Bohrium project id.'
+    if temp is not None:
+        print(f'overwrited envar `BOHRIUM_PROJECT_ID` with {temp}')
+        os.environ['BOHRIUM_PROJECT_ID'] = str(temp)
+    return {} # let abacus-test directly read the environment variables
 
 def _bohrium_machine(ncores: int, memory: float, device: str, supplier: str):
     '''Configure Bohrium machine information
@@ -225,9 +223,9 @@ def _setup_dft(**kwargs):
     example = kwargs.get('job_folders', [])
     print('Presently the key `outputs` is deprecated due to imcompleted implementation of the feature of abacustest.')
     machine = _bohrium_machine(kwargs.get('ncores', 16), 
-                              kwargs.get('memory', 32), 
-                              'cpu', 
-                              'ali') if 'ncores' in kwargs.keys() or 'memory' in kwargs.keys() else None
+                               kwargs.get('memory', 32), 
+                               'cpu', 
+                               'paratera') if 'ncores' in kwargs.keys() or 'memory' in kwargs.keys() else None
     # rundft specific
     group_size = kwargs.get('njobs_node', 1) # rundft specific
 
@@ -326,7 +324,7 @@ def _abacustest_submit_kernel_impl(abacustest_param: dict) -> str:
     folder = abacustest_param.get('save_path', 'result')
     flog = fparam.rsplit('.', 1)[0] + '.log'
     os.system(f'nohup abacustest submit -p {fparam} > {flog}&')
-    print(f'Job submitted, log file is {flog}, results will be downloaded into the specified folder')
+    print(f'Job submitted, log file is {flog}, results will be downloaded into {folder}')
     return folder
 
 def abacus(usr, 
@@ -374,11 +372,12 @@ def abacus(usr,
                 'ncores': ncores, 'memory': mem}]
     
     jobgroup = f'apns_{time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime())}'
-    fparam = _write_abacustest_param(jobgroup_name=jobgroup, 
-                            bohrium_login={'bohrium.account': usr, 
-                                           'bohrium.password': pwd, 
-                                           'project_id': projid}, 
-                            rundft=run_dft)
+    fparam = _write_abacustest_param(
+        jobgroup_name=jobgroup, 
+        bohrium_login={'bohrium_account': usr, 
+                       'bohrium_password': pwd, 
+                       'bohrium_project_id': projid}, 
+        rundft=run_dft)
     result_folder = _abacustest_submit_kernel_impl(fparam)
     return result_folder
 
@@ -464,36 +463,17 @@ ABACUS_KEYS = {'suffix', 'latname', 'stru_file', 'kpoint_file', 'pseudo_dir',
                'sc_thr', 'nsc', 'nsc_min', 'sc_scf_nmin', 'alpha_trial', 'sccut', 
                'sc_file', 'qo_switch', 'qo_basis', 'qo_thr'}
 
-def init(default_f = None, 
-         default_img = None, 
-         default_cmd = None):
+def init():
     '''
     read the input from command line
-    
-    Parameters
-    ----------
-    default_f : str
-        default folder containing input files, if specified, the value will be used
-        when the user does not specify the folder
-    default_img : str
-        default Bohrium image, if specified, the value will be used when the user
-        does not specify the image
-    default_cmd : str
-        default command to run the job, if specified, the value will be used when
-        the user does not specify the command
-    
-    Returns
-    -------
-    str, str, str
-        folder, image, command
     '''
     parser = argparse.ArgumentParser(description='Submit jobs to Bohrium platform')
-    parser.add_argument('--folder', '-f', default=default_f, help='Folder containing input files')
-    parser.add_argument('--image', '-i', default=default_img, help='Image to run the job')
-    parser.add_argument('--command', '-c', default=default_cmd, help='Command to run the job')
+    parser.add_argument('--folder', '-f', default=None, help='Folder containing input files')
+    parser.add_argument('--image', '-i', default=None, help='Image to run the job')
+    parser.add_argument('--command', '-c', default=None, help='Command to run the job')
     
     args = parser.parse_args()
-    image = IMAGES[args.image] if not args.image.startswith('registry.dp.tech/dptech') else args.image
+    image = IMAGES[args.image] if args.image is not None else None
 
     return args.folder, image, args.command
 
@@ -512,9 +492,9 @@ def general(image, command, machine, usr, pwd, projid, jobroot):
     
     jobgroup = f'apns_{time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime())}'
     fparam = _write_abacustest_param(jobgroup_name=jobgroup,
-                                     bohrium_login={'bohrium.account': usr, 
-                                                    'bohrium.password': pwd, 
-                                                    'project_id': projid},
+                                     bohrium_login={'bohrium_account': usr, 
+                                                    'bohrium_password': pwd, 
+                                                    'bohrium_project_id': projid},
                                      rundft=run_dft)
     result_folder = _abacustest_submit_kernel_impl(fparam)
     os.chdir(cwd)
@@ -540,17 +520,25 @@ if __name__ == '__main__':
     '''
     unittest.main(exit=False)
 
-    jobdir, imag, cmd = init(default_f='/path/to/folder',
-                             default_img='registry.dp.tech/dptech/abacus:3.8.4', # 3.8.3 is the version that FFT is fixed
-                             default_cmd=' '.join(['ulimit -c 0;',                          # to avoid the core dump
-                                                   'OMP_NUM_THREADS=1 mpirun -n 16 abacus', # the command to run the job
-                                                   '|',                                     # pipe...
-                                                   'tee out.log']))                         # save the output to a file
+    folder_specified_here = f'/path/to/folder'
+
+    image_specified_here = 'registry.dp.tech/dptech/dp/native/prod-385/abacus-stable:0225' # 3.8.3 is the version that FFT is fixed
+
+    command_specified_here  = 'ulimit -c 0; '
+    command_specified_here += f'OMP_NUM_THREADS=1 mpirun -np 2 abacus | tee out.log'
+
+    jobdir, imag, cmd = init()
+
+    jobdir = folder_specified_here if jobdir is None else jobdir
+    imag = image_specified_here if imag is None else imag
+    cmd = command_specified_here if cmd is None else cmd
 
     # now this script can run not only abacus, so the entry here becomes much more
     # general than ever before
-    _ = general(imag, cmd, {'ncores': 32, 'memory': 64}, 
+
+    _ = general(imag, cmd, {'ncores': 2, 'memory': 16}, 
                 None, 
                 None, 
-                28682, 
+                'your-bohrium-project-id', 
                 jobdir) # the root folder of jobs
+    
