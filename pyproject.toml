@@ -3,11 +3,11 @@ requires = ["setuptools", "wheel"]
 
 [project]
 name = "apns"
-version = "0.0.2"
+version = "2.0.0"
 description = "ABACUS-Pseudopot-Nao-Square: for ABACUS calculation with higher efficiency and precision"
 readme = "README.md"
 authors = [
-    {name = "Yike HUANG", email = "huangyk@aici.ac.cn"},
+    {name = "Yike HUANG", email = "yike.huang@aliyun.com"},
 ]
 requires-python = ">=3.7"
 classifiers = [

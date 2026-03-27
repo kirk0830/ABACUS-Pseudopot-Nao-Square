@@ -16,7 +16,7 @@ install_requires=["mp_api",
 setuptools.setup(
     name="apns",
     author="Yike HUANG",
-    author_email="huangyk@aici.ac.cn",
+    author_email="yike.huang@aliyun.com",
     description="ABACUS-Pseudopot-Nao-Square: for ABACUS calculation with higher efficiency and precision",
     long_description=readme,
     long_description_content_type="text/markdown",
@@ -27,5 +27,5 @@ setuptools.setup(
     ],
     install_requires=install_requires,
     python_requires=">=3.7",
-    version="2.0.0 (alpha)"
+    version="2.0.0"
 )
